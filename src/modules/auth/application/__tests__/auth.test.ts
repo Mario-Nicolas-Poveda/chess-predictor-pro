@@ -3,6 +3,7 @@ import type { AuthUser } from '../../domain/AuthUser';
 import type { AuthUserRepository } from '../../domain/AuthUserRepository';
 import type { PasswordHasher } from '../../domain/PasswordHasher';
 import { LoginUser } from '../LoginUser';
+import { LoginWithGoogle } from '../LoginWithGoogle';
 import { RegisterUser } from '../RegisterUser';
 
 // búsqueda sin distinguir mayúsculas, como el ilike del repositorio Supabase
@@ -19,7 +20,10 @@ class MemoryRepo implements AuthUserRepository {
     this.users.push(u);
     return u;
   }
-  async linkGoogle() {}
+  async linkGoogle(id: string, g: string) {
+    const u = this.users.find(x => x.id === id);
+    if (u) u.googleId = g;
+  }
 }
 const fakeHasher: PasswordHasher = {
   hash: async p => `hashed:${p}`,
@@ -72,5 +76,38 @@ describe('LoginUser', () => {
     await repo.create({ email: 'g@test.dev', username: 'gina', passwordHash: null, authProvider: 'google', googleId: 'g-1' });
     await expect(new LoginUser(repo, fakeHasher).execute({ email: 'g@test.dev', password: 'cualquiera1' }))
       .rejects.toMatchObject({ code: 'INVALID_CREDENTIALS', status: 401 });
+  });
+});
+
+describe('LoginWithGoogle', () => {
+  const google = { sub: 'g-123', email: 'Ana.Maria+chess@gmail.com', email_verified: true,
+    name: 'Ana María', picture: 'https://lh3.googleusercontent.com/a/foto' };
+
+  it('usuario nuevo: crea cuenta Google sin clave, con username limpio + 4 dígitos', async () => {
+    const user = await new LoginWithGoogle(repo, () => '0042').execute(google);
+    expect(user).toMatchObject({ email: 'ana.maria+chess@gmail.com', username: 'anamariachess0042' });
+    expect(repo.users[0]).toMatchObject({ authProvider: 'google', googleId: 'g-123', passwordHash: null });
+  });
+
+  it('si el username generado choca, prueba otro', async () => {
+    await repo.create({ email: 'x@test.dev', username: 'anamariachess0001', passwordHash: null, authProvider: 'local' });
+    const suffixes = ['0001', '0002'];
+    const user = await new LoginWithGoogle(repo, () => suffixes.shift() ?? '9999').execute(google);
+    expect(user.username).toBe('anamariachess0002');
+  });
+
+  it('cuenta local con el mismo correo: la vincula a Google en vez de duplicarla', async () => {
+    await new RegisterUser(repo, fakeHasher).execute({ email: 'ana.maria+chess@gmail.com', username: 'ana', password: 'Clave1234' });
+    const user = await new LoginWithGoogle(repo).execute(google);
+    expect(user.username).toBe('ana');
+    expect(repo.users).toHaveLength(1);
+    expect(repo.users[0]?.googleId).toBe('g-123');
+  });
+
+  it('ya entró antes con Google: devuelve la misma cuenta', async () => {
+    const first = await new LoginWithGoogle(repo, () => '0042').execute(google);
+    const again = await new LoginWithGoogle(repo, () => '9999').execute({ ...google, email: 'otro@gmail.com' });
+    expect(again).toEqual(first);
+    expect(repo.users).toHaveLength(1);
   });
 });

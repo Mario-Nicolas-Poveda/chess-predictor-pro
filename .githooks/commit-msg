@@ -1,0 +1,5 @@
+#!/bin/sh
+if grep -qiE 'co-authored-by:.*(claude|anthropic)|generated with \[?claude' "$1"; then
+  echo "✖ El mensaje tiene atribución a Claude. Quítala y vuelve a intentar." >&2
+  exit 1
+fi

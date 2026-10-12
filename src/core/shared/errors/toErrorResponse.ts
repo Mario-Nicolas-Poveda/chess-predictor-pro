@@ -1,8 +1,11 @@
+import { unstable_rethrow } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
 import { AppError } from './AppError';
 
 export function toErrorResponse(e: unknown) {
+  // deja pasar los errores internos de Next (p. ej. el que marca la ruta como dinámica en el build)
+  unstable_rethrow(e);
   if (e instanceof ZodError)
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos',
       fields: z.flattenError(e).fieldErrors } }, { status: 400 });

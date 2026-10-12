@@ -7,8 +7,8 @@ import { registerUser } from '@/modules/auth/presentation/controllers/container'
 
 export async function POST(req: NextRequest) {
   try {
-    // JSON mal formado → {} → 400 VALIDATION_ERROR en vez de 500
-    const user = await registerUser.execute(RegisterSchema.parse(await req.json().catch(() => ({}))));
+    // JSON mal formado → null → 400 VALIDATION_ERROR en vez de 500
+    const user = await registerUser.execute(RegisterSchema.parse(await req.json().catch(() => null)));
     const res = NextResponse.json({ user }, { status: 201 });
     setSessionCookie(res, await signToken({ userId: user.id, username: user.username }));
     return res;

@@ -7,7 +7,7 @@ import { loginUser } from '@/modules/auth/presentation/controllers/container';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await loginUser.execute(LoginSchema.parse(await req.json().catch(() => ({}))));
+    const user = await loginUser.execute(LoginSchema.parse(await req.json().catch(() => null)));
     const res = NextResponse.json({ user }, { status: 200 });
     setSessionCookie(res, await signToken({ userId: user.id, username: user.username }));
     return res;

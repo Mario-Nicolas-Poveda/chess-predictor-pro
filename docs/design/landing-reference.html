@@ -1,0 +1,533 @@
+<title>Chess Predictor Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a fixed 3D stage flown by scroll; one chapter of copy at a time, bottom-left, like captions on a film. */
+:root{
+  color-scheme: dark;
+  --night:#100c09;
+  --umber:#241910;
+  --ivory:#efe5d2;
+  --mist:rgba(239,229,210,.70);
+  --faint:rgba(239,229,210,.42);
+  --line:rgba(239,229,210,.16);
+  --brass:#d29c55;
+  --brass-ink:#1b1209;
+  --display:'Bodoni Moda', Didot, 'Bodoni 72', Georgia, serif;
+  --body:'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+html,body{background:var(--night);color:var(--ivory)}
+body{font-family:var(--body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+.veil{position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(90% 75% at 0% 100%, rgba(16,12,9,.93) 0%, rgba(16,12,9,.6) 42%, rgba(16,12,9,0) 72%),
+    radial-gradient(140% 120% at 55% 45%, rgba(8,6,4,0) 50%, rgba(8,6,4,.75) 100%);}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:28px;
+  padding:calc(env(safe-area-inset-top,0px) + 18px) clamp(16px,4.5vw,64px) 18px}
+.brand{display:flex;align-items:baseline;gap:10px;color:var(--ivory);text-decoration:none;font-family:var(--display);font-size:20px;letter-spacing:.01em;white-space:nowrap}
+.brand b{font-weight:400;font-style:italic;color:var(--brass)}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0}
+.nav a.link{color:var(--faint);text-decoration:none;font-size:13px;letter-spacing:.04em;transition:color .2s}
+.nav a.link:hover,.nav a.link[aria-current="true"]{color:var(--ivory)}
+.pill{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:var(--brass);color:var(--brass-ink);
+  border:0;border-radius:999px;padding:9px 18px;font:600 13px/1 var(--body);letter-spacing:.02em;text-decoration:none;cursor:pointer;transition:transform .2s, background .2s}
+.pill:hover{background:#e2ae68;transform:translateY(-1px)}
+.pill.ghost{background:transparent;color:var(--ivory);box-shadow:inset 0 0 0 1px var(--line)}
+.pill.ghost:hover{box-shadow:inset 0 0 0 1px var(--faint);background:transparent}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+/* chapters */
+.chapters{position:fixed;z-index:4;left:clamp(16px,5vw,76px);bottom:clamp(28px,9vh,92px);width:min(31rem, calc(100vw - 32px))}
+.chapter{position:absolute;left:0;bottom:0;width:100%;opacity:0;visibility:hidden;will-change:opacity,transform}
+.chapter.first{opacity:1;visibility:visible}
+.eyebrow{display:flex;gap:12px;align-items:center;font:500 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin:0 0 18px}
+.eyebrow span{color:var(--faint)}
+.chapter h1,.chapter h2{font-family:var(--display);font-weight:400;letter-spacing:-.01em;line-height:1.04;margin:0 0 16px;text-wrap:balance}
+.chapter h1{font-size:clamp(2.4rem,5.2vw,4.1rem)}
+.chapter h2{font-size:clamp(2rem,3.9vw,3.1rem)}
+.chapter h1 em,.chapter h2 em{color:var(--brass)}
+.chapter p{color:var(--mist);margin:0 0 18px;max-width:27rem}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.hint{display:flex;align-items:center;gap:12px;margin-top:26px;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.hint i{display:block;width:44px;height:1px;background:var(--line);position:relative;overflow:hidden}
+.hint i::after{content:"";position:absolute;inset:0;width:40%;background:var(--brass);animation:sweep 2.2s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+
+/* move list */
+.moves{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 18px;margin:4px 0 0;padding:14px 0 0;border-top:1px solid var(--line);font:400 14px/1.4 var(--mono);max-width:17rem;font-variant-numeric:tabular-nums}
+.moves .n{color:var(--faint)}
+.moves [data-ply]{color:var(--faint);transition:color .25s}
+.moves [data-ply].played{color:var(--ivory)}
+.moves [data-ply].now{color:var(--brass)}
+
+/* candidate moves */
+.cands{display:grid;gap:10px;margin:4px 0 10px;padding:14px 0 0;border-top:1px solid var(--line);max-width:22rem}
+.cand{display:grid;grid-template-columns:4.6rem 1fr 2.8rem;align-items:center;gap:12px;font:400 14px/1 var(--mono);font-variant-numeric:tabular-nums}
+.cand .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.cand .bar i{display:block;height:100%;background:var(--brass);transform-origin:left;transform:scaleX(var(--w,0))}
+.cand .pct{text-align:right;color:var(--mist)}
+.note{font:400 11px/1.4 var(--mono);letter-spacing:.06em;color:var(--faint)}
+
+.quote{margin:0 0 14px;padding:2px 0 2px 16px;border-left:1px solid var(--brass);font-family:var(--display);font-style:italic;font-size:1.15rem;line-height:1.45;color:var(--ivory);max-width:26rem}
+
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 20px;padding:14px 0 0;border-top:1px solid var(--line);list-style:none}
+.facts li{font:400 12px/1.3 var(--mono);letter-spacing:.06em;color:var(--mist)}
+
+/* progress rail */
+.rail{position:fixed;z-index:4;right:clamp(16px,3vw,40px);top:50%;transform:translateY(-50%);display:grid;gap:14px;list-style:none;margin:0;padding:0}
+.rail button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:transparent;transition:color .25s}
+.rail button::after{content:"";width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--faint);transition:background .25s, box-shadow .25s}
+.rail button:hover{color:var(--faint)}
+.rail button.on{color:var(--mist)}
+.rail button.on::after{background:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+
+.spacer{height:820vh}
+
+@media (max-width:820px){
+  .nav ul{display:none}
+  .rail{display:none}
+  .veil{background:
+    linear-gradient(to top, rgba(16,12,9,.94) 0%, rgba(16,12,9,.7) 34%, rgba(16,12,9,0) 62%),
+    radial-gradient(140% 120% at 50% 40%, rgba(8,6,4,0) 50%, rgba(8,6,4,.7) 100%);}
+  .chapters{left:16px;width:calc(100vw - 32px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}
+  .chapter h1{font-size:2.35rem}
+  .chapter h2{font-size:1.95rem}
+  .chapter p{font-size:14px}
+  .hint{margin-top:16px}
+}
+@media (max-width:420px){ .brand{font-size:17px} .pill{padding:8px 14px} }
+
+/* fallback when WebGL is unavailable: plain readable page */
+body.static #stage,body.static .veil,body.static .rail,body.static .spacer{display:none}
+body.static .chapters{position:static;width:auto;padding:110px clamp(16px,5vw,76px) 60px;display:grid;gap:64px}
+body.static .chapter{position:static;opacity:1;visibility:visible}
+</style>
+
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="veil"></div>
+
+<header class="nav">
+  <a class="brand" href="#" data-goto="0">Chess Predictor <b>Pro</b></a>
+  <ul>
+    <li><a class="link" href="#arena" data-goto="0.19">Arena</a></li>
+    <li><a class="link" href="#ia" data-goto="0.47">Contra la IA</a></li>
+    <li><a class="link" href="#prediccion" data-goto="0.665">Predicción</a></li>
+    <li><a class="link" href="#coach" data-goto="0.81">Coach</a></li>
+    <li><a class="link" href="#torneos" data-goto="1">Torneos</a></li>
+  </ul>
+  <a class="pill" href="#torneos" data-goto="1">Jugar ahora</a>
+</header>
+
+<div class="chapters">
+  <section class="chapter first" id="inicio" data-in="0" data-out="0.075">
+    <p class="eyebrow">Ajedrez en línea <span>con inteligencia artificial</span></p>
+    <h1>Ve tu próxima jugada <em>antes</em> de hacerla.</h1>
+    <p>Juega contra personas o contra el motor, consulta qué jugada es más probable en cada posición y recibe el análisis de tus partidas.</p>
+    <div class="actions">
+      <a class="pill" href="#torneos" data-goto="1">Crear cuenta</a>
+      <a class="pill ghost" href="#arena" data-goto="0.19">Ver el recorrido</a>
+    </div>
+    <div class="hint"><i></i>Desliza para recorrer el tablero</div>
+  </section>
+
+  <section class="chapter" id="arena" data-in="0.14" data-out="0.245">
+    <p class="eyebrow">Arena <span>Partidas en tiempo real</span></p>
+    <h2>Rivales de tu nivel, en la misma mesa en segundos.</h2>
+    <p>El emparejamiento busca a alguien con un ELO cercano al tuyo. Cada movimiento se valida en el servidor y la partida queda guardada en tu historial.</p>
+  </section>
+
+  <section class="chapter" id="ia" data-in="0.32" data-out="0.545">
+    <p class="eyebrow">Contra la IA <span>Apertura Italiana</span></p>
+    <h2>El motor responde a cada jugada.</h2>
+    <p>Elige la dificultad y juega a tu ritmo. Sigue desplazándote para ver la apertura.</p>
+    <div class="moves" aria-label="Jugadas de la apertura">
+      <span class="n">1.</span><span data-ply="0">e4</span><span data-ply="1">e5</span>
+      <span class="n">2.</span><span data-ply="2">Cf3</span><span data-ply="3">Cc6</span>
+      <span class="n">3.</span><span data-ply="4">Ac4</span><span data-ply="5">Ac5</span>
+    </div>
+  </section>
+
+  <section class="chapter" id="prediccion" data-in="0.6" data-out="0.725">
+    <p class="eyebrow">Predicción <span>Juegan las blancas</span></p>
+    <h2>Las jugadas más probables, sobre el tablero.</h2>
+    <div class="cands">
+      <div class="cand"><span>4. c3</span><span class="bar"><i style="--w:.41"></i></span><span class="pct">41 %</span></div>
+      <div class="cand"><span>4. O-O</span><span class="bar"><i style="--w:.27"></i></span><span class="pct">27 %</span></div>
+      <div class="cand"><span>4. d3</span><span class="bar"><i style="--w:.19"></i></span><span class="pct">19 %</span></div>
+    </div>
+    <p class="note">Porcentajes de ejemplo para esta demo.</p>
+  </section>
+
+  <section class="chapter" id="coach" data-in="0.77" data-out="0.855">
+    <p class="eyebrow">AI Coach <span>Después de la partida</span></p>
+    <h2>Un entrenador que revisa tus partidas contigo.</h2>
+    <blockquote class="quote">“Con el alfil en c4 sueles retrasar el enroque. Enroca antes de abrir el centro con d4.”</blockquote>
+    <p class="note">Ejemplo de análisis generado a partir de tu historial.</p>
+  </section>
+
+  <section class="chapter" id="torneos" data-in="0.92" data-out="1">
+    <p class="eyebrow">Torneos <span>Ranking global</span></p>
+    <h2>Sube en el ranking, partida a partida.</h2>
+    <p>Inscríbete en torneos programados, sigue el cuadro de llaves y compara tu ELO con el de toda la comunidad.</p>
+    <ul class="facts">
+      <li>Arena</li><li>Matchmaking</li><li>Motor de IA</li><li>AI Coach</li><li>Torneos</li>
+    </ul>
+    <div class="actions">
+      <a class="pill" href="#torneos">Crear cuenta</a>
+      <a class="pill ghost" href="#inicio" data-goto="0">Volver al inicio</a>
+    </div>
+  </section>
+</div>
+
+<ol class="rail" aria-label="Secciones">
+  <li><button type="button" data-goto="0">Inicio</button></li>
+  <li><button type="button" data-goto="0.19">Arena</button></li>
+  <li><button type="button" data-goto="0.47">IA</button></li>
+  <li><button type="button" data-goto="0.665">Predicción</button></li>
+  <li><button type="button" data-goto="0.81">Coach</button></li>
+  <li><button type="button" data-goto="1">Torneos</button></li>
+</ol>
+
+<div class="spacer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const chapters = [...document.querySelectorAll('.chapter')];
+const railBtns = [...document.querySelectorAll('.rail button')];
+const navLinks = [...document.querySelectorAll('.nav a.link')];
+const plySpans = [...document.querySelectorAll('[data-ply]')];
+const clamp = (v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const smooth = t=>t*t*(3-2*t);
+const sstep = (a,b,x)=>smooth(clamp((x-a)/(b-a)));
+const ease = t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+
+function maxScroll(){ return Math.max(1, document.documentElement.scrollHeight - innerHeight); }
+document.querySelectorAll('[data-goto]').forEach(el=>{
+  el.addEventListener('click', e=>{
+    if(document.body.classList.contains('static')) return;
+    e.preventDefault();
+    window.scrollTo({top: parseFloat(el.dataset.goto)*maxScroll(), behavior: reduce?'auto':'smooth'});
+  });
+});
+
+/* ---------- WebGL setup (falls back to a plain page) ---------- */
+let renderer;
+try{
+  if(!window.THREE) throw new Error('three missing');
+  renderer = new THREE.WebGLRenderer({canvas:document.getElementById('stage'), antialias:true, powerPreference:'high-performance'});
+}catch(err){
+  document.body.classList.add('static');
+  return;
+}
+renderer.setPixelRatio(Math.min(2, devicePixelRatio||1));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x100c09);
+scene.fog = new THREE.FogExp2(0x100c09, 0.045);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 120);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+/* ---------- procedural wood ---------- */
+function grain(ctx, x, y, w, h, vertical, base, dark, seed){
+  ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+  ctx.fillStyle = base; ctx.fillRect(x,y,w,h);
+  let s = seed;
+  const rnd = ()=>{ s = (s*9301+49297)%233280; return s/233280; };
+  const lines = Math.round((vertical?w:h)/3.2);
+  for(let i=0;i<lines;i++){
+    const off = (i/lines)*(vertical?w:h) + rnd()*3;
+    const amp = 1.5 + rnd()*4, freq = 0.004 + rnd()*0.01, ph = rnd()*6.28;
+    ctx.strokeStyle = dark; ctx.globalAlpha = 0.04 + rnd()*0.12; ctx.lineWidth = 0.6 + rnd()*1.6;
+    ctx.beginPath();
+    const len = vertical?h:w;
+    for(let t=0;t<=len;t+=6){
+      const d = off + Math.sin(t*freq+ph)*amp + Math.sin(t*freq*3.1+ph)*amp*0.3;
+      if(vertical) ctx.lineTo(x+d, y+t); else ctx.lineTo(x+t, y+d);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+function tex(canvas, repeat){
+  const t = new THREE.CanvasTexture(canvas);
+  t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso;
+  if(repeat){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat,repeat); }
+  return t;
+}
+function boardCanvas(){
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const ctx = c.getContext('2d'); const sq = 128;
+  for(let r=0;r<8;r++) for(let f=0;f<8;f++){
+    const light = (r+f)%2===0;
+    grain(ctx, f*sq, r*sq, sq, sq, (r+f)%2===0, light?'#d6bd91':'#5b3a24', light?'#8a6a3e':'#24140a', 17+r*8+f);
+  }
+  ctx.strokeStyle='rgba(20,12,6,.35)'; ctx.lineWidth=1.2;
+  for(let i=0;i<=8;i++){ ctx.beginPath(); ctx.moveTo(i*sq,0); ctx.lineTo(i*sq,1024); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*sq); ctx.lineTo(1024,i*sq); ctx.stroke(); }
+  return c;
+}
+const FRAME = 9.4, BORDER = (FRAME-8)/2;
+function frameCanvas(){
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const ctx = c.getContext('2d'); const k = 1024/FRAME, b = BORDER*k, sq = k;
+  grain(ctx,0,0,1024,1024,false,'#2c1b10','#0d0703',5);
+  ctx.strokeStyle = '#b8874a'; ctx.globalAlpha=.75; ctx.lineWidth = 3;
+  ctx.strokeRect(b-9,b-9,1024-2*b+18,1024-2*b+18); ctx.globalAlpha=1;
+  ctx.fillStyle = 'rgba(214,170,110,.82)';
+  ctx.font = '500 30px "Bodoni Moda", Didot, Georgia, serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const files='abcdefgh';
+  for(let i=0;i<8;i++){
+    const cx = b + (i+.5)*sq;
+    ctx.fillText(files[i], cx, 1024 - b/2 + 2);
+    ctx.save(); ctx.translate(cx, b/2); ctx.rotate(Math.PI); ctx.fillText(files[i],0,0); ctx.restore();
+    const cy = b + (7-i+.5)*sq;
+    ctx.fillText(String(i+1), b/2, cy);
+    ctx.save(); ctx.translate(1024-b/2, cy); ctx.rotate(Math.PI); ctx.fillText(String(i+1),0,0); ctx.restore();
+  }
+  return c;
+}
+function plainWood(base,dark,seed,size=512){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  grain(c.getContext('2d'),0,0,size,size,false,base,dark,seed); return c;
+}
+
+/* ---------- board, table ---------- */
+const sideTex = tex(plainWood('#2c1b10','#0d0703',9));
+const frameMat = new THREE.MeshStandardMaterial({map:sideTex, roughness:.55});
+const frameTopMat = new THREE.MeshPhysicalMaterial({map:tex(frameCanvas()), roughness:.45, clearcoat:.5, clearcoatRoughness:.35});
+const frame = new THREE.Mesh(new THREE.BoxGeometry(FRAME,.42,FRAME), [frameMat,frameMat,frameTopMat,frameMat,frameMat,frameMat]);
+frame.position.y = -.21; frame.receiveShadow = true; frame.castShadow = true; scene.add(frame);
+
+const play = new THREE.Mesh(new THREE.PlaneGeometry(8,8),
+  new THREE.MeshPhysicalMaterial({map:tex(boardCanvas()), roughness:.42, clearcoat:.55, clearcoatRoughness:.3}));
+play.rotation.x = -Math.PI/2; play.position.y = .002; play.receiveShadow = true; scene.add(play);
+
+const table = new THREE.Mesh(new THREE.CircleGeometry(40,64),
+  new THREE.MeshStandardMaterial({map:tex(plainWood('#1f140c','#080402',3,512),6), roughness:.8}));
+table.rotation.x = -Math.PI/2; table.position.y = -.42; table.receiveShadow = true; scene.add(table);
+
+/* ---------- lights ---------- */
+scene.add(new THREE.HemisphereLight(0x6b5642, 0x0a0705, .38));
+const spot = new THREE.SpotLight(0xffc88a, 2.05, 34, .82, .75, 1.4);
+spot.position.set(0, 7.25, 0); spot.target.position.set(0,0,0);
+spot.castShadow = true; spot.shadow.mapSize.set(2048,2048); spot.shadow.bias = -.0004; spot.shadow.normalBias = .02;
+spot.shadow.camera.near = 2; spot.shadow.camera.far = 14;
+scene.add(spot, spot.target);
+const rim = new THREE.DirectionalLight(0x8aa2c8, .42); rim.position.set(-9,5,-11); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffb070, .22); fill.position.set(9,3,9); scene.add(fill);
+
+/* pendant lamp */
+const lamp = new THREE.Group();
+const shadeMat = new THREE.MeshStandardMaterial({color:0x2a1f16, metalness:.75, roughness:.38, side:THREE.DoubleSide, transparent:true});
+const shade = new THREE.Mesh(new THREE.CylinderGeometry(.22,1.05,.85,48,1,true), shadeMat); shade.position.y = 7.75;
+const bulbMat = new THREE.MeshBasicMaterial({color:0xffe3b4, transparent:true});
+const bulb = new THREE.Mesh(new THREE.SphereGeometry(.17,24,16), bulbMat); bulb.position.y = 7.4;
+const cordMat = new THREE.MeshBasicMaterial({color:0x0c0907, transparent:true});
+const cord = new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,14,6), cordMat); cord.position.y = 15.1;
+const glowC = document.createElement('canvas'); glowC.width = glowC.height = 128;
+{ const g = glowC.getContext('2d'); const rg = g.createRadialGradient(64,64,0,64,64,64);
+  rg.addColorStop(0,'rgba(255,214,150,.9)'); rg.addColorStop(.25,'rgba(255,180,100,.28)'); rg.addColorStop(1,'rgba(255,160,80,0)');
+  g.fillStyle = rg; g.fillRect(0,0,128,128); }
+const glowMat = new THREE.SpriteMaterial({map:new THREE.CanvasTexture(glowC), blending:THREE.AdditiveBlending, depthWrite:false, transparent:true});
+const glow = new THREE.Sprite(glowMat); glow.scale.set(2.6,2.6,1); glow.position.y = 7.3;
+lamp.add(shade,bulb,cord,glow); scene.add(lamp);
+
+/* dust in the light cone */
+const DUST = 420;
+const dustPos = new Float32Array(DUST*3), dustSeed = new Float32Array(DUST);
+for(let i=0;i<DUST;i++){
+  const a = Math.random()*6.283, r = Math.sqrt(Math.random())*4.2;
+  dustPos[i*3] = Math.cos(a)*r; dustPos[i*3+1] = .3+Math.random()*6.6; dustPos[i*3+2] = Math.sin(a)*r; dustSeed[i] = Math.random()*100;
+}
+const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos,3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({color:0xffd7a0, size:.035, transparent:true, opacity:.55, depthWrite:false, blending:THREE.AdditiveBlending}));
+scene.add(dust);
+
+/* ---------- pieces ---------- */
+const ivory = new THREE.MeshPhysicalMaterial({color:0xeee2c8, roughness:.32, clearcoat:.5, clearcoatRoughness:.25});
+const ebony = new THREE.MeshPhysicalMaterial({color:0x1c1512, roughness:.28, clearcoat:.75, clearcoatRoughness:.18});
+const BASE = [[0,0],[.36,0],[.36,.055],[.335,.085],[.3,.105],[.3,.13],[.25,.15]];
+function arc(cy, R, a0, a1, n=10){ const out=[]; for(let i=0;i<=n;i++){ const a=(a0+(a1-a0)*i/n)*Math.PI/180; out.push([Math.max(0,R*Math.cos(a)), cy+R*Math.sin(a)]); } return out; }
+function lathe(pts){ return new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])), 48); }
+const geo = {
+  p: lathe([...BASE,[.18,.2],[.12,.33],[.1,.4],[.17,.42],[.17,.45],[.075,.47],...arc(.56,.11,-45,90)]),
+  r: lathe([...BASE,[.23,.2],[.2,.5],[.27,.56],[.27,.66],[0,.66]]),
+  n: lathe([...BASE,[.22,.2],[.2,.3],[.25,.34],[0,.34]]),
+  b: lathe([...BASE,[.2,.2],[.12,.48],[.18,.5],[.18,.53],[.1,.555],[.15,.62],[.16,.68],[.12,.76],[.05,.82],[0,.84]]),
+  q: lathe([...BASE,[.22,.2],[.13,.6],[.21,.63],[.21,.66],[.13,.68],[.2,.83],[.23,.87],[.14,.87],[.09,.9],[0,.92]]),
+  k: lathe([...BASE,[.23,.2],[.14,.62],[.22,.65],[.22,.68],[.14,.7],[.2,.86],[.21,.89],[.15,.9],[.07,.96],[0,.97]])
+};
+const merlon = new THREE.BoxGeometry(.11,.1,.13);
+const ball = new THREE.SphereGeometry(1,16,12);
+const crossV = new THREE.BoxGeometry(.055,.22,.055), crossH = new THREE.BoxGeometry(.17,.055,.055);
+const headShape = new THREE.Shape([[-.21,.3],[.17,.3],[.14,.48],[.3,.6],[.37,.69],[.33,.76],[.13,.8],[.07,.93],[0,.86],[-.08,.91],[-.13,.78],[-.23,.6],[-.25,.44]].map(p=>new THREE.Vector2(p[0],p[1])));
+const headGeo = new THREE.ExtrudeGeometry(headShape,{depth:.16, bevelEnabled:true, bevelThickness:.04, bevelSize:.03, bevelSegments:3, curveSegments:8});
+headGeo.translate(0,0,-.08);
+
+function mk(g, mat, x=0,y=0,z=0, s=1){ const m=new THREE.Mesh(g,mat); m.position.set(x,y,z); m.scale.setScalar(s); m.castShadow=true; m.receiveShadow=true; return m; }
+function makePiece(type, white){
+  const mat = white?ivory:ebony, g = new THREE.Group();
+  g.add(mk(geo[type],mat));
+  if(type==='r') for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const m=mk(merlon,mat,Math.cos(a)*.215,.71,Math.sin(a)*.215); m.rotation.y=-a; g.add(m); }
+  if(type==='n'){ g.add(mk(headGeo,mat)); g.rotation.y = white?Math.PI/2:-Math.PI/2; }
+  if(type==='b') g.add(mk(ball,mat,0,.87,0,.04));
+  if(type==='q'){ for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; g.add(mk(ball,mat,Math.cos(a)*.2,.885,Math.sin(a)*.2,.036)); } g.add(mk(ball,mat,0,.97,0,.055)); }
+  if(type==='k'){ g.add(mk(crossV,mat,0,1.08,0)); g.add(mk(crossH,mat,0,1.1,0)); }
+  return g;
+}
+function sq(name){ return new THREE.Vector3(name.charCodeAt(0)-97-3.5, 0, 3.5-(parseInt(name[1],10)-1)); }
+
+const pieces = {};
+const back = ['r','n','b','q','k','b','n','r'];
+for(let f=0;f<8;f++){
+  const file = String.fromCharCode(97+f);
+  [[file+'1',back[f],true],[file+'2','p',true],[file+'7','p',false],[file+'8',back[f],false]].forEach(([s,t,w])=>{
+    const g = makePiece(t,w); g.position.copy(sq(s)); scene.add(g); pieces[s]=g;
+  });
+}
+
+/* Italian Game, played by scroll */
+const PLIES = [['e2','e4'],['e7','e5'],['g1','f3'],['b8','c6'],['f1','c4'],['f8','c5']];
+const MOVE_START = .335, MOVE_END = .535;
+const plyDur = (MOVE_END-MOVE_START)/PLIES.length;
+function plyT(i,p){ return clamp((p-(MOVE_START+i*plyDur))/(plyDur*.82)); }
+function updateMoves(p){
+  PLIES.forEach(([from,to],i)=>{
+    const t = ease(plyT(i,p)), g = pieces[from];
+    const a = sq(from), b = sq(to);
+    g.position.set(a.x+(b.x-a.x)*t, Math.sin(Math.PI*t)*(g===pieces.g1||g===pieces.b8?.9:.55), a.z+(b.z-a.z)*t);
+  });
+  let last=-1;
+  PLIES.forEach((_,i)=>{ const t=plyT(i,p); const s=plySpans[i]; const played=t>=.999; s.classList.toggle('played',played); if(t>0 && !played) last=i; s.classList.toggle('now', t>0 && !played); });
+}
+
+/* prediction overlay: arrows + last-move squares */
+const overlay = new THREE.Group(); scene.add(overlay);
+const overlayMats = [];
+function flatMat(color, max){ const m = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0, depthWrite:false, side:THREE.DoubleSide}); m.userData.max = max; overlayMats.push(m); return m; }
+function arrow(from,to,max){
+  const A=sq(from), B=sq(to); const dx=B.x-A.x, dz=B.z-A.z, L=Math.hypot(dx,dz); const ux=dx/L, uz=dz/L, px=-uz, pz=ux;
+  const w=.14, hw=.4, hl=.36, s0=.26, e=L-.1;
+  const P=(a,b)=>new THREE.Vector2(A.x+ux*a+px*b, -(A.z+uz*a+pz*b));
+  const shape = new THREE.Shape([P(s0,-w/2),P(e-hl,-w/2),P(e-hl,-hw/2),P(e,0),P(e-hl,hw/2),P(e-hl,w/2),P(s0,w/2)]);
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(shape), flatMat(0xe0a65c,max));
+  m.rotation.x = -Math.PI/2; m.position.y = .014; overlay.add(m);
+}
+function mark(name, color, max){ const m = new THREE.Mesh(new THREE.PlaneGeometry(.98,.98), flatMat(color,max)); m.rotation.x=-Math.PI/2; const v=sq(name); m.position.set(v.x,.008,v.z); overlay.add(m); }
+mark('f8',0xd29c55,.22); mark('c5',0xd29c55,.3);
+arrow('c2','c3',.92); arrow('e1','g1',.62); arrow('d2','d3',.46);
+
+const coachRing = new THREE.Mesh(new THREE.RingGeometry(.4,.47,64), new THREE.MeshBasicMaterial({color:0xe0a65c, transparent:true, opacity:0, depthWrite:false}));
+coachRing.rotation.x=-Math.PI/2; { const v=sq('c4'); coachRing.position.set(v.x,.012,v.z); } scene.add(coachRing);
+
+/* ---------- camera flight ---------- */
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+const KEYS = [
+  {p:0,    pos:V(7.6,5.4,12.2), tgt:V(0,.3,0)},
+  {p:.19,  pos:V(-6.9,1.05,5.2), tgt:V(2,.3,2.4)},
+  {p:.31,  pos:V(-1.6,1.6,7.4), tgt:V(0,.3,1)},
+  {p:.47,  pos:V(4.4,5.6,7.8),  tgt:V(.1,0,.2)},
+  {p:.665, pos:V(0,15.6,.7),    tgt:V(0,0,.15)},
+  {p:.81,  pos:V(-3.1,1.55,3.5),tgt:V(-1.5,.55,.5)},
+  {p:1,    pos:V(-9.4,8.8,-6.4),tgt:V(0,0,0)}
+];
+const posCurve = new THREE.CatmullRomCurve3(KEYS.map(k=>k.pos), false, 'centripetal');
+const tgtCurve = new THREE.CatmullRomCurve3(KEYS.map(k=>k.tgt), false, 'centripetal');
+const camPos = new THREE.Vector3(), camTgt = new THREE.Vector3();
+function placeCamera(p, time){
+  let i=0; while(i<KEYS.length-2 && p>KEYS[i+1].p) i++;
+  const a=KEYS[i], b=KEYS[i+1];
+  let t = clamp((p-a.p)/(b.p-a.p)); t = t*.3 + smooth(t)*.7;
+  const u = (i+t)/(KEYS.length-1);
+  posCurve.getPoint(u, camPos); tgtCurve.getPoint(u, camTgt);
+  if(!reduce){ camPos.x += Math.sin(time*.00031)*.06; camPos.y += Math.sin(time*.00047)*.04; }
+  camera.position.copy(camPos); camera.lookAt(camTgt);
+}
+
+/* ---------- chapters & rail ---------- */
+const ranges = chapters.map(c=>[parseFloat(c.dataset.in), parseFloat(c.dataset.out)]);
+const F = .035;
+let lastActive = -1;
+function updateChapters(p){
+  let best=0, bestA=-1;
+  chapters.forEach((c,i)=>{
+    const [a,b] = ranges[i];
+    const inA = a<=0 ? 1 : sstep(a-F, a, p);
+    const outA = b>=1 ? 1 : 1 - sstep(b, b+F, p);
+    const al = inA*outA;
+    c.style.opacity = al.toFixed(3);
+    c.style.transform = `translateY(${((1-inA)*18 - (1-outA)*14).toFixed(1)}px)`;
+    const vis = al>.01;
+    c.style.visibility = vis?'visible':'hidden';
+    c.setAttribute('aria-hidden', vis?'false':'true');
+    if(al>bestA){ bestA=al; best=i; }
+  });
+  const bars = chapters[3].querySelectorAll('.bar i');
+  const ca = parseFloat(chapters[3].style.opacity)||0;
+  bars.forEach((el)=>{ el.style.transform = `scaleX(${(parseFloat(el.style.getPropertyValue('--w'))*ca).toFixed(3)})`; });
+  if(best!==lastActive){
+    lastActive = best;
+    railBtns.forEach((b,i)=>b.classList.toggle('on', i===best));
+    navLinks.forEach((l,i)=>l.setAttribute('aria-current', i+1===best ? 'true':'false'));
+  }
+}
+
+/* ---------- loop ---------- */
+let target = 0, current = 0;
+function readScroll(){ target = clamp(scrollY / maxScroll()); }
+addEventListener('scroll', readScroll, {passive:true});
+
+function resize(){
+  const W = innerWidth, H = innerHeight, portrait = W/H < .9;
+  renderer.setSize(W,H,false);
+  camera.aspect = W/H; camera.fov = portrait ? 54 : 36;
+  if(portrait) camera.setViewOffset(W,H,0,H*.16,W,H); else camera.setViewOffset(W,H,-W*.16,0,W,H);
+  camera.updateProjectionMatrix();
+  readScroll();
+}
+addEventListener('resize', resize); resize();
+
+function frameLoop(time){
+  current = reduce ? target : current + (target-current)*.075;
+  if(Math.abs(target-current)<.00005) current = target;
+  const p = current;
+  placeCamera(p, time);
+  updateMoves(p);
+  updateChapters(p);
+
+  const ov = sstep(.565,.62,p) * (1 - sstep(.735,.785,p));
+  overlayMats.forEach(m=>{ m.opacity = m.userData.max*ov; });
+  overlay.visible = ov>.001;
+  coachRing.material.opacity = .85 * sstep(.75,.79,p) * (1-sstep(.85,.89,p)) * (reduce?1:(.75+.25*Math.sin(time*.003)));
+  const lampA = 1 - sstep(.52,.585,p)*(1-sstep(.73,.79,p));
+  shadeMat.opacity = bulbMat.opacity = cordMat.opacity = lampA; glowMat.opacity = lampA;
+  lamp.visible = lampA>.01;
+
+  if(!reduce){
+    const arr = dustGeo.attributes.position.array;
+    for(let i=0;i<DUST;i++){
+      arr[i*3+1] += .0016 + Math.sin(time*.0005+dustSeed[i])*.0008;
+      arr[i*3]   += Math.sin(time*.0003+dustSeed[i])*.0012;
+      if(arr[i*3+1]>6.9) arr[i*3+1] = .3;
+    }
+    dustGeo.attributes.position.needsUpdate = true;
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(frameLoop);
+}
+requestAnimationFrame(frameLoop);
+})();
+</script>

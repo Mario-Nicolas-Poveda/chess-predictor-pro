@@ -44,3 +44,5 @@ next-env.d.ts
 !.env.example
 # mensajes de commit/PR que prepara Claude Code
 .pr/
+# permisos locales de Claude Code de cada dev
+.claude/settings.local.json

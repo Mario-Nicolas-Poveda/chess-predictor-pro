@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { authApi } from '../api/authApi';
-import { applyApiError } from './formErrors';
+import { applyApiError } from '@/lib/formErrors';
 import { FormShell } from './FormShell';
 import { PasswordInput } from './PasswordInput';
 

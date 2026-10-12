@@ -9,7 +9,7 @@ export function FormShell({ title, alert, footer, children }: { title: string; a
       {alert && <p role="alert" className="border-l-2 border-danger pl-3 text-sm text-danger">{alert}</p>}
       {children}
       <div className="flex items-center gap-4" aria-hidden="true">
-        <span className="h-px flex-1 bg-rule" /><span className="eyebrow">o</span><span className="h-px flex-1 bg-rule" />
+        <span className="h-px flex-1 bg-rule" /><span className="text-sm text-ink-faint">o</span><span className="h-px flex-1 bg-rule" />
       </div>
       <GoogleButton />
       <p className="text-sm text-ink-soft">{footer}</p>

@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV, type NavItem } from './nav';
-import { UserBlock, type NavUser } from './UserBlock';
+import { UserBlock } from './UserBlock';
 import { MobileMenu } from './MobileMenu';
 
-export function TopNav({ user }: { user?: NavUser }) {
+export function TopNav() {
   const pathname = usePathname();
   return (
     <header className="border-b border-rule">
@@ -15,14 +15,14 @@ export function TopNav({ user }: { user?: NavUser }) {
           Chess Predictor <em className="text-wine">Pro</em>
         </Link>
 
-        <nav aria-label="Principal" className="mx-auto hidden md:block">
+        <nav aria-label="Principal" className="mx-auto hidden lg:block">
           <ul className="flex items-center gap-8">
             {NAV.map(it => <NavLink key={it.href} item={it} active={pathname.startsWith(it.href)} />)}
           </ul>
         </nav>
 
-        <UserBlock user={user} className="hidden md:flex" />
-        <MobileMenu user={user} className="ml-auto md:hidden" />
+        <UserBlock className="hidden lg:flex" />
+        <MobileMenu className="ml-auto lg:hidden" />
       </div>
     </header>
   );

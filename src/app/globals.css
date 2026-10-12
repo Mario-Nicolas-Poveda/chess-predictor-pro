@@ -23,6 +23,8 @@
 html { color-scheme: light; }
 body { @apply bg-paper text-ink font-sans antialiased; }
 :focus-visible { outline: 2px solid var(--color-wine); outline-offset: 3px; }
+/* que el autocompletado del navegador no pinte los campos de azul */
+input:autofill { box-shadow: 0 0 0 1000px var(--color-vellum) inset; -webkit-text-fill-color: var(--color-ink); }
 
 @utility eyebrow { @apply font-mono text-[11px] uppercase tracking-[.16em] text-ink-faint; }
 @utility onum { font-variant-numeric: oldstyle-nums proportional-nums; }

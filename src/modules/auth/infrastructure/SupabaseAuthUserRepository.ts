@@ -1,4 +1,5 @@
 import 'server-only';
+import { escapeLike } from '@/core/shared/db/escapeLike';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
 import { AppError } from '@/core/shared/errors/AppError';
 import type { AuthUser } from '../domain/AuthUser';
@@ -8,7 +9,6 @@ type Row = { id: string; email: string; username: string; password_hash: string 
   auth_provider: 'local' | 'google'; google_id: string | null };
 const map = (r: Row): AuthUser => ({ id: r.id, email: r.email, username: r.username,
   passwordHash: r.password_hash, authProvider: r.auth_provider, googleId: r.google_id });
-const escapeLike = (v: string) => v.replace(/[\\%_]/g, m => '\\' + m);   // sin esto "de_mo" encuentra "demo"
 
 export class SupabaseAuthUserRepository implements AuthUserRepository {
   private async one(col: string, val: string, ci = false) {

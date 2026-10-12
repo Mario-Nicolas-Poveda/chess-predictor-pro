@@ -27,8 +27,8 @@ La rama dice **sprint + issue + función**. El issue dice **dev (assignee) + ár
 |---|---|
 | `develop` como rama por defecto | Los PR apuntan a `develop` sin pensar, y `Closes #N` cierra el issue al hacer merge (GitHub solo cierra issues con keywords en la rama por defecto) |
 | Solo **"Create a merge commit"** (sin squash ni rebase) | Equivale a `--no-ff` de Git Flow: cada feature queda agrupada y se revierte entera. Además evita que `main` y `develop` se desincronicen tras un release |
-| Borrar rama al hacer merge (auto) | Ramas cortas; nada viejo colgando |
-| Back-merge con PR `main` → `develop` | Con el auto-borrado, la rama `release/*` desaparece al entrar a `main`; el PR `main`→`develop` trae el cierre del release y el bump de versión |
+| **No** borrar ramas al hacer merge | Se conservan en GitHub como evidencia del trabajo de cada sprint (auto-borrado desactivado en el repo) |
+| Back-merge con PR `main` → `develop` | El PR `main`→`develop` trae el cierre del release y el bump de versión a `develop` |
 | 1 aprobación obligatoria | Son 2 devs: el autor no puede aprobarse a sí mismo, así que el otro revisa siempre (lo pide la guía) |
 | CI obligatorio (`ci`) | Nada entra a `develop` o `main` si no pasa lint, tipos, tests y build |
 | Sincronizar con `git merge origin/develop` (no rebase) | La rama ya está en GitHub; rebase obliga a `push --force` |

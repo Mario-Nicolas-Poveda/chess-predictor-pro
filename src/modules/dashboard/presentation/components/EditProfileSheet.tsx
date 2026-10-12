@@ -78,7 +78,7 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
             <Input autoFocus autoComplete="name" {...register('displayName')} />
           </Field>
           <Field label="Usuario" hint="3–20: letras, números y _" error={errors.username?.message}>
-            <Input autoComplete="username" {...register('username')} />
+            <Input autoComplete="off" spellCheck={false} {...register('username')} />
           </Field>
           <Field label="País" error={errors.country?.message}>
             <Select {...register('country')}>

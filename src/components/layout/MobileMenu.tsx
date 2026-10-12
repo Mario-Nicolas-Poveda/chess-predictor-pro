@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { NAV } from './nav';
-import { UserBlock, type NavUser } from './UserBlock';
+import { UserBlock } from './UserBlock';
 
-export function MobileMenu({ user, className = '' }: { user?: NavUser; className?: string }) {
+export function MobileMenu({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
   const close = () => ref.current?.close();
@@ -52,7 +52,7 @@ export function MobileMenu({ user, className = '' }: { user?: NavUser; className
             </ul>
           </nav>
 
-          <UserBlock user={user} className="flex border-t border-rule py-6" />
+          <UserBlock className="flex border-t border-rule py-6" />
         </div>
       </dialog>
     </div>

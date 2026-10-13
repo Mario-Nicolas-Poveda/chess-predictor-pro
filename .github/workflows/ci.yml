@@ -1,0 +1,27 @@
+name: ci
+on:
+  pull_request:
+    branches: [develop, main, 'release/**']
+  push:
+    branches: [develop, main]
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    env:
+      # valores falsos solo para compilar; los reales viven en .env.local / Vercel
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-role-key-0000000000
+      JWT_SECRET: ci-dummy-jwt-secret-with-at-least-32-chars
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

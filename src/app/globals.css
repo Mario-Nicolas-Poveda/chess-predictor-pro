@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f6efe3;
+  --color-vellum: #fbf8f1;
+  --color-ink: #2a1417;
+  --color-ink-soft: #5c4a46;
+  --color-ink-faint: #74645d;
+  --color-rule: #e2d6c5;
+  --color-sand: #dacbb8;
+  --color-wine: #6e1e2b;
+  --color-wine-deep: #561621;
+  --color-wine-tint: #f0e7e2;
+  --color-cream: #f5ece0;
+  --color-danger: #a3341f;
+  --color-ok: #3f6b45;
+
+  --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+html { color-scheme: light; }
+body { @apply bg-paper text-ink font-sans antialiased; }
+:focus-visible { outline: 2px solid var(--color-wine); outline-offset: 3px; }
+/* que el autocompletado del navegador no pinte los campos de azul */
+input:autofill { box-shadow: 0 0 0 1000px var(--color-vellum) inset; -webkit-text-fill-color: var(--color-ink); }
+
+@utility eyebrow { @apply font-mono text-[11px] uppercase tracking-[.16em] text-ink-faint; }
+@utility onum { font-variant-numeric: oldstyle-nums proportional-nums; }
+@utility tnum { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

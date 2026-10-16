@@ -37,7 +37,7 @@ function EloFigure({ elo }: { elo: number }) {
   return (
     <div className="lg:text-right">
       <p className="eyebrow">ELO actual</p>
-      <p className="mt-6 font-display text-[clamp(5rem,12vw,9.5rem)] leading-none text-wine onum">{elo}</p>
+      <p className="mt-6 font-display text-[clamp(5rem,12vw,9.5rem)] leading-none text-accent nums">{elo}</p>
       <p className="text-sm text-ink-soft">Sin partidas todavía</p>
     </div>
   );

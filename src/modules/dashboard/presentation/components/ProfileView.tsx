@@ -16,7 +16,7 @@ export function ProfileView() {
   if (error) return (
     <div role="alert" className="space-y-4">
       <p className="text-ink-soft">{error}</p>
-      <Button variant="secondary" onClick={retry}>Reintentar</Button>
+      <Button variant="ghost" onClick={retry}>Reintentar</Button>
     </div>
   );
 

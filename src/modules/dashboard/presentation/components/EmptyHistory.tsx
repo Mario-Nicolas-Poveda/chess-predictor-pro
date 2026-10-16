@@ -22,13 +22,13 @@ export function EmptyHistory() {
 
       <Section title="Últimas partidas" aside={
         <span className="flex items-center gap-4">
-          <span className="flex items-center gap-2"><i className="h-0.5 w-4 bg-wine" />Victoria</span>
-          <span className="flex items-center gap-2"><i className="h-0.5 w-4 bg-sand" />Derrota</span>
+          <span className="flex items-center gap-2"><i className="h-0.5 w-4 bg-accent" />Victoria</span>
+          <span className="flex items-center gap-2"><i className="h-0.5 w-4 bg-loss" />Derrota</span>
         </span>
       }>
         <div className="flex gap-2" aria-hidden="true">
           {Array.from({ length: 20 }, (_, i) => (
-            <div key={i} className="h-14 flex-1 rounded-[2px] border border-dashed border-sand" />
+            <div key={i} className="h-14 flex-1 rounded-[2px] border border-dashed border-loss" />
           ))}
         </div>
         <div className="mt-3 flex justify-between font-mono text-xs text-ink-faint">

@@ -4,10 +4,13 @@ import { setSessionCookie } from '@/core/shared/auth/session';
 import { withAuth } from '@/core/shared/auth/withAuth';
 import { readJson } from '@/core/shared/http/readJson';
 import { winRate, type User } from '@/modules/dashboard/domain/User';
+import { DEFAULT_PREFERENCES } from '@/modules/dashboard/infrastructure/dto/preferencesSchemas';
 import { UpdateProfileSchema, type Profile } from '@/modules/dashboard/infrastructure/dto/profileSchemas';
 import { getUserProfile, updateUserProfile } from '@/modules/dashboard/presentation/controllers/container';
 
-const toDto = (p: User): Profile => ({ ...p, stats: { ...p.stats, winRate: winRate(p.stats) } });
+// shortcut: preferencias por defecto para todos, hasta que la Fase 5 (#28) las lea de la BD
+const toDto = (p: User): Profile =>
+  ({ ...p, stats: { ...p.stats, winRate: winRate(p.stats) }, preferences: DEFAULT_PREFERENCES });
 
 export const GET = withAuth(async (_req, s) =>
   NextResponse.json({ profile: toDto(await getUserProfile.execute(s.userId)) }));

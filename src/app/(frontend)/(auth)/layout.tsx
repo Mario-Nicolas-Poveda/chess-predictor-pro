@@ -1,27 +1,15 @@
-import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { PracticePanel } from '@/modules/auth/presentation/practice/PracticePanel';
 
-const logo = <>Chess Predictor <em className="text-wine-tint">Pro</em></>;
-
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+// Login y registro comparten el tablero 3D de la izquierda (solo escritorio).
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-2">
-      <aside className="relative hidden overflow-hidden bg-ink text-cream lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <div aria-hidden="true" className="absolute inset-0 opacity-20"
-          style={{ background: 'repeating-conic-gradient(var(--color-wine) 0 25%, transparent 0 50%) 0 0 / 64px 64px' }} />
-        <Link href="/" className="relative font-display text-[1.6rem] leading-none">{logo}</Link>
-        <div className="relative">
-          <p className="font-display text-6xl italic leading-[1.05]">Cada partida empieza<br />con una jugada.</p>
-          <p className="mt-6 font-mono text-sm text-sand">1. e4</p>
-        </div>
-      </aside>
-
-      <div className="flex h-14 items-center bg-ink px-4 text-cream lg:hidden">
-        <Link href="/" className="font-display text-xl leading-none">{logo}</Link>
-      </div>
-
-      <main className="flex items-center justify-center px-4 py-12 sm:px-8 lg:py-16">
-        <div className="w-full max-w-sm">{children}</div>
-      </main>
+    <div className="flex min-h-dvh flex-wrap bg-paper">
+      <PracticePanel />
+      <section className="flex min-w-0 flex-[1_1_460px] flex-col gap-10 px-[clamp(24px,6vw,104px)] py-10">
+        {children}
+        <p className="text-center text-xs text-ink-faint">Chess Predictor Pro · Proyecto de aula · Universidad Popular del Cesar</p>
+      </section>
     </div>
   );
 }

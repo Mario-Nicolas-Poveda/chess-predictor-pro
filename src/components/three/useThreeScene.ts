@@ -33,7 +33,7 @@ export function useThreeScene<S extends Disposable>(load: () => Promise<SceneFac
         setScene(created);
       } catch (e) {
         // sin WebGL o chunk que no cargó: la pantalla muestra su alternativa 2D
-        console.error('[3d] no se pudo crear la escena', e);
+        console.warn('[3d] sin escena 3D, se usa la alternativa', e);
         if (alive) setFailed(true);
       }
     });

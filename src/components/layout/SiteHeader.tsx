@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useMotionValueEvent, useScroll } from 'motion/react';
 import * as m from 'motion/react-m';
 import { SPRING } from '@/lib/motion';
-import { NAV, type NavItem } from './nav';
+import { NAV, isActive, type NavItem } from './nav';
 import { UserBlock } from './UserBlock';
 import { MobileMenu } from './MobileMenu';
 
@@ -48,7 +48,7 @@ export function SiteHeader() {
         {/* barra completa solo desde 1024 px: con 6 secciones no cabe antes */}
         <nav aria-label="Principal" className="hidden flex-1 justify-center lg:flex">
           <ul ref={listRef} className="relative flex gap-x-7 text-caption">
-            {NAV.map(it => <NavLink key={it.href} item={it} active={pathname.startsWith(it.href)} />)}
+            {NAV.map(it => <NavLink key={it.href} item={it} active={isActive(it, pathname)} />)}
             {bar && (
               <m.span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 w-px bg-accent"
                 style={{ originX: 0 }} initial={false} animate={{ x: bar.x, scaleX: bar.w }} transition={SPRING} />

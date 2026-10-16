@@ -4,12 +4,14 @@ import { isPlayer, type MatchRecord } from '../../domain/Match';
 import type { MatchmakingRepository } from '../../domain/MatchmakingRepository';
 import type { PlayerDirectory } from '../../domain/PlayerDirectory';
 import type { QueueEntry } from '../../domain/QueueEntry';
-import type { PlayerSummary, TimeControl } from '../../infrastructure/dto/matchmakingSchemas';
+import type { AddBotInput, PlayerSummary, TimeControl } from '../../infrastructure/dto/matchmakingSchemas';
 import { AbortMatch } from '../AbortMatch';
+import { AddBotToQueue } from '../AddBotToQueue';
 import { GetMatch } from '../GetMatch';
 import { GetMatchmakingStatus } from '../GetMatchmakingStatus';
 import { JoinQueue } from '../JoinQueue';
 import { LeaveQueue } from '../LeaveQueue';
+import { RemoveBots } from '../RemoveBots';
 
 const match = (id: string, whiteId: string, blackId: string, status: MatchRecord['status'] = 'pending'): MatchRecord =>
   ({ id, whiteId, blackId, timeControl: '10+0', status, createdAt: new Date('2026-10-28T15:00:14Z') });
@@ -29,6 +31,7 @@ class MemoryRepo implements MatchmakingRepository {
     this.entries = this.entries.filter(e => e.userId !== userId);
     return this.entries.length < before;
   }
+  async dequeueBots() { this.entries = this.entries.filter(e => !e.isBot); }
   async tryPair(userId: string) {
     const me = await this.findEntry(userId);
     const rival = this.entries.find(e => e.userId !== userId && e.timeControl === me?.timeControl);
@@ -55,13 +58,19 @@ class MemoryRepo implements MatchmakingRepository {
 }
 
 const player = (id: string, elo: number): PlayerSummary => ({ id, username: id, displayName: null, avatarUrl: null, elo });
-const PLAYERS = [player('ana', 1450), player('bob', 1478), player('eva', 1300)];
-const players: PlayerDirectory = { getMany: async ids => PLAYERS.filter(p => ids.includes(p.id)) };
+const PLAYERS = [player('ana', 1450), player('bob', 1478), player('eva', 1300),
+  player('bot_ana', 1420), player('bot_luis', 1510), player('bot_sara', 1260)];
+const players: PlayerDirectory = {
+  getMany: async ids => PLAYERS.filter(p => ids.includes(p.id)),
+  findByUsernames: async names => PLAYERS.filter(p => names.includes(p.username)),
+};
 
 let repo: MemoryRepo;
 beforeEach(() => { repo = new MemoryRepo(); });
 const join = (userId: string) => new JoinQueue(repo, players).execute(userId, '10+0');
 const status = (userId: string) => new GetMatchmakingStatus(repo, players).execute(userId);
+const addBot = (userId: string, username?: AddBotInput['username']) =>
+  new AddBotToQueue(repo, players).execute(userId, { timeControl: '10+0', username });
 
 describe('JoinQueue', () => {
   it('entra a la cola y devuelve searching con su ELO', async () => {
@@ -149,6 +158,33 @@ describe('AbortMatch', () => {
   it('403 para quien no la juega', async () => {
     repo.matches.push(match('m1', 'ana', 'bob'));
     await expect(abort('eva')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+});
+
+describe('AddBotToQueue', () => {
+  it('por defecto mete al bot de ELO más cercano a quien lo pide', async () => {
+    expect(await addBot('eva')).toMatchObject({ username: 'bot_sara' });   // 1300 → 1260
+    expect(repo.entries).toMatchObject([{ userId: 'bot_sara', elo: 1260, isBot: true }]);
+  });
+
+  it('el mismo bot dos veces → 409 ALREADY_IN_QUEUE', async () => {
+    await addBot('ana', 'bot_luis');
+    await expect(addBot('ana', 'bot_luis')).rejects.toMatchObject({ code: 'ALREADY_IN_QUEUE', status: 409 });
+  });
+
+  it('con un bot en la cola, quien busca queda emparejado con él', async () => {
+    await addBot('ana');
+    await join('ana');
+    expect(await status('ana')).toMatchObject({ state: 'matched', match: { opponent: { username: 'bot_ana' } } });
+  });
+});
+
+describe('RemoveBots', () => {
+  it('saca a los bots y deja a los jugadores', async () => {
+    await addBot('ana');
+    await join('bob');
+    await new RemoveBots(repo).execute();
+    expect(repo.entries.map(e => e.userId)).toEqual(['bob']);
   });
 });
 

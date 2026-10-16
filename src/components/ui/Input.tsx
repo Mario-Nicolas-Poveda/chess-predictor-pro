@@ -1,9 +1,9 @@
 import type { ComponentProps } from 'react';
 
-export const control = 'w-full rounded-md border border-rule bg-vellum px-3 text-ink placeholder:text-ink-faint focus:border-wine focus:outline-none focus:ring-2 focus:ring-wine/15 aria-[invalid=true]:border-danger';
+export const control = 'w-full rounded-[14px] border border-rule bg-vellum px-4 text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none aria-[invalid=true]:border-danger';
 
 export function Input({ className = '', ...rest }: ComponentProps<'input'>) {
-  return <input className={`h-11 ${control} ${className}`} {...rest} />;
+  return <input className={`h-[52px] ${control} ${className}`} {...rest} />;
 }
 
 export function Textarea({ className = '', ...rest }: ComponentProps<'textarea'>) {
@@ -11,5 +11,5 @@ export function Textarea({ className = '', ...rest }: ComponentProps<'textarea'>
 }
 
 export function Select({ className = '', ...rest }: ComponentProps<'select'>) {
-  return <select className={`h-11 ${control} ${className}`} {...rest} />;
+  return <select className={`h-[52px] ${control} ${className}`} {...rest} />;
 }

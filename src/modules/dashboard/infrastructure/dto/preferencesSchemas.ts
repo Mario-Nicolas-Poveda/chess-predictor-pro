@@ -28,3 +28,9 @@ export const DEFAULT_PREFERENCES: ProfilePreferences = {
   theme: 'pergamino', accent: 'vino', piece: 'k', material: 'w', heroLayout: 'clasico',
   sectionOrder: ['rend', 'elo', 'forma', 'next'], hiddenSections: [],
 };
+
+// Lo guardado puede ser parcial o de una versión vieja: se completa con los valores por defecto y, si no valida, se usan estos
+export function parsePreferences(stored: unknown): ProfilePreferences {
+  const merged = ProfilePreferencesSchema.safeParse({ ...DEFAULT_PREFERENCES, ...(stored as Record<string, unknown>) });
+  return merged.success ? merged.data : DEFAULT_PREFERENCES;
+}

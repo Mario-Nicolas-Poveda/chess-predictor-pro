@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PREFERENCES, ProfilePreferencesSchema } from '../preferencesSchemas';
+import { DEFAULT_PREFERENCES, ProfilePreferencesSchema, parsePreferences } from '../preferencesSchemas';
 
 const valid = (patch: object) => ProfilePreferencesSchema.safeParse({ ...DEFAULT_PREFERENCES, ...patch }).success;
 
@@ -20,5 +20,20 @@ describe('contrato de preferencias del perfil', () => {
   it('rechaza un tema inexistente y campos extra', () => {
     expect(valid({ theme: 'neón' })).toBe(false);
     expect(valid({ fontSize: 20 })).toBe(false);
+  });
+});
+
+describe('parsePreferences (lo guardado en la BD)', () => {
+  it('sin nada guardado → valores por defecto', () => {
+    expect(parsePreferences({})).toEqual(DEFAULT_PREFERENCES);
+    expect(parsePreferences(undefined)).toEqual(DEFAULT_PREFERENCES);   // columna aún sin migrar
+  });
+
+  it('guardado parcial → lo guardado más el resto por defecto', () => {
+    expect(parsePreferences({ theme: 'noche' })).toEqual({ ...DEFAULT_PREFERENCES, theme: 'noche' });
+  });
+
+  it('guardado inválido → valores por defecto', () => {
+    expect(parsePreferences({ theme: 'neón' })).toEqual(DEFAULT_PREFERENCES);
   });
 });

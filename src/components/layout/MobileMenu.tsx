@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
-import { NAV } from './nav';
+import { NAV, isActive } from './nav';
 import { UserBlock } from './UserBlock';
 
 export function MobileMenu({ className = '' }: { className?: string }) {
@@ -31,7 +31,7 @@ export function MobileMenu({ className = '' }: { className?: string }) {
           <nav aria-label="Principal" className="flex-1 py-6">
             <ul className="space-y-4">
               {NAV.map(it => {
-                const active = pathname.startsWith(it.href);
+                const active = isActive(it, pathname);
                 return (
                   <li key={it.href} className="font-display text-3xl">
                     {it.ready ? (

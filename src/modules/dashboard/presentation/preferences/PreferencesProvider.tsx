@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { DEFAULT_PREFERENCES, type ProfilePreferences } from '@/lib/contracts.tmp';
+import { DEFAULT_PREFERENCES, type ProfilePreferences } from '@/modules/dashboard/infrastructure/dto/preferencesSchemas';
 
 type Ctx = {
   prefs: ProfilePreferences;

@@ -1,8 +1,9 @@
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string,
-              public fields?: Record<string, string[]>) { super(message); }
+              public fields?: Record<string, string[]>, public meta?: Record<string, unknown>) { super(message); }
 }
 
+// init.signal se pasa tal cual a fetch para poder cancelar.
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api/v1${path}`, {
     ...init, credentials: 'same-origin',
@@ -11,6 +12,6 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error?.code ?? 'UNKNOWN',
-    body.error?.message ?? 'Algo salió mal. Intenta de nuevo.', body.error?.fields);
+    body.error?.message ?? 'Algo salió mal. Intenta de nuevo.', body.error?.fields, body.error?.meta);
   return body as T;
 }

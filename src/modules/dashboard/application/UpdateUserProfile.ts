@@ -1,10 +1,10 @@
-import { AppError } from '@/core/shared/errors/AppError';
+import { ConflictError } from '@/core/shared/errors/AppError';
 import type { UserRepository } from '../domain/UserRepository';
 import type { UpdateProfileInput } from '../infrastructure/dto/profileSchemas';
 import { GetUserProfile } from './GetUserProfile';
 
 export const usernameTaken = () =>
-  new AppError('USERNAME_TAKEN', 'Ese usuario ya existe', 409, { username: ['No disponible'] });
+  new ConflictError('USERNAME_TAKEN', 'Ese usuario ya existe', { username: ['No disponible'] });
 
 export class UpdateUserProfile {
   constructor(private users: UserRepository) {}

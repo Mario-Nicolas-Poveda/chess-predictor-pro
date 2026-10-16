@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import { clearSessionCookie } from '@/core/shared/auth/session';
+import { noContent } from '@/core/shared/http/responses';
 
 export async function POST() {
-  const res = new NextResponse(null, { status: 204 });
+  const res = noContent();
   clearSessionCookie(res);
   return res;
 }

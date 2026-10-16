@@ -6,6 +6,9 @@ echo "== health";         j $B/health
 echo "== register 201";   j -c $J -X POST $B/auth/register -d "{\"email\":\"$U@test.dev\",\"username\":\"$U\",\"password\":\"Clave1234\"}"
 echo "== register 409";   j -X POST $B/auth/register -d "{\"email\":\"$U@test.dev\",\"username\":\"x$U\",\"password\":\"Clave1234\"}"
 echo "== register 400";   j -X POST $B/auth/register -d '{"email":"malo","username":"a","password":"123"}'
+echo "== json roto 400";  j -X POST $B/auth/register -d '{malo'
+echo "== sin JSON 415";   curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/auth/register -d 'email=x'
+echo "== ruta 404";       j $B/no-existe
 echo "== me";             j -b $J $B/auth/me
 # --- desde Fase 3 ---
 echo "== profile (0s)";   j -b $J $B/profile

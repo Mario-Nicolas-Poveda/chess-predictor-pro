@@ -1,10 +1,12 @@
 import 'server-only';
 import { AbortMatch } from '../../application/AbortMatch';
+import { AddBotToQueue } from '../../application/AddBotToQueue';
 import { GetMatch } from '../../application/GetMatch';
 import { GetMatchmakingStatus } from '../../application/GetMatchmakingStatus';
 import { GetQueueStats } from '../../application/GetQueueStats';
 import { JoinQueue } from '../../application/JoinQueue';
 import { LeaveQueue } from '../../application/LeaveQueue';
+import { RemoveBots } from '../../application/RemoveBots';
 import { SupabaseMatchmakingRepository } from '../../infrastructure/SupabaseMatchmakingRepository';
 import { SupabasePlayerDirectory } from '../../infrastructure/SupabasePlayerDirectory';
 
@@ -16,3 +18,5 @@ export const getMatchmakingStatus = new GetMatchmakingStatus(repo, players);
 export const getQueueStats = new GetQueueStats(repo);
 export const getMatch = new GetMatch(repo, players);
 export const abortMatch = new AbortMatch(repo);
+export const addBotToQueue = new AddBotToQueue(repo, players);
+export const removeBots = new RemoveBots(repo);

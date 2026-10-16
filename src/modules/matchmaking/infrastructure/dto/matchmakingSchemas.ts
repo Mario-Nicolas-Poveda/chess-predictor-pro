@@ -16,6 +16,11 @@ export type JoinQueueInput = z.infer<typeof JoinQueueSchema>;
 
 export const MatchIdSchema = z.uuid('Id de partida inválido');
 
+// Solo desarrollo (ENABLE_DEV_ROUTES=true): los bots de supabase/seed_bots.sql
+export const BOT_USERNAMES = ['bot_ana', 'bot_luis', 'bot_sara'] as const;
+export const AddBotSchema = z.object({ timeControl: TimeControlSchema, username: z.enum(BOT_USERNAMES).optional() }).strict();
+export type AddBotInput = z.infer<typeof AddBotSchema>;
+
 export type PlayerSummary = { id: string; username: string; displayName: string | null; avatarUrl: string | null; elo: number };
 
 export type MatchSummary = {

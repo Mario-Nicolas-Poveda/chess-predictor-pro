@@ -39,6 +39,11 @@ export class SupabaseMatchmakingRepository implements MatchmakingRepository {
     return data.length > 0;
   }
 
+  async dequeueBots() {
+    const { error } = await supabaseAdmin.from('matchmaking_queue').delete().eq('is_bot', true);
+    if (error) throw error;
+  }
+
   async tryPair(userId: string) {
     const { data, error } = await supabaseAdmin.rpc('mm_try_pair', { p_user: userId });
     if (error) throw error;

@@ -6,6 +6,7 @@ export interface MatchmakingRepository {
   findEntry(userId: string): Promise<QueueEntry | null>;
   enqueue(entry: Omit<QueueEntry, 'joinedAt'>): Promise<QueueEntry>;
   dequeue(userId: string): Promise<boolean>;                       // true si borró algo
+  dequeueBots(): Promise<void>;
   tryPair(userId: string): Promise<string | null>;                 // id de la partida creada
   cleanup(): Promise<void>;
   countSearching(): Promise<Record<TimeControl, number>>;          // vistos hace < 15 s, o bots

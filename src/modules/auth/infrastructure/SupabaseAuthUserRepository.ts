@@ -1,7 +1,7 @@
 import 'server-only';
 import { escapeLike } from '@/core/shared/db/escapeLike';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
-import { AppError } from '@/core/shared/errors/AppError';
+import { ConflictError } from '@/core/shared/errors/AppError';
 import type { AuthUser } from '../domain/AuthUser';
 import type { AuthUserRepository } from '../domain/AuthUserRepository';
 
@@ -26,7 +26,7 @@ export class SupabaseAuthUserRepository implements AuthUserRepository {
       auth_provider: d.authProvider, google_id: d.googleId ?? null,
       display_name: d.displayName ?? null, avatar_url: d.avatarUrl ?? null,
     }).select('*').single<Row>();
-    if (error?.code === '23505') throw new AppError('CONFLICT', 'Correo o usuario ya existe', 409);
+    if (error?.code === '23505') throw new ConflictError('CONFLICT', 'Correo o usuario ya existe');
     if (error) throw error;
     return map(data);
   }

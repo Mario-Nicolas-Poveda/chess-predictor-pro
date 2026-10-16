@@ -1,6 +1,7 @@
 // Navegación completa (no fetch): el servidor redirige a Google y vuelve con la cookie.
 export function GoogleButton() {
   return (
+    // eslint-disable-next-line @next/next/no-html-link-for-pages -- es una ruta de API (el comodín /api/v1/[...notFound] engaña a la regla)
     <a href="/api/v1/auth/oauth/google"
       className="inline-flex h-10 w-full items-center justify-center gap-3 rounded-md border border-ink/20 bg-vellum px-4 text-sm font-medium text-ink transition-colors hover:border-ink/45">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 48 48">

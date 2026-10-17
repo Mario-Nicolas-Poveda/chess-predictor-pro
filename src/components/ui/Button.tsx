@@ -9,12 +9,16 @@ const VARIANTS: Record<Variant, string> = {
   quiet: 'text-accent underline-offset-4 hover:underline',
 };
 
+/** Mismas clases para un <Link> que debe verse como botón. */
+export const buttonClass = (variant: Variant = 'primary') =>
+  `inline-flex items-center justify-center gap-2 font-medium ${VARIANTS[variant]}`;
+
 type Props = ComponentProps<'button'> & { variant?: Variant; loading?: boolean };
 
 export function Button({ variant = 'primary', loading = false, disabled, className = '', children, type = 'button', ...rest }: Props) {
   return (
     <button type={type} disabled={disabled || loading} aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 font-medium disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+      className={`${buttonClass(variant)} disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       {...rest}>
       {loading && <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />}
       {children}

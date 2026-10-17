@@ -28,7 +28,7 @@ export function PlayStage({ phase, halfWidth = 100 }: { phase: PlayPhase; halfWi
 /** Dos columnas (texto · escenario); en móvil el escenario va debajo. El escenario no se vuelve a montar entre fases. */
 export function PlayLayout({ stage, children }: { stage: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-16 gap-y-12">
+    <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-16 gap-y-12 px-5 py-10 lg:px-10 lg:py-16">
       <div className="min-w-0 flex-[1_1_440px]">{children}</div>
       <div className="flex min-w-0 flex-[1_1_520px] justify-center">{stage}</div>
     </div>

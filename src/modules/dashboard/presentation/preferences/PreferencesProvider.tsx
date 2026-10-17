@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_PREFERENCES, type ProfilePreferences } from '@/modules/dashboard/infrastructure/dto/preferencesSchemas';
+import { useSession } from '../hooks/useProfile';
 
 type Ctx = {
   prefs: ProfilePreferences;
@@ -10,10 +11,12 @@ type Ctx = {
 };
 const PreferencesContext = createContext<Ctx | null>(null);
 
-// Fase local: aplica tema y acento en <html>; el guardado en la cuenta llega con la API de preferencias.
+// Aplica tema y acento en <html>. Lo guardado en la cuenta llega con el perfil; los cambios locales lo pisan.
 export function PreferencesProvider({ initial, children }: { initial?: ProfilePreferences; children: ReactNode }) {
+  const saved = useSession()?.profile?.preferences ?? initial ?? null;
+  const [local, setLocal] = useState<ProfilePreferences | null>(null);
   // null = aún no se conocen: se respeta el tema que puso el script de caché en vez de pisarlo con el de defecto
-  const [known, setKnown] = useState<ProfilePreferences | null>(initial ?? null);
+  const known = local ?? saved;
   const prefs = known ?? DEFAULT_PREFERENCES;
   const theme = known?.theme, accent = known?.accent;
 
@@ -29,8 +32,8 @@ export function PreferencesProvider({ initial, children }: { initial?: ProfilePr
 
   const value = useMemo<Ctx>(() => ({
     prefs,
-    set: (key, v) => setKnown(p => ({ ...(p ?? DEFAULT_PREFERENCES), [key]: v })),
-    replace: setKnown,
+    set: (key, v) => setLocal(p => ({ ...(p ?? prefs), [key]: v })),
+    replace: setLocal,
   }), [prefs]);
   return <PreferencesContext value={value}>{children}</PreferencesContext>;
 }

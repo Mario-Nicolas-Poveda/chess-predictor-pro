@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
 import { useProfile } from '../hooks/useProfile';
+import { CustomizeSheet } from './CustomizeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
 import { ProfileContent } from './ProfileContent';
 
@@ -13,6 +15,7 @@ const NO_EXTRAS = { history: [], results: [], achievements: [] };
 export function ProfileView() {
   const { profile, setProfile, error, retry } = useProfile();
   const sheetRef = useRef<HTMLDialogElement>(null);
+  const customizeRef = useRef<HTMLDialogElement>(null);
 
   if (error) return (
     <div role="alert" className="mx-auto max-w-[1200px] space-y-4 px-5 py-16 lg:px-10">
@@ -25,8 +28,13 @@ export function ProfileView() {
 
   return (
     <>
-      <ProfileContent profile={profile} {...NO_EXTRAS} onEdit={() => sheetRef.current?.showModal()} />
+      <ProfileContent profile={profile} {...NO_EXTRAS} onEdit={() => sheetRef.current?.showModal()} actions={
+        <Button className="h-11! px-5! text-[15px]" onClick={() => customizeRef.current?.showModal()}>
+          <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
+        </Button>
+      } />
       <EditProfileSheet ref={sheetRef} profile={profile} onSaved={setProfile} />
+      <CustomizeSheet ref={customizeRef} />
     </>
   );
 }

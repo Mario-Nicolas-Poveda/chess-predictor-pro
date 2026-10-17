@@ -4,7 +4,7 @@ import { PracticePanel } from '@/modules/auth/presentation/practice/PracticePane
 // Login y registro comparten el tablero 3D de la izquierda (solo escritorio).
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-wrap bg-paper">
+    <div className="flex min-h-dvh bg-paper">
       <PracticePanel />
       <section className="flex min-w-0 flex-[1_1_460px] flex-col gap-10 px-[clamp(24px,6vw,104px)] py-10">
         {children}

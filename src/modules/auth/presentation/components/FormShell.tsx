@@ -11,7 +11,7 @@ export function FormShell({ title, lead, alert, aside, children }: Props) {
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         {/* sin precarga: la landing aún importa three directamente y en móvil no debe descargarse aquí */}
         <Link href="/" prefetch={false} className="font-display text-2xl text-ink">Chess Predictor <em className="text-wine">Pro</em></Link>
-        <p className="text-caption">{aside.text} <Link href={aside.href} className="text-wine-deep hover:underline underline-offset-4">{aside.cta} ›</Link></p>
+        <p className="text-caption">{aside.text} <Link href={aside.href} className="text-wine-deep underline decoration-wine/35 underline-offset-4 hover:decoration-wine">{aside.cta} ›</Link></p>
       </div>
       <div className="mx-auto flex w-full max-w-[420px] grow flex-col justify-center gap-[22px] animate-rise">
         <div className="flex flex-col gap-2.5">

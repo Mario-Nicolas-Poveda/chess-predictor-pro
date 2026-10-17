@@ -27,7 +27,7 @@ export const CANDIDATES: Record<string, Candidate[]> = {
   ],
   'd2d4 e5d4': [
     { from: 'f3', to: 'd4', pct: 71, name: 'Recaptura', san: 'Cxd4' },
-    { from: 'c2', to: 'c3', pct: 18, name: 'Gambito escocés', san: 'c3' },
-    { from: 'f1', to: 'c4', pct: 11, name: 'Gambito', san: 'Ac4' },
+    { from: 'c2', to: 'c3', pct: 18, name: 'Gambito Göring', san: 'c3' },
+    { from: 'f1', to: 'c4', pct: 11, name: 'Gambito escocés', san: 'Ac4' },
   ],
 };

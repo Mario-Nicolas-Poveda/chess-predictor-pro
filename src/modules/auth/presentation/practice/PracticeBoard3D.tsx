@@ -43,15 +43,15 @@ function Candidates({ items, disabled, onPlay, onReset }:
         <ol className="flex flex-col gap-0.5">
           {items.map(c => (
             <li key={c.from + c.to}>
-              <button type="button" disabled={disabled} onClick={() => onPlay(c)} aria-label={`Jugar ${c.san}, ${c.name}, ${c.pct} por ciento`}
+              <button type="button" disabled={disabled} onClick={() => onPlay(c)}
                 className="grid w-full grid-cols-[4.5rem_minmax(0,1fr)_8rem_3rem] items-center gap-3.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-wash disabled:cursor-wait disabled:opacity-60">
-                <span className="font-mono font-medium">{c.san}</span>
-                <span className="h-1 overflow-hidden rounded-sm bg-[#e2d6c5]">
+                <span className="font-mono font-medium"><span className="sr-only">Jugar </span>{c.san}</span>
+                <span aria-hidden="true" className="h-1 overflow-hidden rounded-sm bg-[#e2d6c5]">
                   <m.span className="block h-full rounded-sm bg-wine" style={{ originX: 0 }}
                     initial={{ scaleX: 0 }} animate={{ scaleX: c.pct / 100 }} transition={{ duration: .6, ease: EASE_OUT }} />
                 </span>
                 <span className="text-caption text-ink-soft">{c.name}</span>
-                <span className="text-right font-mono text-[13px] text-ink-soft nums">{c.pct} %</span>
+                <span className="text-right font-mono text-[13px] text-ink-soft nums">{c.pct} <span aria-hidden="true">%</span><span className="sr-only">por ciento</span></span>
               </button>
             </li>
           ))}

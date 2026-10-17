@@ -91,12 +91,12 @@ export function createBoard(colors: { light: string; dark: string; frame: string
 const FILES = 'abcdefgh';
 export const squareToXZ = (sq: string) => ({ x: FILES.indexOf(sq.charAt(0)) - 3.5, z: 3.5 - (Number(sq.charAt(1)) - 1) });
 
-/** Libera geometrías y materiales de un árbol, salvo las geometrías compartidas del kit. */
+/** Libera geometrías, materiales y sus texturas de un árbol, salvo las geometrías compartidas del kit. */
 export function disposeTree(root: THREE.Object3D) {
   root.traverse(o => {
     const m = o as THREE.Mesh;
     if (m.geometry && !m.geometry.userData.shared) m.geometry.dispose();
     const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
-    mats.forEach(mt => mt.dispose());
+    mats.forEach(mt => { (mt as THREE.MeshStandardMaterial).map?.dispose(); mt.dispose(); });
   });
 }

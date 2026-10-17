@@ -3,7 +3,7 @@ import { disposeTree } from './kit';
 import { Tweens } from './tween';
 import type { Quality } from './quality';
 
-export type StageOptions = { quality: Quality; reducedMotion: boolean; fov?: number; continuous?: boolean };
+export type StageOptions = { quality: Quality; reducedMotion: boolean; fov?: number; continuous?: boolean; lights?: boolean };
 export type FrameFn = (now: number, dt: number) => boolean | void;   // true = "sigo animando, pide otro frame"
 
 // Renderer + escena + cámara + luces. Dibuja solo cuando algo se mueve y se pausa fuera de pantalla o con la pestaña oculta.
@@ -27,7 +27,7 @@ export function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   const fill = new THREE.DirectionalLight(0xdfe6ff, .25); fill.position.set(-6, 4, -5);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: .16 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -.36; ground.receiveShadow = true;
-  scene.add(hemi, key, fill, ground);
+  if (o.lights !== false) scene.add(hemi, key, fill, ground);   // lights: false = la escena pone su propia luz (landing)
 
   const tweens = new Tweens(o.reducedMotion);
   const frames = new Set<FrameFn>();
@@ -64,7 +64,7 @@ export function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
     dispose() {
       cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
-      tweens.clear(); frames.clear(); disposeTree(scene); key.shadow.dispose();
+      tweens.clear(); frames.clear(); disposeTree(scene); disposeTree(ground); key.shadow.dispose();
       renderer.dispose();
       // Solo si el canvas ya salió del DOM: si React vuelve a montar el efecto sobre el mismo canvas
       // (StrictMode, Fast Refresh), un contexto perdido haría fallar al nuevo renderer ("reading 'precision'").

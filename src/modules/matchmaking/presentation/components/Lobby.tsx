@@ -50,7 +50,7 @@ export function Lobby({ busy, joining, error, elo, onJoin }: Props) {
 
       {error && <p role="alert" className="text-caption text-danger">{error}</p>}
       <div className="mt-2 flex flex-wrap items-center gap-5">
-        <Button className="h-14 px-10 text-lg" disabled={busy} loading={joining} onClick={() => onJoin(tc)}>
+        <Button className="h-14! px-10! text-lg" disabled={busy} loading={joining} onClick={() => onJoin(tc)}>
           {joining ? 'Buscando…' : 'Buscar partida'}
         </Button>
         {elo !== undefined && <span className="font-mono text-xs text-ink-faint nums">rivales entre {elo - 100} y {elo + 100}</span>}

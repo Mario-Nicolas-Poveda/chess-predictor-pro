@@ -65,7 +65,10 @@ export function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
       cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       tweens.clear(); frames.clear(); disposeTree(scene); key.shadow.dispose();
-      renderer.dispose(); renderer.forceContextLoss();
+      renderer.dispose();
+      // Solo si el canvas ya salió del DOM: si React vuelve a montar el efecto sobre el mismo canvas
+      // (StrictMode, Fast Refresh), un contexto perdido haría fallar al nuevo renderer ("reading 'precision'").
+      if (!canvas.isConnected) renderer.forceContextLoss();
     },
   };
 }

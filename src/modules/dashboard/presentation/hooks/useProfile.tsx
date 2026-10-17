@@ -26,6 +26,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext value={{ profile, setProfile, error, retry }}>{children}</SessionContext>;
 }
 
+/** Sesión o null fuera del dashboard (p. ej. la página de muestra). */
+export const useSession = () => useContext(SessionContext);
+
 export function useProfile() {
   const s = useContext(SessionContext);
   if (!s) throw new Error('useProfile necesita <SessionProvider>');

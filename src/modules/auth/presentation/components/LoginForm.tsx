@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,16 +34,16 @@ export function LoginForm() {
   const alert = errors.root?.message ?? (searchParams.get('error') === 'oauth' ? OAUTH_ERROR : undefined);
 
   return (
-    <FormShell title="Entrar" alert={alert}
-      footer={<>¿No tienes cuenta? <Link href="/register" className="text-wine underline-offset-4 hover:underline">Crear cuenta</Link></>}>
+    <FormShell title="Entrar." lead="Tu ELO, tus partidas y el coach te esperan." alert={alert}
+      aside={{ text: '¿Sin cuenta?', href: '/register', cta: 'Crear una' }}>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <Field label="Correo" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" {...register('email')} />
+          <Input type="email" autoComplete="email" placeholder="tu@correo.com" {...register('email')} />
         </Field>
         <Field label="Contraseña" error={errors.password?.message}>
-          <PasswordInput autoComplete="current-password" {...register('password')} />
+          <PasswordInput autoComplete="current-password" placeholder="Mínimo 8 caracteres" {...register('password')} />
         </Field>
-        <Button type="submit" loading={isSubmitting} className="w-full">Entrar</Button>
+        <Button type="submit" loading={isSubmitting} className="h-[52px]! w-full text-[17px]">Entrar</Button>
       </form>
     </FormShell>
   );

@@ -64,7 +64,7 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
 
   return (
     <dialog ref={ref} aria-labelledby="edit-title" onClose={() => reset()}
-      className="m-0 ml-auto h-dvh max-h-dvh w-full max-w-md bg-vellum p-0 text-ink backdrop:bg-ink/40">
+      className="sheet">
       <form onSubmit={onSubmit} noValidate className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-rule px-6 py-5">
           <h2 id="edit-title" className="font-display text-3xl">Editar perfil</h2>
@@ -72,7 +72,7 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
             <X size={18} aria-hidden="true" />
           </button>
         </header>
-        <div className="flex-1 divide-y divide-rule overflow-y-auto px-6 [&>*]:py-5">
+        <div className="min-h-0 flex-1 divide-y divide-rule overflow-y-auto px-6 [&>*]:py-5">
           {errors.root && <p role="alert" className="text-sm text-danger">{errors.root.message}</p>}
           <Field label="Nombre visible" error={errors.displayName?.message}>
             <Input autoFocus autoComplete="name" {...register('displayName')} />
@@ -94,7 +94,7 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
           </Field>
         </div>
         <footer className="flex justify-end gap-3 border-t border-rule px-6 py-4">
-          <Button variant="secondary" onClick={discard}>Descartar</Button>
+          <Button variant="ghost" onClick={discard}>Descartar</Button>
           <Button type="submit" loading={isSubmitting} disabled={!isDirty}>Guardar cambios</Button>
         </footer>
       </form>

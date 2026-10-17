@@ -1,13 +1,19 @@
-import { TopNav } from '@/components/layout/TopNav';
+import { Suspense } from 'react';
+import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SessionProvider } from '@/modules/dashboard/presentation/hooks/useProfile';
+import { PreferencesProvider } from '@/modules/dashboard/presentation/preferences/PreferencesProvider';
 
 export default function DashboardLayout({ children }: LayoutProps<'/dashboard'>) {
   return (
     <SessionProvider>
-      <div className="min-h-dvh">
-        <TopNav />
-        <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-14 lg:py-16">{children}</main>
-      </div>
+      <PreferencesProvider>
+        <div className="min-h-dvh">
+          {/* en /dashboard/arena/[id] la ruta solo se conoce en la petición: usePathname necesita Suspense */}
+          <Suspense fallback={<div className="h-[60px]" />}><SiteHeader /></Suspense>
+          {/* sin max-w: las bandas del perfil van a ancho completo y cada pantalla centra su contenido */}
+          <main>{children}</main>
+        </div>
+      </PreferencesProvider>
     </SessionProvider>
   );
 }

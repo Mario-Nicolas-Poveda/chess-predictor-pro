@@ -1,11 +1,13 @@
-import { AppError } from '@/core/shared/errors/AppError';
+import { NotFoundError } from '@/core/shared/errors/AppError';
 import type { UserRepository } from '../domain/UserRepository';
+
+export const userNotFound = () => new NotFoundError('NOT_FOUND', 'Usuario no encontrado');
 
 export class GetUserProfile {
   constructor(private users: UserRepository) {}
   async execute(id: string) {
     const u = await this.users.findById(id);
-    if (!u) throw new AppError('NOT_FOUND', 'Usuario no encontrado', 404);
+    if (!u) throw userNotFound();
     return u;
   }
 }

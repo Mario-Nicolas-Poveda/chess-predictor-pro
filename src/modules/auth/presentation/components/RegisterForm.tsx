@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,11 +28,11 @@ export function RegisterForm() {
   });
 
   return (
-    <FormShell title="Crear cuenta" alert={errors.root?.message}
-      footer={<>¿Ya tienes cuenta? <Link href="/login" className="text-wine underline-offset-4 hover:underline">Entrar</Link></>}>
+    <FormShell title="Crear cuenta." lead="Juega, mide tu ELO y deja que el coach revise tus partidas." alert={errors.root?.message}
+      aside={{ text: '¿Ya tienes cuenta?', href: '/login', cta: 'Entrar' }}>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <Field label="Correo" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" {...register('email')} />
+          <Input type="email" autoComplete="email" placeholder="tu@correo.com" {...register('email')} />
         </Field>
         <Field label="Usuario" hint="3–20: letras, números y _" error={errors.username?.message}>
           <Input autoComplete="username" {...register('username')} />
@@ -41,7 +40,7 @@ export function RegisterForm() {
         <Field label="Contraseña" hint="Mínimo 8, con una letra y un número" error={errors.password?.message}>
           <PasswordInput autoComplete="new-password" {...register('password')} />
         </Field>
-        <Button type="submit" loading={isSubmitting} className="w-full">Crear cuenta</Button>
+        <Button type="submit" loading={isSubmitting} className="h-[52px]! w-full text-[17px]">Crear cuenta</Button>
       </form>
     </FormShell>
   );

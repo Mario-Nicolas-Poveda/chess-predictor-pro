@@ -1,22 +1,26 @@
 'use client';
 
 import { useRef } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
 import { useProfile } from '../hooks/useProfile';
+import { CustomizeSheet } from './CustomizeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
-import { EmptyHistory } from './EmptyHistory';
-import { ProfileHeader } from './ProfileHeader';
-import { RecordSection } from './RecordSection';
+import { ProfileContent } from './ProfileContent';
+
+// Sin historial todavía (llega en el Sprint 3): gráfica y tira de partidas en estado vacío.
+const NO_EXTRAS = { history: [], results: [], achievements: [] };
 
 export function ProfileView() {
   const { profile, setProfile, error, retry } = useProfile();
   const sheetRef = useRef<HTMLDialogElement>(null);
+  const customizeRef = useRef<HTMLDialogElement>(null);
 
   if (error) return (
-    <div role="alert" className="space-y-4">
+    <div role="alert" className="mx-auto max-w-[1200px] space-y-4 px-5 py-16 lg:px-10">
       <p className="text-ink-soft">{error}</p>
-      <Button variant="secondary" onClick={retry}>Reintentar</Button>
+      <Button variant="ghost" onClick={retry}>Reintentar</Button>
     </div>
   );
 
@@ -24,31 +28,31 @@ export function ProfileView() {
 
   return (
     <>
-      <ProfileHeader profile={profile} onEdit={() => sheetRef.current?.showModal()} />
-      <RecordSection stats={profile.stats} />
-      <EmptyHistory />
+      <ProfileContent profile={profile} {...NO_EXTRAS} onEdit={() => sheetRef.current?.showModal()} actions={
+        <Button className="h-11! px-5! text-[15px]" onClick={() => customizeRef.current?.showModal()}>
+          <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
+        </Button>
+      } />
       <EditProfileSheet ref={sheetRef} profile={profile} onSaved={setProfile} />
+      <CustomizeSheet ref={customizeRef} />
     </>
   );
 }
 
 function ProfileSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Cargando perfil">
-      <div className="grid gap-10 pb-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="space-y-6">
+    <div aria-busy="true" aria-label="Cargando perfil" className="mx-auto max-w-[1200px] px-5 pb-[96px] pt-[72px] lg:px-10">
+      <div className="flex flex-wrap items-center justify-between gap-x-12 gap-y-8">
+        <div className="flex flex-[1_1_380px] flex-col gap-6">
           <Skeleton className="h-3 w-56" />
           <Skeleton className="h-28 w-2/3" />
           <Skeleton className="h-4 w-80" />
         </div>
-        <div className="space-y-6 lg:items-end">
-          <Skeleton className="h-3 w-24 lg:ml-auto" />
+        <Skeleton className="h-[380px] w-[340px] max-w-full" />
+        <div className="flex flex-col items-end gap-6">
+          <Skeleton className="h-3 w-24" />
           <Skeleton className="h-32 w-64" />
         </div>
-      </div>
-      <div className="border-t border-rule pt-8">
-        <Skeleton className="h-3 w-32" />
-        <Skeleton className="mt-8 h-20 w-full" />
       </div>
     </div>
   );

@@ -101,4 +101,4 @@
 /* sin WebGL: página plana legible */
 .landing.static canvas,.landing.static .veil,.landing.static .rail,.landing.static .spacer{display:none}
 .landing.static .chapters{position:static;width:auto;padding:110px clamp(16px,5vw,76px) 60px;display:grid;gap:64px}
-.landing.static .chapter{position:static;opacity:1;visibility:visible;transform:none}
+.landing.static .chapter{position:static;opacity:1!important;visibility:visible!important;transform:none!important}   /* pisa el estilo en línea de Motion */

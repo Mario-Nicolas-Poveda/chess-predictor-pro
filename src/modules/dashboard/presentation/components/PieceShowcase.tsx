@@ -34,7 +34,7 @@ export function PieceShowcase() {
             <label key={p} title={PIECE_LABEL[p].name} className="cursor-pointer">
               <input type="radio" name="profile-piece" value={p} checked={prefs.piece === p} onChange={() => set('piece', p)}
                 aria-label={PIECE_LABEL[p].name} className="peer sr-only" />
-              <span aria-hidden="true" className="grid size-[42px] place-items-center rounded-full font-chess text-xl shadow-[inset_0_0_0_1px_var(--t-rule)] transition-colors hover:bg-band peer-checked:bg-ink peer-checked:text-paper peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
+              <span aria-hidden="true" className="grid size-[42px] place-items-center rounded-full font-chess text-xl shadow-[inset_0_0_0_1px_var(--t-rule)] transition-colors hover:bg-band peer-checked:bg-ink peer-checked:text-paper peer-checked:shadow-none peer-checked:hover:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
                 {PIECE_LABEL[p].glyph}
               </span>
             </label>

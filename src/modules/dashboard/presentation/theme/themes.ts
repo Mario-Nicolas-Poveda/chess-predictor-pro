@@ -31,3 +31,17 @@ export const THEME_3D: Record<ThemeId, { tileL: string; tileD: string; frame: st
 };
 
 export const accentHex = (theme: ThemeId, accent: AccentId) => (THEME_3D[theme].dark ? ACCENT_HEX[accent].dark : ACCENT_HEX[accent].light);
+
+/** Muestra de color de cada tema en el panel (fondo, banda y texto). */
+export const THEME_SWATCH: Record<ThemeId, [string, string, string]> = {
+  pergamino: ['#f6efe3', '#eee4d4', '#2a1417'],
+  noche:     ['#14100d', '#1e1813', '#efe5d2'],
+  salvia:    ['#eef1e9', '#e1e7d9', '#1d2a21'],
+  pizarra:   ['#edf0f4', '#e1e6ed', '#18212d'],
+};
+export const MATERIAL_LABEL = { w: 'Marfil', b: 'Ébano', a: 'Del acento' } as const;
+export const HERO_LABEL = {
+  clasico: { name: 'Clásico', hint: 'nombre · pieza · ELO' },
+  invertido: { name: 'Invertido', hint: 'ELO · pieza · nombre' },
+  pieza: { name: 'Pieza primero', hint: 'pieza · nombre · ELO' },
+} as const;

@@ -55,6 +55,12 @@
 [data-accent="oceano"] { --t-acc: #244f7a; }  [data-theme="noche"][data-accent="oceano"] { --t-acc: #86b2e0; }
 [data-accent="tinta"]  { --t-acc: #2a1417; }  [data-theme="noche"][data-accent="tinta"]  { --t-acc: #efe5d2; }
 
+/* Barras de desplazamiento con los colores del tema; finas dentro de los paneles */
+html { scrollbar-color: var(--t-muted) var(--t-bg); }
+.sheet * { scrollbar-width: thin; scrollbar-color: var(--t-rule) transparent; }
+/* con un panel abierto la página de fondo no se desplaza (y no aparece una segunda barra) */
+html:has(dialog[open]) { overflow: hidden; }
+
 body { @apply bg-paper text-ink font-sans text-body antialiased; transition: background-color .5s, color .5s; }
 :focus-visible { outline: 2px solid var(--t-acc); outline-offset: 3px; }
 /* que el autocompletado del navegador no pinte los campos de azul */
@@ -75,6 +81,7 @@ input:autofill { box-shadow: 0 0 0 1000px var(--t-panel) inset; -webkit-text-fil
 .sheet {
   margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(26rem, 100vw);
   border: 0; padding: 0; background: var(--t-panel); color: var(--t-ink);
+  overflow: hidden;   /* solo desplaza la zona central del panel, no el panel entero */
   transform: translateX(100%);
   transition: transform .5s var(--ease-out), overlay .5s allow-discrete, display .5s allow-discrete;
 }

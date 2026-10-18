@@ -111,7 +111,8 @@ export const createLandingScene: SceneFactory<LandingScene> = async (canvas, { q
 
   /* ---------- luces ---------- */
   scene.add(new THREE.HemisphereLight(0x6b5642, 0x0a0705, lux(.38)));
-  const spot = new THREE.SpotLight(0xffc88a, lux(1.45), 34, .82, .75, 0)   // decay 0: con unidades físicas la caída 1/d^1.4 oscurecía el tablero; 1,45 = 2,05 × la caída antigua en el centro;
+  // decay 0: la caída física 1/d^1.4 oscurecía el tablero (1,45 = 2,05 × la caída antigua en el centro)
+  const spot = new THREE.SpotLight(0xffc88a, lux(1.45), 34, .82, .75, 0);
   spot.position.set(0, 7.25, 0); spot.target.position.set(0, 0, 0);
   const sm = quality === 'high' ? 1024 : 512;
   spot.castShadow = true; spot.shadow.mapSize.set(sm, sm); spot.shadow.bias = -.0004; spot.shadow.normalBias = .02;

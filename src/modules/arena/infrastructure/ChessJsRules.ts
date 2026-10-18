@@ -4,16 +4,17 @@ import { IllegalMoveError } from '../domain/errors';
 
 const toMove = (uci: string) => ({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
 
-// repetir desde el inicio cuesta milisegundos aun con 200 jugadas, y es la única forma de detectar la triple repetición
-export class ChessJsRules implements GameRules {
-  private replay(history: string[]) {
-    const g = new Chess();
-    for (const uci of history) g.move(toMove(uci));    // lo guardado ya es legal
-    return g;
-  }
+// partida de chess.js tras history (uci). Repetir desde el inicio cuesta milisegundos aun con 200 jugadas,
+// y es la única forma de detectar la triple repetición
+export function replay(history: string[]) {
+  const g = new Chess();
+  for (const uci of history) g.move(toMove(uci));    // lo guardado ya es legal
+  return g;
+}
 
+export class ChessJsRules implements GameRules {
   play(history: string[], next: string): PlayResult {
-    const g = this.replay(history);
+    const g = replay(history);
     const mover = g.turn() === 'w' ? 'white' : 'black';
     let move;
     try { move = g.move(toMove(next)); }                // chess.js lanza si es ilegal
@@ -30,6 +31,6 @@ export class ChessJsRules implements GameRules {
   }
 
   legalMoves(history: string[]) {
-    return this.replay(history).moves({ verbose: true }).map(m => m.from + m.to + (m.promotion ?? ''));
+    return replay(history).moves({ verbose: true }).map(m => m.from + m.to + (m.promotion ?? ''));
   }
 }

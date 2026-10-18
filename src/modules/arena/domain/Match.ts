@@ -6,7 +6,7 @@ export interface MatchRecord {
   id: string; whiteId: string; blackId: string; timeControl: TimeControl; status: MatchStatus; createdAt: Date;
   version: number; ply: number; fen: string; whiteMs: number; blackMs: number; incrementMs: number;
   turnStartedAt: Date | null; startedAt: Date | null; endedAt: Date | null;
-  result: Color | 'draw' | null; endReason: EndReason | null; drawOfferBy: Color | null;
+  result: Color | 'draw' | null; endReason: EndReason | null; drawOfferBy: Color | null; drawOfferedAt: Date | null;
   rematchOfferBy: Color | null; rematchOfferedAt: Date | null; rematchId: string | null;
   whiteEloBefore: number | null; blackEloBefore: number | null; whiteEloAfter: number | null; blackEloAfter: number | null;
 }

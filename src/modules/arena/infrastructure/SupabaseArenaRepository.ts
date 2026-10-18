@@ -10,7 +10,8 @@ import type { Color, EndReason, MatchStatus } from './dto/arenaSchemas';
 type MatchRow = { id: string; white_id: string; black_id: string; time_control: TimeControl; status: MatchStatus;
   created_at: string; version: number; ply: number; fen: string; white_ms: number; black_ms: number; increment_ms: number;
   turn_started_at: string | null; started_at: string | null; ended_at: string | null; result: Color | 'draw' | null;
-  end_reason: EndReason | null; draw_offer_by: Color | null; rematch_offer_by: Color | null; rematch_offered_at: string | null;
+  end_reason: EndReason | null; draw_offer_by: Color | null; draw_offered_at: string | null;
+  rematch_offer_by: Color | null; rematch_offered_at: string | null;
   rematch_id: string | null; white_elo_before: number | null; black_elo_before: number | null;
   white_elo_after: number | null; black_elo_after: number | null };
 type MoveRow = { ply: number; uci: string; san: string; white_ms: number; black_ms: number; created_at: string };
@@ -21,7 +22,8 @@ const mapMatch = (r: MatchRow): MatchRecord => ({ id: r.id, whiteId: r.white_id,
   timeControl: r.time_control, status: r.status, createdAt: new Date(r.created_at), version: r.version, ply: r.ply,
   fen: r.fen, whiteMs: r.white_ms, blackMs: r.black_ms, incrementMs: r.increment_ms,
   turnStartedAt: date(r.turn_started_at), startedAt: date(r.started_at), endedAt: date(r.ended_at),
-  result: r.result, endReason: r.end_reason, drawOfferBy: r.draw_offer_by, rematchOfferBy: r.rematch_offer_by,
+  result: r.result, endReason: r.end_reason, drawOfferBy: r.draw_offer_by, drawOfferedAt: date(r.draw_offered_at),
+  rematchOfferBy: r.rematch_offer_by,
   rematchOfferedAt: date(r.rematch_offered_at), rematchId: r.rematch_id, whiteEloBefore: r.white_elo_before,
   blackEloBefore: r.black_elo_before, whiteEloAfter: r.white_elo_after, blackEloAfter: r.black_elo_after });
 const mapMove = (r: MoveRow): MoveRecord =>
@@ -96,5 +98,11 @@ export class SupabaseArenaRepository implements ArenaRepository {
   async acceptDraw(id: string, by: Color) {
     const { error } = await supabaseAdmin.rpc('arena_accept_draw', { p_match: id, p_by: by });
     if (error) throw fromRpc(error);
+  }
+
+  async botIds(ids: string[]) {
+    const { data, error } = await supabaseAdmin.from('users').select('id').in('id', ids).eq('is_bot', true);
+    if (error) throw error;
+    return (data as { id: string }[]).map(r => r.id);
   }
 }

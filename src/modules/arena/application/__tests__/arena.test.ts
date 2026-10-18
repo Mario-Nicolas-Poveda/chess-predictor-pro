@@ -7,7 +7,9 @@ import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } fr
 import { other, turnOf, type MatchRecord, type MoveRecord } from '../../domain/Match';
 import { ChessJsRules } from '../../infrastructure/ChessJsRules';
 import type { Color, EndReason } from '../../infrastructure/dto/arenaSchemas';
+import { GreedyMovePicker } from '../../infrastructure/GreedyMovePicker';
 import { AnswerDraw } from '../AnswerDraw';
+import { BotTurn } from '../BotTurn';
 import { GetGameState } from '../GetGameState';
 import { MakeMove } from '../MakeMove';
 import { OfferDraw } from '../OfferDraw';
@@ -17,7 +19,7 @@ const record = (): MatchRecord => ({
   id: 'm1', whiteId: 'ana', blackId: 'bob', timeControl: '10+0', status: 'pending', createdAt: new Date(),
   version: 0, ply: 0, fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
   whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: null, startedAt: null, endedAt: null,
-  result: null, endReason: null, drawOfferBy: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
+  result: null, endReason: null, drawOfferBy: null, drawOfferedAt: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
   whiteEloBefore: null, blackEloBefore: null, whiteEloAfter: null, blackEloAfter: null,
 });
 
@@ -25,13 +27,14 @@ const record = (): MatchRecord => ({
 class MemoryArenaRepo implements ArenaRepository {
   m = record();
   moves: MoveRecord[] = [];
+  bots: string[] = [];
   private get(id: string) { return id === this.m.id ? this.m : undefined; }
   private touch(s: Partial<MatchRecord>) { Object.assign(this.m, s, { version: this.m.version + 1 }); }
   private close(result: Color | 'draw', reason: EndReason) {
     if (this.m.status === 'finished' || this.m.status === 'aborted') return;
     const d = eloDelta(1500, 1500, result === 'white' ? 1 : result === 'black' ? 0 : 0.5);
-    this.touch({ status: 'finished', result, endReason: reason, endedAt: new Date(), turnStartedAt: null, drawOfferBy: null,
-      whiteEloBefore: 1500, blackEloBefore: 1500, whiteEloAfter: 1500 + d.white, blackEloAfter: 1500 + d.black });
+    this.touch({ status: 'finished', result, endReason: reason, endedAt: new Date(), turnStartedAt: null,
+      drawOfferBy: null, drawOfferedAt: null, whiteEloBefore: 1500, blackEloBefore: 1500, whiteEloAfter: 1500 + d.white, blackEloAfter: 1500 + d.black });
   }
   async settle(id: string) {
     const m = this.get(id);
@@ -48,7 +51,7 @@ class MemoryArenaRepo implements ArenaRepository {
     if (!m || m.ply !== c.expectedPly || (m.status !== 'pending' && m.status !== 'active')) throw stalePly();
     this.touch({ ply: m.ply + 1, fen: c.fen, whiteMs: c.whiteMs, blackMs: c.blackMs, status: 'active',
       startedAt: m.startedAt ?? new Date(), turnStartedAt: new Date(),
-      drawOfferBy: m.drawOfferBy === c.mover ? m.drawOfferBy : null });   // jugar rechaza la oferta del rival
+      ...(m.drawOfferBy === c.mover ? {} : { drawOfferBy: null, drawOfferedAt: null }) });   // jugar rechaza la oferta del rival
     this.moves.push({ ply: m.ply, uci: c.uci, san: c.san, whiteMs: c.whiteMs, blackMs: c.blackMs, createdAt: new Date() });
     if (c.outcome) this.close(c.outcome.result, c.outcome.reason);
     return m.ply;
@@ -57,14 +60,15 @@ class MemoryArenaRepo implements ArenaRepository {
   async offerDraw(id: string, by: Color) {
     const m = this.get(id);
     if (m?.status !== 'active' || m.drawOfferBy) return false;
-    this.touch({ drawOfferBy: by });
+    this.touch({ drawOfferBy: by, drawOfferedAt: new Date() });
     return true;
   }
   async clearDrawOffer(id: string) {
     if (!this.get(id)?.drawOfferBy) return false;
-    this.touch({ drawOfferBy: null });
+    this.touch({ drawOfferBy: null, drawOfferedAt: null });
     return true;
   }
+  async botIds(ids: string[]) { return ids.filter(id => this.bots.includes(id)); }
   async acceptDraw(id: string, by: Color) {
     const m = this.get(id);
     if (!m) throw matchNotFound();
@@ -143,6 +147,31 @@ describe('GetGameState', () => {
   it('since al día: sin jugadas, pero sabe si hay jaque', async () => {
     await play('e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7');
     expect(await get(7)).toMatchObject({ state: { moves: [], check: true } });
+  });
+});
+
+describe('Bot de desarrollo (BotTurn dentro de GetGameState)', () => {
+  const get = () => new GetGameState(repo, players, new BotTurn(repo, new MakeMove(repo, players, rules), new GreedyMovePicker()))
+    .execute('ana', 'm1', 0, null);
+  beforeEach(async () => { repo.bots = ['bob']; await play('e2e4'); });   // bob lleva negras: le toca
+
+  it('mueve al consultar si su turno empezó hace más de 0,7 s', async () => {
+    repo.m.turnStartedAt = new Date(Date.now() - 1000);
+    expect(await get()).toMatchObject({ state: { ply: 2, turn: 'white' } });
+  });
+
+  it('antes de 0,7 s no mueve', async () => {
+    expect(await get()).toMatchObject({ state: { ply: 1 } });
+  });
+
+  it('rechaza tablas antes de la jugada 10 y las acepta desde ahí', async () => {
+    const offer = () => new OfferDraw(repo, players).execute('ana', 'm1');
+    await offer();
+    repo.m.drawOfferedAt = new Date(Date.now() - 2000);
+    expect(await get()).toMatchObject({ state: { status: 'active', drawOffer: null } });
+    await offer();
+    Object.assign(repo.m, { ply: 20, drawOfferedAt: new Date(Date.now() - 2000) });
+    expect(await get()).toMatchObject({ state: { status: 'finished', result: { winner: null, reason: 'agreement' } } });
   });
 });
 

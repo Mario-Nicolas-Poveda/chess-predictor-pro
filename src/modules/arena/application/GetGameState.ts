@@ -4,6 +4,7 @@ import type { ArenaRepository } from '../domain/ArenaRepository';
 import { colorOf, type MatchRecord } from '../domain/Match';
 import { matchNotFound } from '../domain/errors';
 import type { Color, GameState } from '../infrastructure/dto/arenaSchemas';
+import type { BotTurn } from './BotTurn';
 import { toGameState } from './toGameState';
 
 // aplica el paso del tiempo (arena_settle) y después: 404 si no existe, 403 si userId no la juega
@@ -31,12 +32,14 @@ export async function stateOf(repo: ArenaRepository, players: PlayerDirectory, m
 }
 
 export class GetGameState {
-  constructor(private repo: ArenaRepository, private players: PlayerDirectory) {}
+  constructor(private repo: ArenaRepository, private players: PlayerDirectory, private bots?: BotTurn) {}
 
   async execute(userId: string, id: string, since: number, ifNoneMatch: string | null) {
-    const { m, color } = await settleOwn(this.repo, userId, id);
+    const own = await settleOwn(this.repo, userId, id);
+    // en desarrollo, si el rival es bot, juega o contesta tablas antes de responder; entonces se relee la fila
+    const m = (await this.bots?.run(own.m)) ? ((await this.repo.findMatch(id)) ?? own.m) : own.m;
     const etag = `"m-${m.version}"`;   // version sube con cada cambio de la fila (trigger)
     if (ifNoneMatch === etag) return { etag, notModified: true as const };
-    return { etag, notModified: false as const, state: await stateOf(this.repo, this.players, m, color, since) };
+    return { etag, notModified: false as const, state: await stateOf(this.repo, this.players, m, own.color, since) };
   }
 }

@@ -18,4 +18,5 @@ export interface ArenaRepository {
   offerDraw(id: string, by: Color): Promise<boolean>;                  // false si ya hay oferta o no está active
   clearDrawOffer(id: string): Promise<boolean>;                        // false si no había oferta
   acceptDraw(id: string, by: Color): Promise<void>;                    // NO_DRAW_OFFER, OWN_DRAW_OFFER o MATCH_NOT_ACTIVE
+  botIds(ids: string[]): Promise<string[]>;                            // los que son bots (users.is_bot)
 }

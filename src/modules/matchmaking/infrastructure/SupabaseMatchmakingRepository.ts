@@ -79,8 +79,11 @@ export class SupabaseMatchmakingRepository implements MatchmakingRepository {
     return data ? mapMatch(data) : null;
   }
 
-  async setMatchStatus(id: string, status: MatchRecord['status']) {
-    const { error } = await supabaseAdmin.from('matches').update({ status }).eq('id', id);
+  async abortIfPending(id: string) {
+    // la condición va en el UPDATE: si la partida pasó a active entre la lectura y la escritura, no la toca
+    const { data, error } = await supabaseAdmin.from('matches')
+      .update({ status: 'aborted' }).eq('id', id).eq('status', 'pending').select('id');
     if (error) throw error;
+    return data.length > 0;
   }
 }

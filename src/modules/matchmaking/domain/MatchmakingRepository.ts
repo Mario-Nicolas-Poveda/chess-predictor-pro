@@ -12,5 +12,5 @@ export interface MatchmakingRepository {
   countSearching(): Promise<Record<TimeControl, number>>;          // vistos hace < 15 s, o bots
   findOpenMatchFor(userId: string): Promise<MatchRecord | null>;   // active, o pending de < 10 min
   findMatch(id: string): Promise<MatchRecord | null>;
-  setMatchStatus(id: string, status: MatchRecord['status']): Promise<void>;
+  abortIfPending(id: string): Promise<boolean>;                    // true si la pasó a aborted; false si ya no estaba pending
 }

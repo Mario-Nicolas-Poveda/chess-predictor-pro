@@ -4,6 +4,7 @@ import type { PlayerSummary, TimeControl } from '@/modules/matchmaking/infrastru
 
 export const UciSchema = z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/, { error: 'Jugada en formato UCI, por ejemplo e2e4 o e7e8q' });
 export const MakeMoveSchema = z.object({ uci: UciSchema, ply: z.int().min(0) }).strict();
+export type MakeMoveInput = z.infer<typeof MakeMoveSchema>;
 export const StateQuerySchema = z.object({ since: z.coerce.number().int().min(0).default(0) });
 export const MoveParamsSchema = z.object({ id: z.uuid({ error: 'Debe ser un UUID' }), ply: z.coerce.number().int().min(1, { error: 'Debe ser 1 o más' }) });
 export const HistoryQuerySchema = z.object({

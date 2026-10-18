@@ -66,6 +66,9 @@ export class SupabaseMatchmakingRepository implements MatchmakingRepository {
   }
 
   async findOpenMatchFor(userId: string) {
+    // antes, cerrar sus partidas vencidas (tiempo agotado, pending de > 3 min): si nadie las consulta, bloquearían la búsqueda
+    const settled = await supabaseAdmin.rpc('arena_settle_user', { p_user: userId });
+    if (settled.error) throw settled.error;
     // la regla de "partida abierta" vive en SQL (mm_open_match) para no duplicarla
     const { data, error } = await supabaseAdmin.rpc('mm_open_match', { p_user: userId });
     if (error) throw error;

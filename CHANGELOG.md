@@ -3,6 +3,10 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-18
+### Eliminado
+- Guías de sprint (`docs/sprints/`) fuera del repositorio; quedan en local e ignoradas por Git (#51)
+
 ## [0.2.0] - 2026-10-17
 Sprint 2 · Matchmaking.
 

@@ -12,6 +12,7 @@ export const HistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
   before: z.iso.datetime({ offset: true }).optional(),
 });
+export type HistoryQuery = z.infer<typeof HistoryQuerySchema>;
 export const ProfileHistoryQuerySchema = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) });
 
 export type Color = 'white' | 'black';

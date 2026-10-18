@@ -1,16 +1,21 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
-import type { ArenaRepository, CommitMove } from '../../domain/ArenaRepository';
+import { ConflictError } from '@/core/shared/errors/AppError';
+import { zodFields } from '@/core/shared/errors/zodFields';
+import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../../domain/ArenaRepository';
 import { eloDelta } from '../../domain/elo';
 import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../../domain/errors';
 import { other, turnOf, type MatchRecord, type MoveRecord } from '../../domain/Match';
 import { ChessJsRules } from '../../infrastructure/ChessJsRules';
-import type { Color, EndReason } from '../../infrastructure/dto/arenaSchemas';
+import { HistoryQuerySchema, type Color, type EndReason } from '../../infrastructure/dto/arenaSchemas';
 import { GreedyMovePicker } from '../../infrastructure/GreedyMovePicker';
 import { AnswerDraw } from '../AnswerDraw';
 import { BotTurn } from '../BotTurn';
 import { GetGameState } from '../GetGameState';
+import { GetMatchHistory } from '../GetMatchHistory';
+import { GetProfileHistory } from '../GetProfileHistory';
+import { Rematch } from '../Rematch';
 import { MakeMove } from '../MakeMove';
 import { OfferDraw } from '../OfferDraw';
 import { Resign } from '../Resign';
@@ -69,6 +74,30 @@ class MemoryArenaRepo implements ArenaRepository {
     return true;
   }
   async botIds(ids: string[]) { return ids.filter(id => this.bots.includes(id)); }
+  rows: HistoryRow[] = [];
+  created: MatchRecord[] = [];
+  async history(_userId: string, outcome: Outcome3 | null, before: string | null, limit: number) {
+    return this.rows.filter(r => (!outcome || r.outcome === outcome) && (!before || r.endedAt < new Date(before)))
+      .sort((a, b) => b.endedAt.getTime() - a.endedAt.getTime()).slice(0, limit);
+  }
+  async eloSeries() { return [{ date: '2026-10-17', elo: 1450 }, { date: '2026-10-18', elo: 1467 }]; }
+  async rematch(id: string, by: Color) {
+    const m = this.get(id);
+    if (!m) throw matchNotFound();
+    if (m.status !== 'finished') throw new ConflictError('MATCH_NOT_FINISHED', 'La revancha se pide cuando la partida termina');
+    if (m.rematchId) return m.rematchId;
+    if (!m.rematchOfferBy) { this.touch({ rematchOfferBy: by, rematchOfferedAt: new Date() }); return null; }
+    if (m.rematchOfferBy === by) throw new ConflictError('REMATCH_ALREADY_OFFERED', 'Ya pediste la revancha');
+    this.created.push({ ...record(), id: 'm2', whiteId: m.blackId, blackId: m.whiteId, timeControl: m.timeControl });
+    this.touch({ rematchId: 'm2', rematchOfferBy: null, rematchOfferedAt: null });
+    return 'm2';
+  }
+  async cancelRematch(id: string) {
+    const m = this.get(id);
+    if (!m?.rematchOfferBy || m.rematchId) return false;
+    this.touch({ rematchOfferBy: null, rematchOfferedAt: null });
+    return true;
+  }
   async acceptDraw(id: string, by: Color) {
     const m = this.get(id);
     if (!m) throw matchNotFound();
@@ -215,5 +244,65 @@ describe('Tablas', () => {
   it('una jugada del rival borra la oferta', async () => {
     await offer('ana');
     expect((await move('bob', 'e7e5', 1)).state.drawOffer).toBeNull();
+  });
+});
+
+describe('Historial', () => {
+  const row = (id: string, outcome: Outcome3, hour: number): HistoryRow => ({ id, timeControl: '10+0',
+    endedAt: new Date(`2026-10-18T${10 + hour}:00:00Z`), yourColor: 'white', outcome, reason: 'checkmate',
+    eloDelta: outcome === 'win' ? 17 : -15, plies: 7, opponentId: 'bob', opponentElo: 1478 });
+  const list = (q: object) => new GetMatchHistory(repo, players).execute('ana', HistoryQuerySchema.parse(q));
+  beforeEach(() => { repo.rows = [row('a', 'win', 1), row('b', 'loss', 2), row('c', 'win', 3)]; });
+
+  it('filtro win solo devuelve ganadas, con el ELO del rival en esa partida', async () => {
+    const r = await list({ result: 'win' });
+    expect(r.items.map(i => i.id)).toEqual(['c', 'a']);
+    expect(r.items[0]).toMatchObject({ opponent: { username: 'bob', elo: 1478 } });
+  });
+
+  it('limit=2 con 3 partidas da nextBefore, y con ese before sale la tercera', async () => {
+    const first = await list({ limit: '2' });
+    expect(first.items.map(i => i.id)).toEqual(['c', 'b']);
+    const second = await list({ limit: '2', before: first.nextBefore });
+    expect(second).toMatchObject({ items: [{ id: 'a' }], nextBefore: null });
+  });
+
+  it('limit=99 → 400 con fields.limit', () => {
+    expect(zodFields(HistoryQuerySchema.safeParse({ limit: '99' }).error!)).toHaveProperty('limit');
+  });
+
+  it('perfil: serie de ELO y resultados con el usuario del rival', async () => {
+    expect(await new GetProfileHistory(repo, players).execute('ana', 30)).toMatchObject({
+      elo: [{ date: '2026-10-17', elo: 1450 }, { date: '2026-10-18', elo: 1467 }],
+      results: [{ id: 'c', outcome: 'win', opponent: 'bob' }, { id: 'b' }, { id: 'a' }] });
+  });
+});
+
+describe('Revancha', () => {
+  const rematch = () => new Rematch(repo);
+  beforeEach(async () => { await play('e2e4'); await new Resign(repo, players).execute('bob', 'm1'); });
+
+  it('ofrecer → offered; otra vez → 409; el rival acepta → partida con colores cambiados y el mismo ritmo', async () => {
+    expect(await rematch().request('ana', 'm1')).toEqual({ state: 'offered' });
+    await expect(rematch().request('ana', 'm1')).rejects.toMatchObject({ code: 'REMATCH_ALREADY_OFFERED', status: 409 });
+    expect(await rematch().request('bob', 'm1')).toEqual({ state: 'accepted', matchId: 'm2' });
+    expect(repo.created[0]).toMatchObject({ whiteId: 'bob', blackId: 'ana', timeControl: '10+0' });
+  });
+
+  it('contra un bot se acepta sola', async () => {
+    repo.bots = ['bob'];
+    expect(await rematch().request('ana', 'm1')).toEqual({ state: 'accepted', matchId: 'm2' });
+  });
+
+  it('en active → 409 MATCH_NOT_FINISHED', async () => {
+    repo.m.status = 'active';
+    await expect(rematch().request('ana', 'm1')).rejects.toMatchObject({ code: 'MATCH_NOT_FINISHED', status: 409 });
+  });
+
+  it('retirar sin oferta → 404 NO_REMATCH_OFFER; con oferta, se retira', async () => {
+    await expect(rematch().cancel('ana', 'm1')).rejects.toMatchObject({ code: 'NO_REMATCH_OFFER', status: 404 });
+    await rematch().request('ana', 'm1');
+    await expect(rematch().cancel('bob', 'm1')).resolves.toBeUndefined();
+    expect(repo.m.rematchOfferBy).toBeNull();
   });
 });

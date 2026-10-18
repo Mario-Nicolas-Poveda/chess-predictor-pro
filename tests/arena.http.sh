@@ -39,6 +39,13 @@ echo "== 201 Dxf7#";                    j -b $W -X POST $B/matches/$M/moves -d '
 echo "== 409 jugar tras el final";      j -b $K -X POST $B/matches/$M/moves -d '{"uci":"a7a6","ply":7}'
 echo "== 409 rendirse tras el final";   j -b $K -X POST $B/matches/$M/resign
 echo "== 404 sin oferta de tablas";     j -b $K -X DELETE $B/matches/$M/draw-offer
+echo "== 404 sin oferta de revancha";   j -b $K -X DELETE $B/matches/$M/rematch
+echo "== 202 revancha ofrecida";        st -b $K -X POST $B/matches/$M/rematch
+echo "== 409 ya la pediste";            j -b $K -X POST $B/matches/$M/rematch
+echo "== 201 el rival acepta";          curl -s -D - -o /dev/null -b $W -X POST $B/matches/$M/rematch | grep -iE '^HTTP|^location'
+echo "== 200 historial";                j -b $W "$B/matches?limit=5"
+echo "== 400 limit fuera";              j -b $W "$B/matches?limit=99"
+echo "== 200 historia del perfil";      j -b $W "$B/profile/history?days=30"
 echo "== 405 método no permitido";      st -b $W -X PUT $B/matches/$M/moves
 echo "== 403 tercero";                  J3=$(mktemp); j -c $J3 -X POST $B/auth/register -d "{\"email\":\"c$R@t.dev\",\"username\":\"c_$R\",\"password\":\"Clave1234\"}" >/dev/null; j -b $J3 $B/matches/$M/state
 echo "== 401 sin sesión";               j $B/matches/$M/state

@@ -1,8 +1,8 @@
 import 'server-only';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
-import type { AppError } from '@/core/shared/errors/AppError';
+import { ConflictError, type AppError } from '@/core/shared/errors/AppError';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
-import type { ArenaRepository, CommitMove } from '../domain/ArenaRepository';
+import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../domain/ArenaRepository';
 import type { MatchRecord, MoveRecord } from '../domain/Match';
 import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../domain/errors';
 import type { Color, EndReason, MatchStatus } from './dto/arenaSchemas';
@@ -14,7 +14,9 @@ type MatchRow = { id: string; white_id: string; black_id: string; time_control: 
   rematch_offer_by: Color | null; rematch_offered_at: string | null;
   rematch_id: string | null; white_elo_before: number | null; black_elo_before: number | null;
   white_elo_after: number | null; black_elo_after: number | null };
-type MoveRow = { ply: number; uci: string; san: string; white_ms: number; black_ms: number; created_at: string };
+type HistoryDbRow = { id: string; time_control: TimeControl; ended_at: string; your_color: Color; outcome: Outcome3;
+  end_reason: EndReason; elo_delta: number; plies: number; opponent_id: string; opponent_elo: number };
+type MoveRow ={ ply: number; uci: string; san: string; white_ms: number; black_ms: number; created_at: string };
 
 const MOVE_COLS = 'ply, uci, san, white_ms, black_ms, created_at';
 const date = (s: string | null) => (s ? new Date(s) : null);
@@ -36,6 +38,9 @@ const RPC_ERRORS: Record<string, () => AppError> = {
   MATCH_NOT_ACTIVE: () => matchNotActive(),
   NO_DRAW_OFFER: noDrawOffer,
   OWN_DRAW_OFFER: ownDrawOffer,
+  MATCH_NOT_FINISHED: () => new ConflictError('MATCH_NOT_FINISHED', 'La revancha se pide cuando la partida termina'),
+  REMATCH_ALREADY_OFFERED: () => new ConflictError('REMATCH_ALREADY_OFFERED', 'Ya pediste la revancha'),
+  ACTIVE_MATCH_EXISTS: () => new ConflictError('ACTIVE_MATCH_EXISTS', 'Uno de los dos ya tiene otra partida o está buscando'),
 };
 const fromRpc = (e: { message: string }) => RPC_ERRORS[e.message]?.() ?? e;
 
@@ -98,6 +103,35 @@ export class SupabaseArenaRepository implements ArenaRepository {
   async acceptDraw(id: string, by: Color) {
     const { error } = await supabaseAdmin.rpc('arena_accept_draw', { p_match: id, p_by: by });
     if (error) throw fromRpc(error);
+  }
+
+  async history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number) {
+    const { data, error } = await supabaseAdmin.rpc('arena_history',
+      { p_user: userId, p_outcome: outcome, p_before: before, p_limit: limit });
+    if (error) throw error;
+    return (data as HistoryDbRow[]).map((r): HistoryRow => ({ id: r.id, timeControl: r.time_control,
+      endedAt: new Date(r.ended_at), yourColor: r.your_color, outcome: r.outcome, reason: r.end_reason,
+      eloDelta: r.elo_delta, plies: r.plies, opponentId: r.opponent_id, opponentElo: r.opponent_elo }));
+  }
+
+  async eloSeries(userId: string, days: number) {
+    const { data, error } = await supabaseAdmin.rpc('arena_elo_series', { p_user: userId, p_days: days });
+    if (error) throw error;
+    return (data as { day: string; elo: number }[]).map(r => ({ date: r.day, elo: r.elo }));
+  }
+
+  async rematch(id: string, by: Color) {
+    const { data, error } = await supabaseAdmin.rpc('arena_rematch', { p_match: id, p_by: by });
+    if (error) throw fromRpc(error);
+    return data as string | null;
+  }
+
+  async cancelRematch(id: string) {
+    const { data, error } = await supabaseAdmin.from('matches')
+      .update({ rematch_offer_by: null, rematch_offered_at: null })
+      .eq('id', id).not('rematch_offer_by', 'is', null).is('rematch_id', null).select('id');
+    if (error) throw error;
+    return data.length > 0;
   }
 
   async botIds(ids: string[]) {

@@ -17,8 +17,10 @@ const AUTO_SPIN = .006;   // rad por frame de 16 ms
 const TILE = .66;
 
 export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
-  const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 30, continuous: true });
+  const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 30 });
   const { THREE, scene, camera, tweens, hemi, key, quality } = stage;
+  // calidad baja: la pieza queda quieta (gira solo al arrastrar); así no hay frames continuos
+  const spins = quality === 'high' && !reducedMotion;
   await geosAsync(quality, stage.step);
   // lo bastante lejos para que la cruz del rey y las esquinas del pedestal no se corten al girar
   camera.position.set(0, 2.9, 8.4);
@@ -49,15 +51,15 @@ export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quali
   let bobbing = false;   // vaivén solo cuando terminó la caída
 
   // giro: automático, arrastre con inercia que vuelve a la velocidad automática
-  let velocity = reducedMotion ? 0 : AUTO_SPIN, dragging = false, lastX = 0;
-  const idleSpeed = reducedMotion ? 0 : AUTO_SPIN;
+  const idleSpeed = spins ? AUTO_SPIN : 0;
+  let velocity = idleSpeed, dragging = false, lastX = 0;
   stage.onFrame((now, dt) => {
     const k = dt / 16;
     if (!dragging) {
       velocity = idleSpeed + (velocity - idleSpeed) * .97 ** k;
       spin.rotation.y += velocity * k;
     }
-    if (piece && bobbing && !reducedMotion) piece.position.y = Math.sin(now / 900) * .03;
+    if (piece && bobbing && spins) piece.position.y = Math.sin(now / 900) * .03;
     return dragging || Math.abs(velocity - idleSpeed) > 1e-4;
   });
 
@@ -74,6 +76,7 @@ export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quali
   spin.add(...warm);
   await stage.finish();
   spin.remove(...warm);
+  stage.setContinuous(spins);
 
   canvas.style.cursor = 'grab';
   canvas.style.touchAction = 'pan-y';   // no bloquea el scroll vertical en móvil

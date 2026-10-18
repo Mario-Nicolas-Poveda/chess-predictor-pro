@@ -10,6 +10,19 @@ export type SceneCtx = { quality: Quality; reducedMotion: boolean; signal: Abort
 export type SceneFactory<S> = (canvas: HTMLCanvasElement, ctx: SceneCtx) => Promise<S>;
 type Disposable = { dispose(): void };
 
+const ENGAGE = ['pointerdown', 'touchstart', 'keydown', 'wheel', 'scroll'] as const;
+
+/**
+ * Equipos modestos (móvil): con la CPU lenta, crear la escena cuesta segundos y competiría con la carga.
+ * Se espera al primer toque, tecla o scroll (o a 6 s sin ellos). shortcut: si el usuario no interactúa, ve el fondo 6 s.
+ */
+const whenEngaged = (signal: AbortSignal) => new Promise<void>(resolve => {
+  const go = () => { clearTimeout(t); resolve(); };
+  const t = setTimeout(go, 6000);
+  ENGAGE.forEach(e => window.addEventListener(e, go, { once: true, passive: true, signal }));
+  signal.addEventListener('abort', () => clearTimeout(t));
+});
+
 const whenIdle = (fn: () => void, timeout: number) =>
   'requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout }) : self.setTimeout(fn, 250);
 
@@ -32,6 +45,7 @@ export function useThreeScene<S extends Disposable>(load: () => Promise<SceneFac
       ? Promise.resolve()
       : new Promise<void>(r => window.addEventListener('load', () => r(), { once: true, signal: ctrl.signal }));
     whenLoaded
+      .then(() => (pre === 'low' ? whenEngaged(ctrl.signal) : undefined))
       .then(() => new Promise<void>(r => whenIdle(r, pre === 'low' ? 2500 : 1200)))
       .then(async () => {
         checkAbort(ctrl.signal);

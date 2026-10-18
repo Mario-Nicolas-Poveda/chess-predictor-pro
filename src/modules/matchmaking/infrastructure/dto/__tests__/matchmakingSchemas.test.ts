@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { JoinQueueSchema, MatchIdSchema } from '../matchmakingSchemas';
+import { zodFields } from '@/core/shared/errors/zodFields';
+import { JoinQueueSchema, MatchParamsSchema } from '../matchmakingSchemas';
 
 describe('contratos de matchmaking', () => {
   it('JoinQueue acepta los ritmos del contrato', () => {
@@ -11,8 +12,8 @@ describe('contratos de matchmaking', () => {
     expect(JoinQueueSchema.safeParse({ timeControl: '10+0', userId: 'x' }).success).toBe(false);
   });
 
-  it('MatchId exige un uuid', () => {
-    expect(MatchIdSchema.safeParse('abc').success).toBe(false);
-    expect(MatchIdSchema.safeParse('7f3a1c2e-9b4d-4e8f-a1b2-c3d4e5f60718').success).toBe(true);
+  it('MatchParams exige un uuid y el error sale en fields.id', () => {
+    expect(zodFields(MatchParamsSchema.safeParse({ id: 'abc' }).error!)).toEqual({ id: ['Debe ser un UUID'] });
+    expect(MatchParamsSchema.safeParse({ id: '7f3a1c2e-9b4d-4e8f-a1b2-c3d4e5f60718' }).success).toBe(true);
   });
 });

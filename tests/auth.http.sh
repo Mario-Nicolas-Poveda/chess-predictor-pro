@@ -13,7 +13,7 @@ echo "== me";             j -b $J $B/auth/me
 # --- desde Fase 3 ---
 echo "== profile (0s)";   j -b $J $B/profile
 echo "== patch";          j -b $J -c $J -X PATCH $B/profile -d '{"displayName":"Mario P","country":"CO","bio":"Italiana siempre"}'
-echo "== patch elo 400";  j -b $J -X PATCH $B/profile -d '{"eloRating":3000}'
+echo "== patch elo 400 (fields.eloRating)"; j -b $J -X PATCH $B/profile -d '{"eloRating":3000}'
 echo "== patch user 409"; j -b $J -X PATCH $B/profile -d '{"username":"demo"}'
 # --- preferencias (Sprint 2) ---
 echo "== prefs por defecto 200"; j -b $J $B/profile/preferences

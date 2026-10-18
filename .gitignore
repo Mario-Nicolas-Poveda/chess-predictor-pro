@@ -46,3 +46,6 @@ next-env.d.ts
 .pr/
 # permisos locales de Claude Code de cada dev
 .claude/settings.local.json
+
+# Guías de sprint: solo en local
+docs/sprints/

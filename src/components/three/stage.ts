@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { disposeTree } from './kit';
+import { disposeTree, lux } from './kit';
 import { Tweens } from './tween';
 import { contextQuality, isSoftwareGL, type Quality } from './quality';
 import { SceneAborted, SoftwareWebGL, nextFrame, yieldToMain } from './yield';
@@ -21,7 +21,7 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   const quality = contextQuality(gl);
   // baja: resolución 1 y sin sombras en tiempo real (las piezas llevan sombra de contacto)
   renderer.setPixelRatio(quality === 'high' ? Math.min(2, window.devicePixelRatio || 1) : 1);
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = quality === 'high';
   renderer.shadowMap.type = THREE.PCFShadowMap;   // PCFSoft casi no se distingue aquí y su shader compila bastante más lento
@@ -36,14 +36,14 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   await step();
 
   // 2 · luces, suelo y sombras según la calidad
-  const hemi = new THREE.HemisphereLight(0xfff6e8, 0xb9a48a, .85);
-  const key = new THREE.DirectionalLight(0xfff0dc, 1.35);
+  const hemi = new THREE.HemisphereLight(0xfff6e8, 0xb9a48a, lux(.85));
+  const key = new THREE.DirectionalLight(0xfff0dc, lux(1.35));
   key.position.set(4, 10, 6); key.castShadow = quality === 'high';
   const sm = quality === 'high' ? 1024 : 512;
   key.shadow.mapSize.set(sm, sm);
   Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7 });
   key.shadow.bias = -.0005; key.shadow.normalBias = .02;
-  const fill = new THREE.DirectionalLight(0xdfe6ff, .25); fill.position.set(-6, 4, -5);
+  const fill = new THREE.DirectionalLight(0xdfe6ff, lux(.25)); fill.position.set(-6, 4, -5);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: .16 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -.36; ground.receiveShadow = true;
   if (o.lights !== false) scene.add(hemi, key, fill);   // lights: false = la escena pone su propia luz (landing)
@@ -101,24 +101,8 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
     /** 5 · compila los shaders en su propia tarea; 6 · primer frame. Antes de esto el bucle no dibuja. */
     async finish() {
       await step();
-      // Compilar shaders en frío tarda (cientos de ms de una vez): un material por tarea, en una escena temporal
-      // con copias de las mismas luces y la misma niebla, para que el programa sea el mismo que usará la escena.
-      const lights: THREE.Object3D[] = [];
-      const byMaterial = new Map<THREE.Material, THREE.Object3D>();
-      scene.traverseVisible(obj => {
-        if ((obj as THREE.Light).isLight) { lights.push(obj); return; }
-        const mats = (obj as THREE.Mesh).material;
-        (Array.isArray(mats) ? mats : mats ? [mats] : []).forEach(m => { if (!byMaterial.has(m)) byMaterial.set(m, obj); });
-      });
-      for (const obj of byMaterial.values()) {
-        const tmp = new THREE.Scene();
-        tmp.fog = scene.fog;
-        lights.forEach(l => tmp.add(l.clone()));
-        tmp.add(obj.clone(false));
-        renderer.compile(tmp, camera);
-        await step();
-      }
-      renderer.compile(scene, camera);   // lo que falte (ya casi todo está en caché)
+      // compileAsync (KHR_parallel_shader_compile) compila sin bloquear el hilo: en frío eran cientos de ms de una vez
+      await renderer.compileAsync(scene, camera);
       await nextFrame();
       if (o.signal.aborted) { dispose(); throw new SceneAborted(); }
       ready = true;

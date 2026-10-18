@@ -1,5 +1,5 @@
 import type { Group, MeshBasicMaterial } from 'three';
-import { createPiece, geosAsync, squareToXZ, surface, type PieceType } from '@/components/three/kit';
+import { createPiece, geosAsync, lux, squareToXZ, surface, type PieceType } from '@/components/three/kit';
 import { createStage } from '@/components/three/stage';
 import type { SceneFactory } from '@/components/three/useThreeScene';
 
@@ -51,7 +51,7 @@ export const createLandingScene: SceneFactory<LandingScene> = async (canvas, { q
   }
   function tex(c: HTMLCanvasElement, repeat?: number) {
     const t = new THREE.CanvasTexture(c);
-    t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso;
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
     if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat); }
     return t;
   }
@@ -110,15 +110,15 @@ export const createLandingScene: SceneFactory<LandingScene> = async (canvas, { q
   table.rotation.x = -Math.PI / 2; table.position.y = -.42; table.receiveShadow = true; scene.add(table);
 
   /* ---------- luces ---------- */
-  scene.add(new THREE.HemisphereLight(0x6b5642, 0x0a0705, .38));
-  const spot = new THREE.SpotLight(0xffc88a, 2.05, 34, .82, .75, 1.4);
+  scene.add(new THREE.HemisphereLight(0x6b5642, 0x0a0705, lux(.38)));
+  const spot = new THREE.SpotLight(0xffc88a, lux(1.45), 34, .82, .75, 0)   // decay 0: con unidades físicas la caída 1/d^1.4 oscurecía el tablero; 1,45 = 2,05 × la caída antigua en el centro;
   spot.position.set(0, 7.25, 0); spot.target.position.set(0, 0, 0);
   const sm = quality === 'high' ? 1024 : 512;
   spot.castShadow = true; spot.shadow.mapSize.set(sm, sm); spot.shadow.bias = -.0004; spot.shadow.normalBias = .02;
   spot.shadow.camera.near = 2; spot.shadow.camera.far = 14;
   scene.add(spot, spot.target);
-  const rim = new THREE.DirectionalLight(0x8aa2c8, .42); rim.position.set(-9, 5, -11);
-  const fill = new THREE.DirectionalLight(0xffb070, .22); fill.position.set(9, 3, 9);
+  const rim = new THREE.DirectionalLight(0x8aa2c8, lux(.42)); rim.position.set(-9, 5, -11);
+  const fill = new THREE.DirectionalLight(0xffb070, lux(.22)); fill.position.set(9, 3, 9);
   scene.add(rim, fill);
 
   /* lámpara colgante */

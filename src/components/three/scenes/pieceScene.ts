@@ -1,5 +1,5 @@
 import type { Color, Group, Material } from 'three';
-import { createPiece, geosAsync, pieceMaterials, srgb, surface, type PieceType } from '../kit';
+import { createPiece, geosAsync, lux, pieceMaterials, srgb, surface, type PieceType } from '../kit';
 import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
@@ -25,7 +25,7 @@ export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quali
   // lo bastante lejos para que la cruz del rey y las esquinas del pedestal no se corten al girar
   camera.position.set(0, 2.9, 8.4);
   camera.lookAt(0, 1, 0);
-  const back = new THREE.DirectionalLight(0xdfe6ff, .5);
+  const back = new THREE.DirectionalLight(0xdfe6ff, lux(.5));
   back.position.set(-3, 4, -6);
   scene.add(back);
 
@@ -101,8 +101,8 @@ export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quali
     setTheme(t, accent) {
       light.color.copy(srgb(t.tileL)); darkTile.color.copy(srgb(t.tileD)); frameMat.color.copy(srgb(t.frame));
       mats.a.color.copy(srgb(accent));
-      hemi.intensity = t.dark ? .45 : .85;
-      key.intensity = t.dark ? 2.2 : 1.6;
+      hemi.intensity = lux(t.dark ? .45 : .85);
+      key.intensity = lux(t.dark ? 2.2 : 1.6);
       stage.invalidate();
     },
     dispose() {

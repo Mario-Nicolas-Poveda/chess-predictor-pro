@@ -28,7 +28,7 @@ const cache = new Map<Quality, Geos>();
 
 // Recetas de cada geometría: se crean una sola vez por calidad y quedan en caché.
 function recipes(q: Quality): [keyof Geos, () => THREE.BufferGeometry][] {
-  const seg = q === 'high' ? 48 : 32;
+  const seg = q === 'high' ? 48 : 24;
   const lathe = (pts: [number, number][]) => () => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
   const head = () => {
     const h = new THREE.ExtrudeGeometry(

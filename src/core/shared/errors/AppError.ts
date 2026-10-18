@@ -29,6 +29,9 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(code: string, message: string, fields?: ErrorFields, meta?: ErrorMeta) { super(code, message, 409, fields, meta); }
 }
+export class UnprocessableError extends AppError {
+  constructor(code = 'UNPROCESSABLE', message = 'La solicitud es válida pero no se puede aplicar', meta?: ErrorMeta) { super(code, message, 422, undefined, meta); }
+}
 export class UnsupportedMediaTypeError extends AppError {
   constructor() { super('UNSUPPORTED_MEDIA_TYPE', 'El cuerpo debe ser JSON', 415); }
 }

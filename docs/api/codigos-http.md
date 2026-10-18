@@ -38,7 +38,7 @@ Los mensajes de Zod salen en español (`src/core/shared/zod.ts`).
 
 | Para | Usa |
 |---|---|
-| Lanzar un error | `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `UnsupportedMediaTypeError`, `ServiceUnavailableError` (`src/core/shared/errors/AppError.ts`) |
+| Lanzar un error | `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `UnprocessableError` (422), `UnsupportedMediaTypeError`, `ServiceUnavailableError` (`src/core/shared/errors/AppError.ts`) |
 | Leer el body | `await readJson(req, Schema)`: 415 si no es JSON, 400 `INVALID_JSON` si está roto, 400 `VALIDATION_ERROR` si no cumple el schema |
 | Validar params de ruta | `parseParams(Schema, params)` con un `z.object` (`src/core/shared/http/params.ts`): el error sale en `fields.<param>` |
 | Validar la query string | `parseQuery(Schema, req)`: los parámetros que sobran se ignoran |

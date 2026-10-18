@@ -10,7 +10,7 @@ export interface MatchmakingRepository {
   tryPair(userId: string): Promise<string | null>;                 // id de la partida creada
   cleanup(): Promise<void>;
   countSearching(): Promise<Record<TimeControl, number>>;          // vistos hace < 15 s, o bots
-  findOpenMatchFor(userId: string): Promise<MatchRecord | null>;   // active, o pending de < 10 min
+  findOpenMatchFor(userId: string): Promise<MatchRecord | null>;   // active, o pending de < 3 min (0004)
   findMatch(id: string): Promise<MatchRecord | null>;
   abortIfPending(id: string): Promise<boolean>;                    // true si la pasó a aborted; false si ya no estaba pending
 }

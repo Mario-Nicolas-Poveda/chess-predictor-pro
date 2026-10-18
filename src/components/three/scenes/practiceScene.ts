@@ -1,6 +1,6 @@
 import type { Group, Material, Mesh, Object3D } from 'three';
 import type { Arrow, BoardPiece, Square } from '@/components/chess/types';
-import { createBoard, createPiece, pieceMaterials, squareToXZ, srgb } from '../kit';
+import { createBoard, createPiece, geosAsync, pieceMaterials, squareToXZ, srgb } from '../kit';
 import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
@@ -22,12 +22,14 @@ export interface PracticeScene {
   dispose(): void;
 }
 
-export const createPracticeScene: SceneFactory<PracticeScene> = (canvas, { quality, reducedMotion }) => {
-  const stage = createStage(canvas, { quality, reducedMotion, fov: 32, continuous: false });
-  const { THREE, scene, camera, tweens } = stage;
-  const board = createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' });
+export const createPracticeScene: SceneFactory<PracticeScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
+  const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 32, continuous: false });
+  const { THREE, scene, camera, tweens, quality } = stage;
+  await geosAsync(quality, stage.step);
+  const board = createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }, quality);
   scene.add(board.group);
-  const mats = pieceMaterials();
+  const mats = pieceMaterials(quality);
+  await stage.step();
 
   // piezas por id
   const groups = new Map<string, Group>();
@@ -181,6 +183,12 @@ export const createPracticeScene: SceneFactory<PracticeScene> = (canvas, { quali
     camera.lookAt(0, 0, .45);
     return Math.abs(tx - cam.x) + Math.abs(ty - cam.y) > .001;
   });
+
+  // compila los shaders de las piezas antes de que lleguen (si no, el primer update bloquearía)
+  const warm = [createPiece('p', mats.w, quality), createPiece('p', mats.b, quality)];
+  scene.add(...warm);
+  await stage.finish();
+  scene.remove(...warm);
 
   return {
     update,

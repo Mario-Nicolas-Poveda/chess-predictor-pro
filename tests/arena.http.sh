@@ -15,7 +15,7 @@ C=$(echo "$S" | sed -n 's/.*"yourColor":"\([a-z]*\)".*/\1/p')
 if [ "$C" = "white" ]; then W=$J2; K=$J1; else W=$J1; K=$J2; fi     # W juega con blancas
 
 echo "== 200 estado + ETag";            curl -s -D - -o /dev/null -b $W $B/matches/$M/state | grep -i etag
-E=$(curl -s -D - -o /dev/null -b $W $B/matches/$M/state | sed -n 's/^[Ee][Tt]ag: *\(.*\)\r$/\1/p')
+E=$(curl -s -D - -o /dev/null -b $W $B/matches/$M/state | tr -d '\r' | sed -n 's/^[Ee][Tt]ag: *//p')   # sin \r: el sed de Git Bash lo quita solo
 echo "== 304 sin cambios";              st -b $W -H "If-None-Match: $E" $B/matches/$M/state
 echo "== 409 negras en pending";        j -b $K -X POST $B/matches/$M/moves -d '{"uci":"e7e5","ply":0}'
 echo "== 422 ilegal";                   j -b $W -X POST $B/matches/$M/moves -d '{"uci":"e2e5","ply":0}'

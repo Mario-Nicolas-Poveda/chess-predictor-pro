@@ -1,5 +1,5 @@
 import type { Group } from 'three';
-import { createBoard, createPiece, geosAsync, pieceMaterials, squareToXZ, srgb, type PieceType } from '../kit';
+import { createBoard, createPiece, geosAsync, lux, pieceMaterials, squareToXZ, srgb, type PieceType } from '../kit';
 import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
@@ -50,7 +50,7 @@ export const createPlayScene: SceneFactory<PlayScene> = async (canvas, { quality
     }
   }
 
-  const glow = new THREE.PointLight(0xc04a5c, 0, 9, 1.6);
+  const glow = new THREE.PointLight(0xc04a5c, 0, 9, 1.6);   // la intensidad se anima en el destello (con lux)
   glow.position.set(0, 1.6, 0); scene.add(glow);
 
   const ringMat = new THREE.MeshBasicMaterial({ color: srgb('#6e1e2b'), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
@@ -92,7 +92,7 @@ export const createPlayScene: SceneFactory<PlayScene> = async (canvas, { quality
     });
     // destello al encontrar rival: 0 → 3 en 600 ms y baja a 0,8
     if (phase === 'matched' && since < 1400) {
-      glow.intensity = since < 600 ? (since / 600) * 3 : 3 - ((since - 600) / 800) * 2.2; busy = true;
+      glow.intensity = lux(1.5 * (since < 600 ? (since / 600) * 3 : 3 - ((since - 600) / 800) * 2.2)); busy = true;   // ×1,5: compensa la caída física a 1,6 de distancia
     }
     // cámara: se acerca a la de la fase; con reducir movimiento salta y no orbita
     const k = reducedMotion ? 1 : .04;

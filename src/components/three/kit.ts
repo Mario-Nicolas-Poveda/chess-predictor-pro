@@ -2,6 +2,12 @@ import * as THREE from 'three';
 import type { Quality } from './quality';
 
 export type PieceType = 'p' | 'n' | 'b' | 'r' | 'q' | 'k';
+
+// three ≥ 0.152 convierte los colores hex de sRGB a lineal por su cuenta. Las escenas se ajustaron con el modo
+// anterior (convertimos a mano con srgb() y los demás valores ya son lineales): se mantiene ese modo para no cambiar el aspecto.
+THREE.ColorManagement.enabled = false;
+/** Desde three r155 las luces usan unidades físicas: las intensidades de antes se multiplican por π para verse igual. */
+export const lux = (legacy: number) => legacy * Math.PI;
 export const srgb = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
 // Perfiles de torno de docs/design/landing-reference.html

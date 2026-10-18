@@ -3,7 +3,10 @@ import { SupabasePlayerDirectory } from '@/modules/matchmaking/infrastructure/Su
 import { AnswerDraw } from '../../application/AnswerDraw';
 import { BotTurn } from '../../application/BotTurn';
 import { GetGameState } from '../../application/GetGameState';
+import { GetMatchHistory } from '../../application/GetMatchHistory';
 import { GetMove } from '../../application/GetMove';
+import { GetProfileHistory } from '../../application/GetProfileHistory';
+import { Rematch } from '../../application/Rematch';
 import { MakeMove } from '../../application/MakeMove';
 import { OfferDraw } from '../../application/OfferDraw';
 import { Resign } from '../../application/Resign';
@@ -21,3 +24,6 @@ export const getMove = new GetMove(repo);
 export const resign = new Resign(repo, players);
 export const offerDraw = new OfferDraw(repo, players);
 export const answerDraw = new AnswerDraw(repo, players);
+export const getMatchHistory = new GetMatchHistory(repo, players);
+export const getProfileHistory = new GetProfileHistory(repo, players);
+export const rematch = new Rematch(repo);

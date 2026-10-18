@@ -12,9 +12,9 @@ Cada respuesta usa el código que corresponde. Éxito sin cuerpo = **204**. Recu
 | **400 Bad Request** | Datos que no pasan Zod · JSON mal formado · id con formato inválido | `VALIDATION_ERROR`, `INVALID_JSON` |
 | **401 Unauthorized** | Sin sesión o JWT vencido · correo o contraseña incorrectos | `UNAUTHORIZED`, `INVALID_CREDENTIALS` |
 | **403 Forbidden** | Con sesión, pero sin permiso sobre ese recurso | `FORBIDDEN` |
-| **404 Not Found** | El recurso no existe · ruta de API inexistente | `NOT_FOUND`, `NOT_IN_QUEUE`, `MATCH_NOT_FOUND`, `MOVE_NOT_FOUND`, `NO_DRAW_OFFER`, `ROUTE_NOT_FOUND` |
+| **404 Not Found** | El recurso no existe · ruta de API inexistente | `NOT_FOUND`, `NOT_IN_QUEUE`, `MATCH_NOT_FOUND`, `MOVE_NOT_FOUND`, `NO_DRAW_OFFER`, `NO_REMATCH_OFFER`, `ROUTE_NOT_FOUND` |
 | **405 Method Not Allowed** | Método no soportado en una ruta que existe (lo responde Next solo, sin cuerpo JSON) | — |
-| **409 Conflict** | Choca con el estado actual | `EMAIL_TAKEN`, `USERNAME_TAKEN`, `ALREADY_IN_QUEUE`, `ACTIVE_MATCH_EXISTS`, `MATCH_NOT_PENDING`, `NOT_YOUR_TURN`, `STALE_PLY` (`meta.currentPly`), `MATCH_FINISHED`, `MATCH_ABORTED`, `MATCH_NOT_ACTIVE`, `DRAW_ALREADY_OFFERED`, `OWN_DRAW_OFFER`, `CONFLICT` |
+| **409 Conflict** | Choca con el estado actual | `EMAIL_TAKEN`, `USERNAME_TAKEN`, `ALREADY_IN_QUEUE`, `ACTIVE_MATCH_EXISTS`, `MATCH_NOT_PENDING`, `NOT_YOUR_TURN`, `STALE_PLY` (`meta.currentPly`), `MATCH_FINISHED`, `MATCH_ABORTED`, `MATCH_NOT_ACTIVE`, `DRAW_ALREADY_OFFERED`, `OWN_DRAW_OFFER`, `MATCH_NOT_FINISHED`, `REMATCH_ALREADY_OFFERED`, `CONFLICT` |
 | **415 Unsupported Media Type** | Body que no es `application/json` en POST/PATCH/PUT | `UNSUPPORTED_MEDIA_TYPE` |
 | **422 Unprocessable Content** | JSON válido que no se puede aplicar: jugada ilegal en esa posición | `ILLEGAL_MOVE` |
 | **500 Internal Server Error** | Error no previsto (se registra con `console.error`, no se expone el detalle) | `INTERNAL` |

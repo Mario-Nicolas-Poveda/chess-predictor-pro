@@ -1,5 +1,5 @@
 import type { Group, MeshBasicMaterial } from 'three';
-import { createPiece, squareToXZ, type PieceType } from '@/components/three/kit';
+import { createPiece, geosAsync, squareToXZ, surface, type PieceType } from '@/components/three/kit';
 import { createStage } from '@/components/three/stage';
 import type { SceneFactory } from '@/components/three/useThreeScene';
 
@@ -15,10 +15,12 @@ const sstep = (a: number, b: number, x: number) => smooth(clamp((x - a) / (b - a
 const ease = (t: number) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /** Mesa de noche con lámpara: tablero de madera procedural y la apertura Italiana jugada con el scroll. */
-export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality, reducedMotion }) => {
+export const createLandingScene: SceneFactory<LandingScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
+  const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 36, lights: false });
+  const { THREE, renderer, scene, camera, quality } = stage;
   const dustOn = quality === 'high' && !reducedMotion;   // el polvo (y el leve vaivén de cámara) piden frames continuos
-  const stage = createStage(canvas, { quality, reducedMotion, fov: 36, continuous: dustOn, lights: false });
-  const { THREE, renderer, scene, camera } = stage;
+  await geosAsync(quality, stage.step);
+  const finish = (o: Parameters<typeof surface>[1]) => surface(quality, o);   // Physical en alta; Standard en baja
   renderer.toneMappingExposure = .95;
   scene.background = new THREE.Color(0x100c09);
   scene.fog = new THREE.FogExp2(0x100c09, 0.045);
@@ -54,11 +56,14 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
     return t;
   }
   const canvas2d = (size: number) => { const c = document.createElement('canvas'); c.width = c.height = size; return c; };
-  function boardCanvas() {
+  async function boardCanvas() {
     const c = canvas2d(texSize), ctx = ctx2d(c), sq = texSize / 8;
-    for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
-      const light = (r + f) % 2 === 0;
-      grain(ctx, f * sq, r * sq, sq, sq, light, light ? '#d6bd91' : '#5b3a24', light ? '#8a6a3e' : '#24140a', 17 + r * 8 + f);
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const light = (r + f) % 2 === 0;
+        grain(ctx, f * sq, r * sq, sq, sq, light, light ? '#d6bd91' : '#5b3a24', light ? '#8a6a3e' : '#24140a', 17 + r * 8 + f);
+      }
+      await stage.step();   // una fila por tarea: la madera procedural es lo más pesado de la landing
     }
     ctx.strokeStyle = 'rgba(20,12,6,.35)'; ctx.lineWidth = 1.2;
     for (let i = 0; i <= 8; i++) {
@@ -90,15 +95,18 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
   }
 
   /* ---------- tablero y mesa ---------- */
-  const frameMat = new THREE.MeshStandardMaterial({ map: tex(plainWood('#2c1b10', '#0d0703', 9)), roughness: .55 });
-  const frameTopMat = new THREE.MeshPhysicalMaterial({ map: tex(frameCanvas()), roughness: .45, clearcoat: .5, clearcoatRoughness: .35 });
+  const frameMat = finish({ map: tex(plainWood('#2c1b10', '#0d0703', 9)), roughness: .55 });
+  await stage.step();
+  const frameTopMat = finish({ map: tex(frameCanvas()), roughness: .45, clearcoat: .5, clearcoatRoughness: .35 });
+  await stage.step();
   const frame = new THREE.Mesh(new THREE.BoxGeometry(FRAME, .42, FRAME), [frameMat, frameMat, frameTopMat, frameMat, frameMat, frameMat]);
   frame.position.y = -.21; frame.receiveShadow = frame.castShadow = true; scene.add(frame);
   const play = new THREE.Mesh(new THREE.PlaneGeometry(8, 8),
-    new THREE.MeshPhysicalMaterial({ map: tex(boardCanvas()), roughness: .42, clearcoat: .55, clearcoatRoughness: .3 }));
+    finish({ map: tex(await boardCanvas()), roughness: .42, clearcoat: .55, clearcoatRoughness: .3 }));
   play.rotation.x = -Math.PI / 2; play.position.y = .002; play.receiveShadow = true; scene.add(play);
   const table = new THREE.Mesh(new THREE.CircleGeometry(40, 64),
-    new THREE.MeshStandardMaterial({ map: tex(plainWood('#1f140c', '#080402', 3), 6), roughness: .8 }));
+    finish({ map: tex(plainWood('#1f140c', '#080402', 3), 6), roughness: .8 }));
+  await stage.step();
   table.rotation.x = -Math.PI / 2; table.position.y = -.42; table.receiveShadow = true; scene.add(table);
 
   /* ---------- luces ---------- */
@@ -115,7 +123,7 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
 
   /* lámpara colgante */
   const lamp = new THREE.Group();
-  const shadeMat = new THREE.MeshStandardMaterial({ color: 0x2a1f16, metalness: .75, roughness: .38, side: THREE.DoubleSide, transparent: true });
+  const shadeMat = finish({ color: 0x2a1f16, metalness: .75, roughness: .38, side: THREE.DoubleSide, transparent: true });
   const shade = new THREE.Mesh(new THREE.CylinderGeometry(.22, 1.05, .85, 48, 1, true), shadeMat); shade.position.y = 7.75;
   const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffe3b4, transparent: true });
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(.17, 24, 16), bulbMat); bulb.position.y = 7.4;
@@ -145,8 +153,8 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
   }
 
   /* ---------- piezas del kit, con el marfil y el ébano de la landing ---------- */
-  const ivory = new THREE.MeshPhysicalMaterial({ color: 0xeee2c8, roughness: .32, clearcoat: .5, clearcoatRoughness: .25 });
-  const ebony = new THREE.MeshPhysicalMaterial({ color: 0x1c1512, roughness: .28, clearcoat: .75, clearcoatRoughness: .18 });
+  const ivory = finish({ color: 0xeee2c8, roughness: .32, clearcoat: .5, clearcoatRoughness: .25 });
+  const ebony = finish({ color: 0x1c1512, roughness: .28, clearcoat: .75, clearcoatRoughness: .18 });
   const sq = (name: string) => { const { x, z } = squareToXZ(name); return new THREE.Vector3(x, 0, z); };
   const pieces: Record<string, Group> = {};
   const BACK: PieceType[] = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
@@ -156,6 +164,7 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
       const g = createPiece(type, white ? ivory : ebony, quality, white ? 1 : -1);
       g.position.copy(sq(file + rank)); scene.add(g); pieces[file + rank] = g;
     }
+    if (f % 2 === 1) await stage.step();   // tandas de 8 piezas
   }
 
   /* Apertura Italiana, jugada con el scroll */
@@ -259,6 +268,8 @@ export const createLandingScene: SceneFactory<LandingScene> = (canvas, { quality
     return coachA > .001 && !reducedMotion;   // el anillo del coach late mientras se ve
   });
 
+  await stage.finish();
+  stage.setContinuous(dustOn);
   return {
     setProgress(p) { progress = p; stage.invalidate(); },
     dispose: stage.dispose,

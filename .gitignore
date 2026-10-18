@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Guías de sprint: solo en local
 docs/sprints/
+
+# informes de scripts/lh.sh
+.lighthouse/

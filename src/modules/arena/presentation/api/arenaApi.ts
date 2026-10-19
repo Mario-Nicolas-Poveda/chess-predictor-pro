@@ -1,5 +1,5 @@
 import { ApiError, apiFetch, toApiError } from '@/lib/apiClient';
-import { POLL_MS, type Color, type EndReason, type GameState, type MoveDTO } from '@/modules/arena/infrastructure/dto/arenaSchemas';
+import { POLL_MS, type Color, type EndReason, type GameState, type MatchListItem, type MoveDTO, type ProfileHistory } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { LocalGame, botDelay } from '../local/localGame';
 import { eloDelta } from '../reasons';
 
@@ -13,6 +13,8 @@ export interface ArenaApi {
   declineDraw(id: string): Promise<void>;
   acceptDraw(id: string): Promise<{ state: GameState }>;
   cancel(id: string): Promise<void>;
+  history(q: { result?: 'win' | 'loss' | 'draw'; before?: string; limit?: number }, signal?: AbortSignal): Promise<{ items: MatchListItem[]; nextBefore: string | null }>;
+  profileHistory(days: number): Promise<ProfileHistory>;
   rematch(id: string): Promise<{ rematch: Rematch }>;
   cancelRematch(id: string): Promise<void>;
 }
@@ -38,6 +40,11 @@ const http: ArenaApi = {
   declineDraw: id => apiFetch(`${at(id)}/draw-offer`, { method: 'DELETE' }),        // 204
   acceptDraw: id => apiFetch(`${at(id)}/draw-offer/accept`, { method: 'POST' }),
   cancel: id => apiFetch(at(id), { method: 'DELETE' }),                                // 204, solo pending
+  history: (q, signal) => {
+    const qs = new URLSearchParams(Object.entries(q).flatMap(([k, v]) => (v === undefined ? [] : [[k, String(v)]])));
+    return apiFetch(`/matches?${qs}`, { signal, cache: 'no-store' });
+  },
+  profileHistory: days => apiFetch(`/profile/history?days=${days}`, { cache: 'no-store' }),
   rematch: id => apiFetch(`${at(id)}/rematch`, { method: 'POST' }),
   cancelRematch: id => apiFetch(`${at(id)}/rematch`, { method: 'DELETE' }),             // 204
 };
@@ -111,6 +118,12 @@ export function createMock(): ArenaApi {
       pollAfterMs: g.status === 'pending' ? POLL_MS.pending : g.status === 'active' ? (turn === 'white' ? POLL_MS.yourTurn : POLL_MS.theirTurn) : POLL_MS.finished,
     };
   };
+  const toItem = (id: string, g: Mock): MatchListItem => {
+    const s = toState(id, g, 0), r = s.result!;
+    const outcome = r.winner === null ? 'draw' : r.winner === 'white' ? 'win' : 'loss';
+    return { id, timeControl: s.timeControl, endedAt: s.endedAt!, yourColor: 'white', outcome, reason: r.reason,
+      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, opponent: players.black };
+  };
   const live = (g: Mock) => {
     flag(g);
     if (g.status === 'finished') throw new ApiError(409, 'MATCH_FINISHED', 'La partida terminó');
@@ -167,6 +180,19 @@ export function createMock(): ArenaApi {
       if (g.drawOffer !== 'black') throw new ApiError(404, 'NO_DRAW_OFFER', 'No hay oferta de tablas');
       finish(g, null, 'agreement');
       return { state: toState(id, g, 0) };
+    },
+    async history(q) {   // las partidas terminadas de esta sesión, de la más nueva a la más vieja
+      await delay();
+      const all = [...games.entries()].filter(([, g]) => g.status === 'finished' && g.result).map(([id, g]) => toItem(id, g))
+        .filter(i => (!q.result || i.outcome === q.result) && (!q.before || i.endedAt < q.before))
+        .sort((a, b) => b.endedAt.localeCompare(a.endedAt));
+      const limit = q.limit ?? 20, items = all.slice(0, limit);
+      return { items, nextBefore: all.length > limit ? items.at(-1)!.endedAt : null };
+    },
+    async profileHistory() {
+      await delay();
+      const { items } = await this.history({ limit: 34 });
+      return { elo: [], results: items.map(i => ({ id: i.id, outcome: i.outcome, opponent: i.opponent.username, endedAt: i.endedAt })) };
     },
     async rematch(id) {   // bob_gambito acepta al momento, como los bots
       await delay();

@@ -23,3 +23,18 @@ export function reasonText(reason: EndReason, outcome: Outcome, rival: string, p
 /** ELO con K = 32 (la misma fórmula del contrato): Δ = round(32 × (S − E)). */
 export const eloDelta = (you: number, rival: number, score: 0 | 0.5 | 1) =>
   Math.round(32 * (score - 1 / (1 + 10 ** ((rival - you) / 400))));
+
+/** Motivo corto para listas: "Victoria · jaque mate · 10 + 0". */
+export const REASON_SHORT: Record<EndReason, string> = {
+  checkmate: 'jaque mate', resign: 'abandono', timeout: 'tiempo', agreement: 'acuerdo',
+  stalemate: 'rey ahogado', insufficient: 'material insuficiente', threefold: 'repetición', fifty: '50 jugadas',
+};
+
+/** "Hoy", "Ayer" o "14 oct", con la fecha local. */
+export function dayLabel(iso: string, now: number) {
+  const day = (t: number) => new Date(t).toDateString();
+  const t = Date.parse(iso);
+  if (day(t) === day(now)) return 'Hoy';
+  if (day(t) === day(now - 86_400_000)) return 'Ayer';
+  return new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' }).format(t).replace('.', '');
+}

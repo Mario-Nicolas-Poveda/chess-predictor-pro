@@ -27,14 +27,14 @@ export function Board2D({ view, onSquare }: { view: BoardView; onSquare: (sq: Sq
   };
 
   return (
-    <div role="grid" aria-label="Tablero" className="grid aspect-square w-full max-w-[560px] grid-cols-8 overflow-hidden rounded-[20px]">
+    <div role="grid" aria-label="Tablero" className="grid aspect-square w-full max-w-[560px] grid-cols-8 grid-rows-8 overflow-hidden rounded-[20px]">
       {squares.map((sq, i) => {
         const p = at.get(sq);
         const dark = (FILES.indexOf(sq[0]!) + Number(sq[1])) % 2 === 0;
         const mark = view.selected === sq ? 'shadow-[inset_0_0_0_4px_var(--t-acc)]'
           : view.captures.includes(sq) ? 'shadow-[inset_0_0_0_3px_var(--t-acc)]'
           : view.check === sq ? 'shadow-[inset_0_0_0_4px_#a3341f]' : '';
-        const label = `${sq}${p ? `, ${PIECE_NAME[p.type]} ${p.color === 'w' ? 'blanco' : 'negro'}` : ''}${view.targets.includes(sq) ? ', destino' : ''}`;
+        const label = `${sq}${p ? `, ${PIECE_NAME[p.type]} ${p.color === 'w' ? 'blanco' : 'negro'}` : ''}${view.targets.includes(sq) ? ', destino' : view.captures.includes(sq) ? ', captura' : ''}`;
         return (
           <button key={sq} ref={el => { refs.current[i] = el; }} type="button" role="gridcell" aria-label={label}
             tabIndex={i === focus ? 0 : -1} onFocus={() => setFocus(i)} onKeyDown={e => onKey(e, i)}

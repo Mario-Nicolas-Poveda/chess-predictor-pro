@@ -1,5 +1,6 @@
 import type { ZodType } from 'zod';
 import { UnsupportedMediaTypeError, ValidationError } from '../errors/AppError';
+import '../zod'; // mensajes de zod en español
 
 // Request y no NextRequest: acepta ambos y se prueba sin Next
 export async function readJson<T>(req: Request, schema: ZodType<T>): Promise<T> {

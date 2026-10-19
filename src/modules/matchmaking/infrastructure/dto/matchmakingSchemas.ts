@@ -14,7 +14,7 @@ export const TIME_CONTROL_LABEL: Record<TimeControl, { label: string; kind: 'Bli
 export const JoinQueueSchema = z.object({ timeControl: TimeControlSchema }).strict();
 export type JoinQueueInput = z.infer<typeof JoinQueueSchema>;
 
-export const MatchIdSchema = z.uuid('Id de partida inválido');
+export const MatchParamsSchema = z.object({ id: z.uuid({ error: 'Debe ser un UUID' }) });
 
 // Solo desarrollo (ENABLE_DEV_ROUTES=true): los bots de supabase/seed_bots.sql
 export const BOT_USERNAMES = ['bot_ana', 'bot_luis', 'bot_sara'] as const;

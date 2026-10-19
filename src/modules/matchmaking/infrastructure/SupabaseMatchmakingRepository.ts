@@ -66,6 +66,9 @@ export class SupabaseMatchmakingRepository implements MatchmakingRepository {
   }
 
   async findOpenMatchFor(userId: string) {
+    // antes, cerrar sus partidas vencidas (tiempo agotado, pending de > 3 min): si nadie las consulta, bloquearían la búsqueda
+    const settled = await supabaseAdmin.rpc('arena_settle_user', { p_user: userId });
+    if (settled.error) throw settled.error;
     // la regla de "partida abierta" vive en SQL (mm_open_match) para no duplicarla
     const { data, error } = await supabaseAdmin.rpc('mm_open_match', { p_user: userId });
     if (error) throw error;
@@ -79,8 +82,11 @@ export class SupabaseMatchmakingRepository implements MatchmakingRepository {
     return data ? mapMatch(data) : null;
   }
 
-  async setMatchStatus(id: string, status: MatchRecord['status']) {
-    const { error } = await supabaseAdmin.from('matches').update({ status }).eq('id', id);
+  async abortIfPending(id: string) {
+    // la condición va en el UPDATE: si la partida pasó a active entre la lectura y la escritura, no la toca
+    const { data, error } = await supabaseAdmin.from('matches')
+      .update({ status: 'aborted' }).eq('id', id).eq('status', 'pending').select('id');
     if (error) throw error;
+    return data.length > 0;
   }
 }

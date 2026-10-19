@@ -50,10 +50,12 @@ class MemoryRepo implements MatchmakingRepository {
   async findOpenMatchFor(userId: string) {
     return this.matches.find(m => isPlayer(m, userId) && (m.status === 'pending' || m.status === 'active')) ?? null;
   }
-  async findMatch(id: string) { return this.matches.find(m => m.id === id) ?? null; }
-  async setMatchStatus(id: string, status: MatchRecord['status']) {
-    const m = this.matches.find(x => x.id === id);
-    if (m) m.status = status;
+  // copia, como una lectura de la BD: así el test de carrera ve el estado que había al leer
+  async findMatch(id: string) { const m = this.matches.find(x => x.id === id); return m ? { ...m } : null; }
+  async abortIfPending(id: string) {
+    const m = this.matches.find(x => x.id === id && x.status === 'pending');
+    if (m) m.status = 'aborted';
+    return !!m;
   }
 }
 
@@ -150,14 +152,21 @@ describe('AbortMatch', () => {
     expect(repo.matches[0]?.status).toBe('aborted');
   });
 
-  it('409 MATCH_NOT_PENDING si ya empezó', async () => {
-    repo.matches.push(match('m1', 'ana', 'bob', 'active'));
+  it.each(['active', 'finished', 'aborted'] as const)('409 MATCH_NOT_PENDING si está %s', async (s) => {
+    repo.matches.push(match('m1', 'ana', 'bob', s));
     await expect(abort('ana')).rejects.toMatchObject({ code: 'MATCH_NOT_PENDING', status: 409 });
   });
 
   it('403 para quien no la juega', async () => {
     repo.matches.push(match('m1', 'ana', 'bob'));
     await expect(abort('eva')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('carrera: dos abandonos a la vez → uno pasa y el otro da 409', async () => {
+    repo.matches.push(match('m1', 'ana', 'bob'));
+    const results = await Promise.allSettled([abort('ana'), abort('bob')]);
+    expect(results.map(r => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect(results.find(r => r.status === 'rejected')).toMatchObject({ reason: { code: 'MATCH_NOT_PENDING', status: 409 } });
   });
 });
 

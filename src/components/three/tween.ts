@@ -13,8 +13,8 @@ export const ease = {
 };
 
 type V = { x: number; y: number; z: number };
-type T = { obj: Object3D; from: V; to: V; t0: number; dur: number; hop: number; ease: (t: number) => number; scale?: [number, number]; done?: () => void };
-export type TweenOpts = { dur: number; delay?: number; hop?: number; ease?: (t: number) => number; scaleTo?: number; done?: () => void };
+type T = { obj: Object3D; from: V; to: V; t0: number; dur: number; hop: number; ease: (t: number) => number; scale?: [number, number]; rotX?: [number, number]; rotZ?: [number, number]; done?: () => void };
+export type TweenOpts = { dur: number; delay?: number; hop?: number; ease?: (t: number) => number; scaleTo?: number; rotXTo?: number; rotZTo?: number; done?: () => void };
 
 export class Tweens {
   private list: T[] = [];
@@ -30,7 +30,9 @@ export class Tweens {
       obj, from: { x: p.x, y: p.y, z: p.z }, to: { x: to.x ?? p.x, y: to.y ?? p.y, z: to.z ?? p.z },
       t0: performance.now() + (this.instant ? 0 : o.delay ?? 0), dur: this.instant ? 0 : o.dur,
       hop: this.instant ? 0 : o.hop ?? 0, ease: o.ease ?? ease.inOut,
-      scale: o.scaleTo !== undefined ? [obj.scale.x, o.scaleTo] : undefined, done: o.done,
+      scale: o.scaleTo !== undefined ? [obj.scale.x, o.scaleTo] : undefined,
+      rotX: o.rotXTo !== undefined ? [obj.rotation.x, o.rotXTo] : undefined,
+      rotZ: o.rotZTo !== undefined ? [obj.rotation.z, o.rotZTo] : undefined, done: o.done,
     });
     this.onStart?.();
   }
@@ -44,6 +46,8 @@ export class Tweens {
       const e = t.ease(k), p = t.obj.position;
       p.set(t.from.x + (t.to.x - t.from.x) * e, t.from.y + (t.to.y - t.from.y) * e + Math.sin(Math.PI * k) * t.hop, t.from.z + (t.to.z - t.from.z) * e);
       if (t.scale) t.obj.scale.setScalar(Math.max(.001, t.scale[0] + (t.scale[1] - t.scale[0]) * e));
+      if (t.rotX) t.obj.rotation.x = t.rotX[0] + (t.rotX[1] - t.rotX[0]) * e;
+      if (t.rotZ) t.obj.rotation.z = t.rotZ[0] + (t.rotZ[1] - t.rotZ[0]) * e;
       if (k >= 1) { this.list.splice(i, 1); t.done?.(); }
     }
     return this.list.length > 0;

@@ -1,5 +1,5 @@
 import type { Group } from 'three';
-import { createBoard, createPiece, pieceMaterials, squareToXZ, srgb, type PieceType } from '../kit';
+import { createBoard, createPiece, geosAsync, lux, pieceMaterials, squareToXZ, srgb, type PieceType } from '../kit';
 import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
@@ -23,12 +23,14 @@ const BACK: PieceType[] = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
 const FILES = 'abcdefgh';
 const KNIGHT_JUMPS = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]] as const;
 
-export const createPlayScene: SceneFactory<PlayScene> = (canvas, { quality, reducedMotion }) => {
-  const stage = createStage(canvas, { quality, reducedMotion, fov: 32 });
-  const { THREE, scene, camera, tweens } = stage;
-  scene.add(createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }).group);
+export const createPlayScene: SceneFactory<PlayScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
+  const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 32 });
+  const { THREE, scene, camera, tweens, quality } = stage;
+  await geosAsync(quality, stage.step);
+  scene.add(createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }, quality).group);
+  await stage.step();
 
-  const mats = pieceMaterials();
+  const mats = pieceMaterials(quality);
   const place = (g: Group, sq: string) => { const p = squareToXZ(sq); g.position.set(p.x, 0, p.z); return g; };
   const wk = place(createPiece('k', mats.w, quality, 1), 'e1');
   const bk = place(createPiece('k', mats.b, quality, -1), 'e8');
@@ -36,7 +38,7 @@ export const createPlayScene: SceneFactory<PlayScene> = (canvas, { quality, redu
   kn.visible = false;
   scene.add(wk, bk, kn);
 
-  // las 30 piezas restantes, ocultas hasta la fase arena
+  // las 30 piezas restantes, ocultas hasta la fase arena; en tandas de 8 para no bloquear
   const army: Group[] = [];
   for (let f = 0; f < 8; f++) {
     for (const [rank, type, color] of [[1, BACK[f]!, 'w'], [2, 'p', 'w'], [7, 'p', 'b'], [8, BACK[f]!, 'b']] as const) {
@@ -44,10 +46,11 @@ export const createPlayScene: SceneFactory<PlayScene> = (canvas, { quality, redu
       const g = place(createPiece(type, mats[color], quality, color === 'w' ? 1 : -1), FILES[f]! + rank);
       g.userData.home = g.position.clone(); g.visible = false;
       scene.add(g); army.push(g);
+      if (army.length % 8 === 0) await stage.step();
     }
   }
 
-  const glow = new THREE.PointLight(0xc04a5c, 0, 9, 1.6);
+  const glow = new THREE.PointLight(0xc04a5c, 0, 9, 1.6);   // la intensidad se anima en el destello (con lux)
   glow.position.set(0, 1.6, 0); scene.add(glow);
 
   const ringMat = new THREE.MeshBasicMaterial({ color: srgb('#6e1e2b'), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
@@ -89,7 +92,7 @@ export const createPlayScene: SceneFactory<PlayScene> = (canvas, { quality, redu
     });
     // destello al encontrar rival: 0 → 3 en 600 ms y baja a 0,8
     if (phase === 'matched' && since < 1400) {
-      glow.intensity = since < 600 ? (since / 600) * 3 : 3 - ((since - 600) / 800) * 2.2; busy = true;
+      glow.intensity = lux(1.5 * (since < 600 ? (since / 600) * 3 : 3 - ((since - 600) / 800) * 2.2)); busy = true;   // ×1,5: compensa la caída física a 1,6 de distancia
     }
     // cámara: se acerca a la de la fase; con reducir movimiento salta y no orbita
     const k = reducedMotion ? 1 : .04;
@@ -102,6 +105,7 @@ export const createPlayScene: SceneFactory<PlayScene> = (canvas, { quality, redu
     return busy;
   });
 
+  await stage.finish();
   return {
     setPhase(next) {
       if (next === phase) return;

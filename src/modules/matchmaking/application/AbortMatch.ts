@@ -5,10 +5,9 @@ import { findOwnMatch } from './GetMatch';
 export class AbortMatch {
   constructor(private repo: MatchmakingRepository) {}
   async execute(userId: string, id: string) {
-    const m = await findOwnMatch(this.repo, userId, id);
-    if (m.status !== 'pending')
-      throw new ConflictError('MATCH_NOT_PENDING', 'Solo se puede abandonar una partida que no ha empezado');
-    // shortcut: el update no exige status = 'pending'; cuando el Sprint 3 pase partidas a 'active', hacerlo condicional
-    await this.repo.setMatchStatus(id, 'aborted');
+    await findOwnMatch(this.repo, userId, id);
+    // el estado no se mira aquí: entre leer y escribir la partida puede empezar, así que lo decide el UPDATE
+    if (!(await this.repo.abortIfPending(id)))
+      throw new ConflictError('MATCH_NOT_PENDING', 'La partida ya empezó o terminó. Si está en juego, ríndete.');
   }
 }

@@ -22,11 +22,10 @@ echo "== 200 p2 emparejado";             S=$(curl -s -b $J2 $B/matchmaking/statu
 M=$(echo "$S" | sed -n 's/.*"match":{"id":"\([^"]*\)".*/\1/p')
 echo "== 200 p1 ve la misma partida";    j  -b $J1 $B/matches/$M
 echo "== 403 p3 ve una partida ajena";   j  -b $J3 $B/matches/$M
-echo "== 400 id inválido";               j  -b $J1 $B/matches/abc
+echo "== 400 id inválido (fields.id)";   j  -b $J1 $B/matches/abc
 echo "== 404 partida inexistente";       j  -b $J1 $B/matches/00000000-0000-4000-8000-000000000000
 echo "== 409 entrar con partida abierta"; j -b $J1 -X POST $B/matchmaking/queue -d '{"timeControl":"10+0"}'
-echo "== 204 p1 abandona";               st -b $J1 -X DELETE $B/matches/$M
-echo "== 409 abandonar otra vez";        j  -b $J2 -X DELETE $B/matches/$M
+echo "== carrera: un 204 y un 409";      ( st -b $J1 -X DELETE $B/matches/$M & st -b $J2 -X DELETE $B/matches/$M & wait ) | sort
 echo "== 404 ruta inexistente";          j  -b $J1 $B/no-existe
 echo "== 401 sin sesión";                j  $B/matchmaking/status
 rm -f $J1 $J2 $J3

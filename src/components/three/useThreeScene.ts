@@ -2,31 +2,33 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
-import type { Quality } from './quality';
+import { deviceQuality, noHardwareGL, type Quality } from './quality';
+import { SceneAborted, SoftwareWebGL, checkAbort } from './yield';
 
-export type SceneFactory<S> = (canvas: HTMLCanvasElement, ctx: { quality: Quality; reducedMotion: boolean }) => S;
+export type SceneCtx = { quality: Quality; reducedMotion: boolean; signal: AbortSignal };
+/** Las fábricas crean la escena por pasos (ceden el hilo) y se cortan con `signal` si se sale de la página. */
+export type SceneFactory<S> = (canvas: HTMLCanvasElement, ctx: SceneCtx) => Promise<S>;
 type Disposable = { dispose(): void };
 
-const whenIdle = (fn: () => void): number =>
-  'requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout: 1200 }) : self.setTimeout(fn, 250);
-const cancelIdle = (id: number) =>
-  'cancelIdleCallback' in window ? window.cancelIdleCallback(id) : self.clearTimeout(id);
-
-const ENGAGE = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as const;
-const FALLBACK_MS = 3000;
-
-/** Espera la primera interacción (o 3 s sin ella) y luego un momento ocioso: el 3D no compite con la carga de la página. */
-function whenEngaged(fn: () => void) {
-  let idle = 0;
-  const go = () => { stop(); idle = whenIdle(fn); };
-  const timer = self.setTimeout(go, FALLBACK_MS);
-  const stop = () => { self.clearTimeout(timer); ENGAGE.forEach(e => window.removeEventListener(e, go)); };
-  ENGAGE.forEach(e => window.addEventListener(e, go, { passive: true }));
-  return () => { stop(); if (idle) cancelIdle(idle); };
-}
+const ENGAGE = ['pointerdown', 'touchstart', 'keydown', 'wheel', 'scroll'] as const;
 
 /**
- * Carga three y la escena después del primer pintado, con la primera interacción. `load` DEBE ser estable (definida fuera del componente):
+ * Equipos modestos (móvil): con la CPU lenta, crear la escena cuesta segundos y competiría con la carga.
+ * Se espera al primer toque, tecla o scroll (o a 6 s sin ellos). shortcut: si el usuario no interactúa, ve el fondo 6 s.
+ */
+const whenEngaged = (signal: AbortSignal) => new Promise<void>(resolve => {
+  const go = () => { clearTimeout(t); resolve(); };
+  const t = setTimeout(go, 6000);
+  ENGAGE.forEach(e => window.addEventListener(e, go, { once: true, passive: true, signal }));
+  signal.addEventListener('abort', () => clearTimeout(t));
+});
+
+const whenIdle = (fn: () => void, timeout: number) =>
+  'requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout }) : self.setTimeout(fn, 250);
+
+/**
+ * Carga three y la escena tras el `load` de la página y un momento libre (más tarde en equipos modestos).
+ * `load` DEBE ser estable (definida fuera del componente):
  *   const loadPractice = () => import('./scenes/practiceScene').then(m => m.createPracticeScene);
  */
 export function useThreeScene<S extends Disposable>(load: () => Promise<SceneFactory<S>>) {
@@ -36,22 +38,35 @@ export function useThreeScene<S extends Disposable>(load: () => Promise<SceneFac
   const reduce = !!useReducedMotion();
 
   useEffect(() => {
-    let alive = true;
+    const ctrl = new AbortController();
     let created: S | null = null;
-    const cancel = whenEngaged(async () => {
-      try {
-        const [factory, { detectQuality }] = await Promise.all([load(), import('./quality')]);
-        if (!alive || !canvasRef.current) return;
-        created = factory(canvasRef.current, { quality: detectQuality(), reducedMotion: reduce });
+    const pre = deviceQuality();
+    const whenLoaded = document.readyState === 'complete'
+      ? Promise.resolve()
+      : new Promise<void>(r => window.addEventListener('load', () => r(), { once: true, signal: ctrl.signal }));
+    whenLoaded
+      .then(() => (pre === 'low' ? whenEngaged(ctrl.signal) : undefined))
+      .then(() => new Promise<void>(r => whenIdle(r, pre === 'low' ? 2500 : 1200)))
+      .then(async () => {
+        checkAbort(ctrl.signal);
+        if (await noHardwareGL()) throw new SoftwareWebGL();   // sin GPU: alternativa 2D, sin descargar three
+        checkAbort(ctrl.signal);
+        const factory = await load();
+        checkAbort(ctrl.signal);
+        if (!canvasRef.current) throw new SceneAborted();
+        created = await factory(canvasRef.current, { quality: pre, reducedMotion: reduce, signal: ctrl.signal });
+        if (ctrl.signal.aborted) { created.dispose(); return; }
         setScene(created);
-      } catch (e) {
+      })
+      .catch(e => {
+        if (e instanceof SceneAborted || ctrl.signal.aborted) return;
+        if (e instanceof SoftwareWebGL) { setFailed(true); return; }   // decisión esperada, no un error
         // sin WebGL o chunk que no cargó: la pantalla muestra su alternativa 2D
         console.warn('[3d] sin escena 3D, se usa la alternativa', e);
-        if (alive) setFailed(true);
-      }
-    });
-    // StrictMode monta dos veces: la primera escena se libera aquí antes de crear la segunda
-    return () => { alive = false; cancel(); created?.dispose(); setScene(null); };
+        setFailed(true);
+      });
+    // StrictMode monta dos veces: la primera creación se corta aquí antes de empezar la segunda
+    return () => { ctrl.abort(); created?.dispose(); setScene(null); };
   }, [load, reduce]);
 
   return { canvasRef, scene, failed };

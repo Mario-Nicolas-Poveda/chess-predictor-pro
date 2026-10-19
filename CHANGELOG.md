@@ -3,6 +3,25 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+Sprint 3 · Arena.
+
+### Añadido
+- Arena: partida en vivo con tablero 3D, reglas validadas en el servidor, relojes con incremento y escribir la jugada (#57, #58, #61, #62)
+- Final por jaque mate, abandono, tiempo, tablas por acuerdo, rey ahogado, material insuficiente, triple repetición y 50 jugadas (#57, #58, #62)
+- ELO (K = 32) y estadísticas actualizados al terminar (#57)
+- Pantalla de resultado con cambio de ELO y revancha (#60, #63)
+- Partidas: historial filtrable y repetición jugada a jugada (#60, #64)
+- Perfil con evolución de ELO y últimas partidas reales (#60, #64)
+- Bots de desarrollo que juegan y contestan tablas (#59)
+- Códigos nuevos: 202, 304 y 422 (#58)
+
+### Corregido
+- Abandonar solo partidas pendientes, sin carreras (#52)
+- Los 400 dicen qué campo falló (#53)
+- Rendimiento: arranque del 3D sin bloquear, three 0.186 con `compileAsync`, modo ligero en móvil y login sin saltos de diseño (#54, #55, #56, #78)
+- `tests/arena.http.sh` lee el ETag también en Git Bash (#76)
+
 ## [0.2.1] - 2026-10-18
 ### Eliminado
 - Guías de sprint (`docs/sprints/`) fuera del repositorio; quedan en local e ignoradas por Git (#51)

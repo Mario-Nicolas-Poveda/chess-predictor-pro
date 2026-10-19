@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, type Move } from 'chess.js';
 import { movePieces, piecesFromFen } from '@/components/chess/pieces';
+import { sanEs } from '@/components/chess/san';
 import type { Square } from '@/components/chess/types';
 import type { PracticeView } from '@/components/three/scenes/practiceScene';
 import { CANDIDATES, FALLBACK_REPLIES, REPLIES, START_FEN, type Candidate } from './book';
 
 const PIECE_NAME = { k: 'rey', q: 'dama', r: 'torre', b: 'alfil', n: 'caballo', p: 'peón' } as const;
-const SAN_ES: Record<string, string> = { K: 'R', Q: 'D', R: 'T', B: 'A', N: 'C' };
-/** Notación en español: Nf3 → Cf3, exd8=Q → exd8=D. */
-export const sanEs = (san: string) => san.replace(/^[KQRBN]/, c => SAN_ES[c]!).replace(/=([QRBN])/, (_, c: string) => `=${SAN_ES[c]}`);
 
 const READY = 'Tu turno. Toca una pieza blanca.';
 const OVER = 'Fin de la demo. Reinicia la posición.';

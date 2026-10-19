@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginSchema } from '@/modules/auth/infrastructure/dto/authSchemas';
@@ -13,10 +14,13 @@ import { FormShell } from './FormShell';
 import { PasswordInput } from './PasswordInput';
 
 const OAUTH_ERROR = 'No se pudo entrar con Google. Intenta de nuevo o usa tu correo.';
+// La query se lee en el cliente: con useSearchParams el formulario salía del HTML estático y al llegar empujaba el pie (CLS 0,061 en móvil).
+const noSubscribe = () => () => {};
+const useQuery = () => new URLSearchParams(useSyncExternalStore(noSubscribe, () => location.search, () => ''));
 
 export function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useQuery();
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } =
     useForm({ resolver: zodResolver(LoginSchema), mode: 'onBlur' });
 

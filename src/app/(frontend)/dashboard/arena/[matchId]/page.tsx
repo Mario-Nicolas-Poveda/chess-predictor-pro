@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { ArenaScreen } from '@/modules/matchmaking/presentation/components/ArenaScreen';
+import { ArenaScreen } from '@/modules/arena/presentation/components/ArenaScreen';
 
 export const metadata: Metadata = { title: 'Partida · Chess Predictor Pro' };
 

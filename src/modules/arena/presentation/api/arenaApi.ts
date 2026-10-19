@@ -13,7 +13,12 @@ export interface ArenaApi {
   declineDraw(id: string): Promise<void>;
   acceptDraw(id: string): Promise<{ state: GameState }>;
   cancel(id: string): Promise<void>;
+  rematch(id: string): Promise<{ rematch: Rematch }>;
+  cancelRematch(id: string): Promise<void>;
 }
+
+/** 202 = ofrecida (falta el rival) · 201 = aceptada, con la partida nueva. */
+export type Rematch = { state: 'offered' } | { state: 'accepted'; matchId: string };
 
 const at = (id: string) => `/matches/${encodeURIComponent(id)}`;
 
@@ -33,6 +38,8 @@ const http: ArenaApi = {
   declineDraw: id => apiFetch(`${at(id)}/draw-offer`, { method: 'DELETE' }),        // 204
   acceptDraw: id => apiFetch(`${at(id)}/draw-offer/accept`, { method: 'POST' }),
   cancel: id => apiFetch(at(id), { method: 'DELETE' }),                                // 204, solo pending
+  rematch: id => apiFetch(`${at(id)}/rematch`, { method: 'POST' }),
+  cancelRematch: id => apiFetch(`${at(id)}/rematch`, { method: 'DELETE' }),             // 204
 };
 
 /** Mock en memoria (NEXT_PUBLIC_API_MOCK=1): juegas con blancas, 10 + 0, contra bob_gambito sobre localGame. Mismos códigos que la API. */
@@ -43,13 +50,13 @@ export function createMock(): ArenaApi {
   type Mock = {
     game: LocalGame; moves: MoveDTO[]; status: GameState['status']; version: number; ms: Record<Color, number>;
     turnStartedAt: number | null; drawOffer: Color | null; result: { winner: Color | null; reason: EndReason } | null;
-    createdAt: number; startedAt: number | null; endedAt: number | null;
+    createdAt: number; startedAt: number | null; endedAt: number | null; rematchId: string | null;
   };
   const games = new Map<string, Mock>();
   const get = (id: string) => {
     let g = games.get(id);
     if (!g) games.set(id, g = { game: new LocalGame(), moves: [], status: 'pending', version: 1, ms: { white: START, black: START },
-      turnStartedAt: null, drawOffer: null, result: null, createdAt: Date.now(), startedAt: null, endedAt: null });
+      turnStartedAt: null, drawOffer: null, result: null, createdAt: Date.now(), startedAt: null, endedAt: null, rematchId: null });
     return g;
   };
   const delay = () => new Promise(r => setTimeout(r, 150));
@@ -99,7 +106,7 @@ export function createMock(): ArenaApi {
       drawOffer: g.drawOffer, pendingExpiresAt: g.status === 'pending' ? iso(g.createdAt + PENDING_MS) : null,
       startedAt: iso(g.startedAt), endedAt: iso(g.endedAt),
       result: g.result && { ...g.result, elo: { white: elo('white'), black: elo('black') } },
-      rematch: g.status === 'finished' ? { offeredBy: null, matchId: null } : null,
+      rematch: g.status === 'finished' ? { offeredBy: null, matchId: g.rematchId } : null,
       you: players.white, opponent: players.black,
       pollAfterMs: g.status === 'pending' ? POLL_MS.pending : g.status === 'active' ? (turn === 'white' ? POLL_MS.yourTurn : POLL_MS.theirTurn) : POLL_MS.finished,
     };
@@ -160,6 +167,17 @@ export function createMock(): ArenaApi {
       if (g.drawOffer !== 'black') throw new ApiError(404, 'NO_DRAW_OFFER', 'No hay oferta de tablas');
       finish(g, null, 'agreement');
       return { state: toState(id, g, 0) };
+    },
+    async rematch(id) {   // bob_gambito acepta al momento, como los bots
+      await delay();
+      const g = get(id);
+      if (g.status !== 'finished') throw new ApiError(409, 'MATCH_NOT_FINISHED', 'La partida no ha terminado');
+      g.rematchId ??= crypto.randomUUID(); g.version++;
+      return { rematch: { state: 'accepted', matchId: g.rematchId } };
+    },
+    async cancelRematch() {
+      await delay();
+      throw new ApiError(404, 'NO_REMATCH_OFFER', 'No hay oferta de revancha');
     },
     async cancel(id) {
       await delay();

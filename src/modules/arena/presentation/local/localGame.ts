@@ -16,6 +16,7 @@ export class LocalGame {
 
   get turn(): Color { return this.chess.turn() === 'w' ? 'white' : 'black'; }
   get ply() { return this.moves.length; }
+  get fen() { return this.chess.fen(); }
   legal(): Move[] { return this.chess.moves({ verbose: true }); }
 
   /** Juega una jugada UCI; null si es ilegal. */

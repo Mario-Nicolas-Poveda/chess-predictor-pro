@@ -10,8 +10,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers: { 'content-type': 'application/json', ...init.headers },
   });
   if (res.status === 204) return undefined as T;
+  if (!res.ok) throw await toApiError(res);
+  return res.json() as Promise<T>;
+}
+
+/** El error de la API ({ error: { code, message, fields, meta } }) como ApiError. */
+export async function toApiError(res: Response): Promise<ApiError> {
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, body.error?.code ?? 'UNKNOWN',
+  return new ApiError(res.status, body.error?.code ?? 'UNKNOWN',
     body.error?.message ?? 'Algo salió mal. Intenta de nuevo.', body.error?.fields, body.error?.meta);
-  return body as T;
 }

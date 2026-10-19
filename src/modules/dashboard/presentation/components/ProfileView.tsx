@@ -5,15 +5,15 @@ import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
 import { useProfile } from '../hooks/useProfile';
+import { useProfileHistory } from '../hooks/useProfileHistory';
 import { CustomizeSheet } from './CustomizeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
 import { ProfileContent } from './ProfileContent';
 
-// Sin historial todavía (llega en el Sprint 3): gráfica y tira de partidas en estado vacío.
-const NO_EXTRAS = { history: [], results: [], achievements: [] };
 
 export function ProfileView() {
   const { profile, setProfile, error, retry } = useProfile();
+  const { history, results } = useProfileHistory();
   const sheetRef = useRef<HTMLDialogElement>(null);
   const customizeRef = useRef<HTMLDialogElement>(null);
 
@@ -28,7 +28,7 @@ export function ProfileView() {
 
   return (
     <>
-      <ProfileContent profile={profile} {...NO_EXTRAS} onEdit={() => sheetRef.current?.showModal()} actions={
+      <ProfileContent profile={profile} history={history} results={results} achievements={[]} onEdit={() => sheetRef.current?.showModal()} actions={
         <Button className="h-11! px-5! text-[15px]" onClick={() => customizeRef.current?.showModal()}>
           <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
         </Button>

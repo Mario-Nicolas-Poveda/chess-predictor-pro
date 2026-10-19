@@ -46,3 +46,13 @@ describe('mock de la arena', () => {
     expect(r !== 'not-modified' && r.state.status).toBe('aborted');
   });
 });
+
+describe('dayLabel', () => {
+  it('hoy, ayer y fecha corta', async () => {
+    const { dayLabel } = await import('../reasons');
+    const now = new Date(2026, 9, 18, 12).getTime();
+    expect(dayLabel(new Date(2026, 9, 18, 1).toISOString(), now)).toBe('Hoy');
+    expect(dayLabel(new Date(2026, 9, 17, 23).toISOString(), now)).toBe('Ayer');
+    expect(dayLabel(new Date(2026, 9, 14, 9).toISOString(), now)).toBe('14 oct');
+  });
+});

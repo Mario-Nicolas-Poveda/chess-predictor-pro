@@ -77,7 +77,7 @@ export function ProfileContent({ profile, history, results, achievements, onEdit
               <CountUp to={profile.eloRating} from={Math.max(0, profile.eloRating - 200)} />
             </p>
             <p className="mt-5 text-[15px]">
-              {delta === null ? <span className="text-ink-soft">Sin partidas todavía</span>
+              {delta === null ? <span className="text-ink-soft">Sin partidas en 30 días</span>
                 : <><strong className="font-semibold text-accent">{delta >= 0 ? '▲ +' : '▼ '}{delta}</strong> en los últimos 30 días</>}
             </p>
           </div>
@@ -161,6 +161,7 @@ function FormSection({ results, ...band }: { results: GameResult[] } & BandProps
         )}
       </div>
       <ResultsStrip results={results} />
+      {results.length > 0 && <Link href="/dashboard/partidas" className="mt-6 inline-block font-medium text-accent underline-offset-4 hover:underline">Ver todas tus partidas ›</Link>}
     </Band>
   );
 }

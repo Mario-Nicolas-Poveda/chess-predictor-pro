@@ -37,7 +37,7 @@ export function CapturedRow({ ids, color, advantage }: { ids: string[]; color: '
 
 type Props = {
   name: string; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
-  captured: string[]; advantage: number; ms: number; clockActive: boolean;
+  captured: string[]; advantage: number; ms?: number; clockActive?: boolean;   // sin ms (repetición) no hay reloj
 };
 
 export function PlayerStrip({ name, elo, color, you, thinking, captured, advantage, ms, clockActive }: Props) {
@@ -54,7 +54,7 @@ export function PlayerStrip({ name, elo, color, you, thinking, captured, advanta
       </div>
       {/* captura piezas del color contrario */}
       <CapturedRow ids={captured} color={color === 'white' ? 'b' : 'w'} advantage={advantage} />
-      <ClockFace ms={ms} active={clockActive} />
+      {ms !== undefined && <ClockFace ms={ms} active={!!clockActive} />}
     </div>
   );
 }

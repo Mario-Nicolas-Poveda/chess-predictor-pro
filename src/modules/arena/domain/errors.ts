@@ -5,6 +5,12 @@ export class IllegalMoveError extends UnprocessableError {
   constructor(uci: string) { super('ILLEGAL_MOVE', 'Esa jugada no es legal en esta posición', { uci }); }
 }
 
+export class PromotionRequiredError extends UnprocessableError {
+  constructor(uci: string) {
+    super('PROMOTION_REQUIRED', 'Falta la pieza de la coronación: agrega q, r, b o n (por ejemplo e7e8q)', { uci });
+  }
+}
+
 // los lanzan los casos de uso y el repositorio, al traducir los raise exception de las funciones SQL
 export const matchNotFound = () => new NotFoundError('MATCH_NOT_FOUND', 'La partida no existe');
 export const stalePly = (currentPly?: number) => new ConflictError('STALE_PLY',

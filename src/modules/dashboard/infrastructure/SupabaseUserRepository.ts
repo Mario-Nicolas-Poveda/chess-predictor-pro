@@ -50,8 +50,21 @@ export class SupabaseUserRepository implements UserRepository {
       .filter(([, v]) => v !== undefined)
       .map(([k, v]) => [COLUMNS[k as keyof typeof COLUMNS], v]));
     if (Object.keys(row).length === 0) return;
+    if ('avatar_url' in row) row.avatar_path = null;   // una URL a mano ya no es la foto subida
     const { error } = await supabaseAdmin.from('users').update(row).eq('id', id);
     if (error?.code === '23505') throw usernameTaken();   // otro lo tomó entre la consulta y el update
+    if (error) throw error;
+  }
+
+  async getAvatar(id: string) {
+    const { data, error } = await supabaseAdmin.from('users').select('avatar_url, avatar_path').eq('id', id)
+      .maybeSingle<{ avatar_url: string | null; avatar_path: string | null }>();
+    if (error) throw error;
+    return data && { url: data.avatar_url, path: data.avatar_path };
+  }
+
+  async setAvatar(id: string, url: string | null, path: string | null) {
+    const { error } = await supabaseAdmin.from('users').update({ avatar_url: url, avatar_path: path }).eq('id', id);
     if (error) throw error;
   }
 

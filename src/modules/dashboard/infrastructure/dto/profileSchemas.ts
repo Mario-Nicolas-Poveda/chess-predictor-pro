@@ -11,6 +11,11 @@ export const UpdateProfileSchema = z.object({
 }).strict();
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
+export interface AvatarResponse { avatarUrl: string }
+export const AVATAR_MAX_BYTES = 1024 * 1024;                  // lo que acepta el servidor (la foto ya recortada a 512 × 512)
+export const AVATAR_SOURCE_MAX_BYTES = 5 * 1024 * 1024;       // lo que acepta el navegador antes de recortar
+export const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
 export type ProfileStats = { gamesPlayed: number; wins: number; losses: number; draws: number;
   winRate: number; currentStreak: number; bestElo: number };
 export type Profile = {

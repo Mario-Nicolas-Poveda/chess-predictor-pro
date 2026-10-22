@@ -20,7 +20,7 @@ export interface ArenaRepository {
   clearDrawOffer(id: string): Promise<boolean>;                        // false si no había oferta
   acceptDraw(id: string, by: Color): Promise<void>;                    // NO_DRAW_OFFER, OWN_DRAW_OFFER o MATCH_NOT_ACTIVE
   botIds(ids: string[]): Promise<string[]>;                            // los que son bots (users.is_bot)
-  history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number): Promise<HistoryRow[]>;   // terminadas, la más nueva primero
+  history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number, rated?: boolean): Promise<HistoryRow[]>;   // terminadas, la más nueva primero
   eloSeries(userId: string, days: number): Promise<{ date: string; elo: number }[]>;
   rematch(id: string, by: Color): Promise<string | null>;              // null = ofrecida; id = creada (arena_rematch)
   cancelRematch(id: string): Promise<boolean>;                         // false si no había oferta pendiente
@@ -28,6 +28,6 @@ export interface ArenaRepository {
 
 export type Outcome3 = 'win' | 'loss' | 'draw';
 export interface HistoryRow {
-  id: string; timeControl: TimeControl; endedAt: Date; yourColor: Color; outcome: Outcome3; reason: EndReason;
-  eloDelta: number; plies: number; opponentId: string; opponentElo: number;
+  id: string; timeControl: TimeControl | 'none'; endedAt: Date; yourColor: Color; outcome: Outcome3; reason: EndReason;
+  eloDelta: number; plies: number; opponentId: string; opponentElo: number; rated: boolean;
 }

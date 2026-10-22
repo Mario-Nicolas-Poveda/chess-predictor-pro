@@ -7,6 +7,7 @@ export const PROFILE_PIECES = ['k', 'q', 'r', 'b', 'n', 'p'] as const;          
 export const PIECE_MATERIALS = ['w', 'b', 'a'] as const;                       // marfil, ébano, color del acento
 export const HERO_LAYOUTS = ['clasico', 'invertido', 'pieza'] as const;        // nombre·pieza·ELO | ELO·pieza·nombre | pieza·nombre·ELO
 export const SECTION_IDS = ['rend', 'elo', 'forma', 'next'] as const;          // Rendimiento, Evolución de Elo, Últimas partidas, Siguiente partida
+export const BOARD_MODES = ['3d', '2d'] as const;
 
 const unique = <T>(a: readonly T[]) => new Set(a).size === a.length;
 
@@ -20,13 +21,14 @@ export const ProfilePreferencesSchema = z.object({
     .refine(unique, 'Cada sección debe aparecer una sola vez'),
   hiddenSections: z.array(z.enum(SECTION_IDS)).max(SECTION_IDS.length - 1, 'Deja al menos una sección visible')
     .refine(unique, 'Sección repetida'),
+  boardMode: z.enum(BOARD_MODES).default('3d'),   // un PUT viejo sin boardMode sigue siendo válido
 }).strict();
 
 export type ProfilePreferences = z.infer<typeof ProfilePreferencesSchema>;
 
 export const DEFAULT_PREFERENCES: ProfilePreferences = {
   theme: 'pergamino', accent: 'vino', piece: 'k', material: 'w', heroLayout: 'clasico',
-  sectionOrder: ['rend', 'elo', 'forma', 'next'], hiddenSections: [],
+  sectionOrder: ['rend', 'elo', 'forma', 'next'], hiddenSections: [], boardMode: '3d',
 };
 
 // Lo guardado puede ser parcial o de una versión vieja: se completa con los valores por defecto y, si no valida, se usan estos

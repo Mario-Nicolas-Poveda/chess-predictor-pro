@@ -11,7 +11,7 @@ export class GetProfileHistory {
   async execute(userId: string, days: number): Promise<ProfileHistory> {
     const [elo, rows] = await Promise.all([
       this.repo.eloSeries(userId, days),
-      this.repo.history(userId, null, null, LAST_RESULTS),
+      this.repo.history(userId, null, null, LAST_RESULTS, true),   // el perfil solo cuenta las que dan ELO
     ]);
     const items = await withOpponents(this.players, rows);
     return { elo, results: items.map(i => ({ id: i.id, outcome: i.outcome, opponent: i.opponent.username, endedAt: i.endedAt })) };

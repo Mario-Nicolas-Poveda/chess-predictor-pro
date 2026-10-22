@@ -1,21 +1,21 @@
 import 'server-only';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
-import { ConflictError, type AppError } from '@/core/shared/errors/AppError';
+import { ConflictError, ForbiddenError, NotFoundError, type AppError } from '@/core/shared/errors/AppError';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../domain/ArenaRepository';
 import type { MatchRecord, MoveRecord } from '../domain/Match';
-import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../domain/errors';
+import { matchFinished, matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../domain/errors';
 import type { Color, EndReason, MatchStatus } from './dto/arenaSchemas';
 
-type MatchRow = { id: string; white_id: string; black_id: string; time_control: TimeControl; status: MatchStatus;
+type MatchRow = { id: string; white_id: string; black_id: string; time_control: TimeControl | 'none'; status: MatchStatus;
   created_at: string; version: number; ply: number; fen: string; white_ms: number; black_ms: number; increment_ms: number;
   turn_started_at: string | null; started_at: string | null; ended_at: string | null; result: Color | 'draw' | null;
   end_reason: EndReason | null; draw_offer_by: Color | null; draw_offered_at: string | null;
   rematch_offer_by: Color | null; rematch_offered_at: string | null;
   rematch_id: string | null; white_elo_before: number | null; black_elo_before: number | null;
-  white_elo_after: number | null; black_elo_after: number | null };
-type HistoryDbRow = { id: string; time_control: TimeControl; ended_at: string; your_color: Color; outcome: Outcome3;
-  end_reason: EndReason; elo_delta: number; plies: number; opponent_id: string; opponent_elo: number };
+  white_elo_after: number | null; black_elo_after: number | null; rated: boolean; ai_prediction: boolean; takebacks: number };
+type HistoryDbRow = { id: string; time_control: TimeControl | 'none'; ended_at: string; your_color: Color; outcome: Outcome3;
+  end_reason: EndReason; elo_delta: number; plies: number; opponent_id: string; opponent_elo: number; rated: boolean };
 type MoveRow ={ ply: number; uci: string; san: string; white_ms: number; black_ms: number; created_at: string };
 
 const MOVE_COLS = 'ply, uci, san, white_ms, black_ms, created_at';
@@ -27,7 +27,8 @@ const mapMatch = (r: MatchRow): MatchRecord => ({ id: r.id, whiteId: r.white_id,
   result: r.result, endReason: r.end_reason, drawOfferBy: r.draw_offer_by, drawOfferedAt: date(r.draw_offered_at),
   rematchOfferBy: r.rematch_offer_by,
   rematchOfferedAt: date(r.rematch_offered_at), rematchId: r.rematch_id, whiteEloBefore: r.white_elo_before,
-  blackEloBefore: r.black_elo_before, whiteEloAfter: r.white_elo_after, blackEloAfter: r.black_elo_after });
+  blackEloBefore: r.black_elo_before, whiteEloAfter: r.white_elo_after, blackEloAfter: r.black_elo_after,
+  rated: r.rated, aiPrediction: r.ai_prediction, takebacks: r.takebacks });
 const mapMove = (r: MoveRow): MoveRecord =>
   ({ ply: r.ply, uci: r.uci, san: r.san, whiteMs: r.white_ms, blackMs: r.black_ms, createdAt: new Date(r.created_at) });
 
@@ -41,8 +42,20 @@ const RPC_ERRORS: Record<string, () => AppError> = {
   MATCH_NOT_FINISHED: () => new ConflictError('MATCH_NOT_FINISHED', 'La revancha se pide cuando la partida termina'),
   REMATCH_ALREADY_OFFERED: () => new ConflictError('REMATCH_ALREADY_OFFERED', 'Ya pediste la revancha'),
   ACTIVE_MATCH_EXISTS: () => new ConflictError('ACTIVE_MATCH_EXISTS', 'Uno de los dos ya tiene otra partida o está buscando'),
+  NOT_AI_MATCH: () => new ForbiddenError('NOT_AI_MATCH', 'Solo se puede en partidas contra la IA'),
+  NOT_RATED_MATCH: () => new ConflictError('NOT_RATED_MATCH', 'Contra la IA no hay revancha: empieza otra partida'),
+  AI_THINKING: () => new ConflictError('AI_THINKING', 'Espera a que la IA juegue'),
+  NOTHING_TO_UNDO: () => new ConflictError('NOTHING_TO_UNDO', 'No hay jugadas tuyas para deshacer'),
+  MATCH_FINISHED: () => matchFinished(),
+  AI_LEVEL_NOT_FOUND: () => new NotFoundError('AI_LEVEL_NOT_FOUND', 'Ese nivel no existe'),
 };
-const fromRpc = (e: { message: string }) => RPC_ERRORS[e.message]?.() ?? e;
+// los errores con dato llegan como 'CODIGO:valor'
+const fromRpc = (e: { message: string }) => {
+  const [code = '', arg] = e.message.split(':');
+  if (code === 'AI_GAME_IN_PROGRESS')
+    return new ConflictError('AI_GAME_IN_PROGRESS', 'Ya tienes una partida contra la IA sin terminar', undefined, { matchId: arg });
+  return RPC_ERRORS[code]?.() ?? e;
+};
 
 export class SupabaseArenaRepository implements ArenaRepository {
   async settle(id: string) {
@@ -105,13 +118,13 @@ export class SupabaseArenaRepository implements ArenaRepository {
     if (error) throw fromRpc(error);
   }
 
-  async history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number) {
+  async history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number, rated?: boolean) {
     const { data, error } = await supabaseAdmin.rpc('arena_history',
-      { p_user: userId, p_outcome: outcome, p_before: before, p_limit: limit });
+      { p_user: userId, p_outcome: outcome, p_before: before, p_limit: limit, p_rated: rated ?? null });
     if (error) throw error;
     return (data as HistoryDbRow[]).map((r): HistoryRow => ({ id: r.id, timeControl: r.time_control,
       endedAt: new Date(r.ended_at), yourColor: r.your_color, outcome: r.outcome, reason: r.end_reason,
-      eloDelta: r.elo_delta, plies: r.plies, opponentId: r.opponent_id, opponentElo: r.opponent_elo }));
+      eloDelta: r.elo_delta, plies: r.plies, opponentId: r.opponent_id, opponentElo: r.opponent_elo, rated: r.rated }));
   }
 
   async eloSeries(userId: string, days: number) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { disposeTree, lux } from './kit';
 import { Tweens } from './tween';
-import { contextQuality, isSoftwareGL, type Quality } from './quality';
+import { contextQuality, isSoftwareGL, pixelRatio, type Quality } from './quality';
 import { SceneAborted, SoftwareWebGL, nextFrame, yieldToMain } from './yield';
 
 export type StageOptions = { quality: Quality; reducedMotion: boolean; signal: AbortSignal; fov?: number; continuous?: boolean; lights?: boolean };
@@ -19,8 +19,8 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   const gl = renderer.getContext();
   if (isSoftwareGL(gl)) { console.info('[3d] WebGL sin GPU: se usa la alternativa 2D'); renderer.dispose(); throw new SoftwareWebGL(); }
   const quality = contextQuality(gl);
-  // baja: resolución 1 y sin sombras en tiempo real (las piezas llevan sombra de contacto)
-  renderer.setPixelRatio(quality === 'high' ? Math.min(2, window.devicePixelRatio || 1) : 1);
+  // baja: hasta 2× como alta (a 1× el celular se veía pixelado), sin antialias ni sombras en tiempo real (las piezas llevan sombra de contacto)
+  renderer.setPixelRatio(pixelRatio());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = quality === 'high';
@@ -72,6 +72,7 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
+    renderer.setPixelRatio(pixelRatio());   // el DPR cambia con el zoom o al pasar a otra pantalla
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); invalidate();
   };
   const ro = new ResizeObserver(resize); ro.observe(canvas); resize();

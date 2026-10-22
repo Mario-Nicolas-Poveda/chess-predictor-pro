@@ -28,10 +28,14 @@ export interface GameBoardScene {
 }
 
 const FILES = 'abcdefgh';
-// Capturadas fuera del tablero: las negras a la derecha, las blancas a la izquierda, 8 por columna
-const gravePos = (color: 'w' | 'b', n: number) => {
+type Layout = 'wide' | 'narrow';
+const layoutOf = (canvas: HTMLCanvasElement): Layout => (canvas.clientWidth < 600 ? 'narrow' : 'wide');
+// Capturadas fuera del tablero. Ancho: las negras a la derecha, las blancas a la izquierda, 8 por columna.
+// Angosto: delante y detrás del tablero en una fila de hasta 15, para que la cámara se acerque.
+const gravePos = (color: 'w' | 'b', n: number, layout: Layout) => {
+  if (layout === 'narrow') return color === 'b' ? { x: -3.5 + n * .55, z: 5, scale: .55 } : { x: 3.5 - n * .55, z: -5, scale: .55 };
   const col = Math.floor(n / 8), row = n % 8;
-  return color === 'b' ? { x: 5.05 + col * .62, z: 3.3 - row * .9 } : { x: -5.05 - col * .62, z: -3.3 + row * .9 };
+  return color === 'b' ? { x: 5.05 + col * .62, z: 3.3 - row * .9, scale: .62 } : { x: -5.05 - col * .62, z: -3.3 + row * .9, scale: .62 };
 };
 
 export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
@@ -68,6 +72,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   const graved = new Set<string>();                   // en la fila de capturadas
   let lifted: string | null = null;
   let toppledId: string | null = null;
+  let layout = layoutOf(canvas);
 
   // marcas reutilizadas: no se crean mallas en cada update
   const markMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: .55, depthWrite: false });
@@ -126,8 +131,8 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       let g = groups.get(id);
       if (!g) { const color = side === 'white' ? 'w' : 'b'; g = addPiece({ id, type: id[1] as BoardPiece['type'], color, square: 'a1' }); }
       placed.delete(id); graved.add(id);
-      const { x, z } = gravePos(side === 'white' ? 'w' : 'b', n);
-      tweens.to(g, { x, y: -.2, z }, { dur: 560, hop: .9, delay: 300, scaleTo: .62 });
+      const { x, z, scale } = gravePos(side === 'white' ? 'w' : 'b', n, layout);
+      tweens.to(g, { x, y: -.2, z }, { dur: 560, hop: .9, delay: 300, scaleTo: scale });
     }));
     const selId = v.selected ? v.pieces.find(p => p.square === v.selected)?.id ?? null : null;
     if (lifted && lifted !== selId && placed.has(lifted)) tweens.to(groups.get(lifted)!, { y: 0 }, { dur: 180 });
@@ -213,13 +218,27 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
 
   // cámara: giro del tablero, alejamiento al terminar y parallax suave; el jaque late (único frame continuo)
   stage.onFrame(now => {
+    const l = layoutOf(canvas);
+    if (l !== layout) {
+      // cambió el ancho del escenario: las capturadas van a su sitio en el nuevo layout
+      layout = l;
+      (['white', 'black'] as const).forEach(side => view?.captured[side].forEach((id, n) => {
+        const g = groups.get(id);
+        if (!g || !graved.has(id)) return;
+        const { x, z, scale } = gravePos(side === 'white' ? 'w' : 'b', n, layout);
+        tweens.to(g, { x, y: -.2, z }, { dur: 300, scaleTo: scale });
+      }));
+    }
     cam.a += (target.a - cam.a) * (reducedMotion ? 1 : .06);
     cam.fin += (target.fin - cam.fin) * (reducedMotion ? 1 : .04);
     cam.x += ((reducedMotion ? 0 : mouse.x) * .8 - cam.x) * .05;
     cam.y += ((reducedMotion ? 0 : mouse.y) * .45 - cam.y) * .05;
-    const fit = Math.max(1, 1.2 / camera.aspect) * (1 + .12 * cam.fin), R = 11 * fit;
+    // angosto: sin capturadas a los lados, la cámara se acerca y el tablero llena el ancho
+    const narrow = layout === 'narrow';
+    const f = narrow ? Math.max(.93, 1.12 / camera.aspect) : Math.max(1, 1.2 / camera.aspect);
+    const fit = f * (1 + .12 * cam.fin), R = 11 * fit;
     camera.position.set(Math.sin(cam.a) * R + Math.cos(cam.a) * cam.x, (13 + cam.y) * fit, Math.cos(cam.a) * R - Math.sin(cam.a) * cam.x);
-    camera.lookAt(0, 0, Math.cos(cam.a) * (.35 + 1.5 * cam.fin));
+    camera.lookAt(0, 0, Math.cos(cam.a) * ((narrow ? .75 * f : .35) + 1.5 * cam.fin));
     if (checkPlane.visible) (checkPlane.material as MeshBasicMaterial).opacity = reducedMotion ? .42 : .32 + .2 * Math.sin(now / 180);
     const moving = Math.abs(target.a - cam.a) + Math.abs(target.fin - cam.fin) + Math.abs(mouse.x * .8 - cam.x) + Math.abs(mouse.y * .45 - cam.y) > .001;
     return moving || (checkPlane.visible && !reducedMotion);

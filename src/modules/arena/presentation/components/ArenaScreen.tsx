@@ -14,7 +14,7 @@ import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/mat
 import { useBoardInput } from '../hooks/useBoardInput';
 import { useClock } from '../hooks/useClock';
 import { useGame } from '../hooks/useGame';
-import { LocalGame } from '../local/localGame';
+import { livePosition } from '../game/livePosition';
 import { OUTCOME_TITLE, eloDelta, outcomeOf, reasonText } from '../reasons';
 import { ArenaLayout } from './ArenaLayout';
 import { EndBand } from './EndBand';
@@ -38,8 +38,9 @@ export function ArenaScreen() {
   const frames = useMemo(() => framesOf(ucis), [ucis]);
   const frame = frames[frames.length - 1]!;
   const canMove = g.yourTurn;
-  // validación previa con chess.js para marcar destinos; manda el servidor
-  const legal = useMemo(() => (canMove ? new LocalGame(ucis).legal() : []), [canMove, ucis]);
+  // destinos con el fen del servidor (más la optimista); manda el servidor
+  const fen = s?.fen;
+  const legal = useMemo(() => (canMove && fen ? livePosition(fen, g.optimistic).moves({ verbose: true }) : []), [canMove, fen, g.optimistic]);
   const input = useBoardInput(legal, g.play);
   const clock = useClock(s?.clock, g.offset, g.reload, { paused: !!g.optimistic, tick: s?.status === 'pending' });
 

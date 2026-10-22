@@ -18,7 +18,7 @@ import { PlayerStrip, materialOf } from './PlayerStrip';
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '±0');
 const noop = () => {};
 const moveLabel = (ply: number, san: string | undefined) =>
-  !san ? 'Posición inicial' : `${Math.ceil(ply / 2)}${ply % 2 ? '.' : '…'} ${sanEs(san)}`;
+  !san ? 'Inicio' : `${Math.ceil(ply / 2)}${ply % 2 ? '.' : '…'} ${sanEs(san)}`;
 
 /** /dashboard/partidas/[id]: la partida jugada a jugada (las piezas en la columna izquierda del layout van bajo la lista). */
 export function ReplayPlayer() {
@@ -67,10 +67,15 @@ export function ReplayPlayer() {
           <h2 id="replay-title" className="font-display text-[clamp(32px,3.4vw,44px)] font-semibold leading-tight">{s.you.username} contra {s.opponent.username}</h2>
           <p className="font-mono text-xs text-ink-faint">{t.label} · {s.endedAt ? dayLabel(s.endedAt, now) : ''} · {OUTCOME_TITLE[outcome].slice(0, -1).toLowerCase()}</p>
         </div>
+        {/* la jugada actual va en su fila, no encima del tablero (en el celular tapaba las piezas) */}
+        <div className="flex min-h-11 items-center justify-between gap-3">
+          <p aria-live="polite" className="m-0 flex min-w-0 items-baseline gap-2">
+            <span className="font-display text-[26px] italic leading-none">{current}</span>
+            <span className="font-mono text-[11px] text-ink-faint">{r.ply ? `jugada ${r.ply} de ${r.last}` : 'posición inicial'}</span>
+          </p>
+        </div>
         <PlayerStrip {...strip(rivalColor)} />
-        <GameBoard3D view={view} onSquare={noop} label="">
-          <p aria-hidden="true" className="pointer-events-none absolute left-[26px] top-[18px] font-display text-2xl italic">{current}</p>
-        </GameBoard3D>
+        <GameBoard3D view={view} onSquare={noop} label="" />
         <PlayerStrip {...strip(you)} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <button type="button" aria-label="Posición inicial" className={btn} disabled={r.ply === 0} onClick={() => r.go(0)}><ChevronFirst size={22} aria-hidden="true" /></button>

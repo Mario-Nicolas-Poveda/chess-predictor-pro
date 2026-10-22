@@ -9,7 +9,7 @@ import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } fr
 import { other, turnOf, type MatchRecord, type MoveRecord } from '../../domain/Match';
 import { ChessJsRules } from '../../infrastructure/ChessJsRules';
 import { HistoryQuerySchema, type Color, type EndReason } from '../../infrastructure/dto/arenaSchemas';
-import { GreedyMovePicker } from '../../infrastructure/GreedyMovePicker';
+import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
 import { AnswerDraw } from '../AnswerDraw';
 import { BotTurn } from '../BotTurn';
 import { GetGameState } from '../GetGameState';
@@ -181,7 +181,7 @@ describe('GetGameState', () => {
 });
 
 describe('Bot de desarrollo (BotTurn dentro de GetGameState)', () => {
-  const get = () => new GetGameState(repo, players, new BotTurn(repo, new MakeMove(repo, players, rules), new GreedyMovePicker()))
+  const get = () => new GetGameState(repo, players, new BotTurn(repo, new MakeMove(repo, players, rules), new EngineMovePicker(() => 0.5), players))
     .execute('ana', 'm1', 0, null);
   beforeEach(async () => { repo.bots = ['bob']; await play('e2e4'); });   // bob lleva negras: le toca
 

@@ -37,7 +37,7 @@ export class UnprocessableError extends AppError {
   constructor(code = 'UNPROCESSABLE', message = 'La solicitud es válida pero no se puede aplicar', meta?: ErrorMeta) { super(code, message, 422, undefined, meta); }
 }
 export class UnsupportedMediaTypeError extends AppError {
-  constructor() { super('UNSUPPORTED_MEDIA_TYPE', 'El cuerpo debe ser JSON', 415); }
+  constructor(message = 'El cuerpo debe ser JSON') { super('UNSUPPORTED_MEDIA_TYPE', message, 415); }
 }
 export class PayloadTooLargeError extends AppError {
   constructor(code = 'PAYLOAD_TOO_LARGE', message = 'El archivo es demasiado grande', meta?: ErrorMeta) { super(code, message, 413, undefined, meta); }

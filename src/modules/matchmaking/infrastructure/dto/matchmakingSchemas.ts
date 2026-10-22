@@ -5,10 +5,12 @@ export const TIME_CONTROLS = ['3+2', '5+0', '10+0'] as const;
 export const TimeControlSchema = z.enum(TIME_CONTROLS);
 export type TimeControl = z.infer<typeof TimeControlSchema>;
 
-export const TIME_CONTROL_LABEL: Record<TimeControl, { label: string; kind: 'Blitz' | 'Rápida' }> = {
+// 'none' = sin reloj: solo contra la IA (no se puede buscar partida con él)
+export const TIME_CONTROL_LABEL: Record<TimeControl | 'none', { label: string; kind: 'Blitz' | 'Rápida' | 'Libre' }> = {
   '3+2':  { label: '3 + 2',  kind: 'Blitz' },
   '5+0':  { label: '5 + 0',  kind: 'Blitz' },
   '10+0': { label: '10 + 0', kind: 'Rápida' },
+  none:   { label: 'Sin reloj', kind: 'Libre' },
 };
 
 export const JoinQueueSchema = z.object({ timeControl: TimeControlSchema }).strict();

@@ -18,7 +18,7 @@ export class MakeMove {
     if (ply !== m.ply) throw stalePly(m.ply);
     if (turnOf(m.ply) !== color) throw new ConflictError('NOT_YOUR_TURN', 'No es tu turno');
     const played = this.rules.play((await this.repo.listMoves(id)).map(x => x.uci), uci);   // 422 si es ilegal
-    const clock = clocksAfterMove(m, color, new Date());
+    const clock = clocksAfterMove({ ...m, untimed: m.timeControl === 'none' }, color, new Date());
     if (clock.flagged) {
       await this.repo.settle(id);   // se le acabó después del primer settle: este la cierra por tiempo
       throw matchFinished('timeout');

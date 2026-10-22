@@ -26,6 +26,7 @@ const record = (): MatchRecord => ({
   whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: null, startedAt: null, endedAt: null,
   result: null, endReason: null, drawOfferBy: null, drawOfferedAt: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
   whiteEloBefore: null, blackEloBefore: null, whiteEloAfter: null, blackEloAfter: null,
+  rated: true, aiPrediction: false, takebacks: 0,
 });
 
 // Una sola partida (m1). Imita lo que hacen las funciones SQL de 0004 en lo que tocan estos casos de uso
@@ -250,7 +251,7 @@ describe('Tablas', () => {
 describe('Historial', () => {
   const row = (id: string, outcome: Outcome3, hour: number): HistoryRow => ({ id, timeControl: '10+0',
     endedAt: new Date(`2026-10-18T${10 + hour}:00:00Z`), yourColor: 'white', outcome, reason: 'checkmate',
-    eloDelta: outcome === 'win' ? 17 : -15, plies: 7, opponentId: 'bob', opponentElo: 1478 });
+    eloDelta: outcome === 'win' ? 17 : -15, plies: 7, opponentId: 'bob', opponentElo: 1478, rated: true });
   const list = (q: object) => new GetMatchHistory(repo, players).execute('ana', HistoryQuerySchema.parse(q));
   beforeEach(() => { repo.rows = [row('a', 'win', 1), row('b', 'loss', 2), row('c', 'win', 3)]; });
 

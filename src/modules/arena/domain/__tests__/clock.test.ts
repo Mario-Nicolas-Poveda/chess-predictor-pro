@@ -4,7 +4,7 @@ import { clocksAfterMove, type ClockState } from '../clock';
 const t0 = new Date('2026-10-20T15:00:00Z');
 const after = (ms: number) => new Date(t0.getTime() + ms);
 const clock = (s: Partial<ClockState> = {}): ClockState =>
-  ({ ply: 2, whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: t0, ...s });
+  ({ ply: 2, whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: t0, untimed: false, ...s });
 
 describe('clocksAfterMove', () => {
   it('la primera jugada de las blancas no gasta tiempo', () => {
@@ -23,5 +23,10 @@ describe('clocksAfterMove', () => {
 
   it('gastar más de lo que queda → flagged', () => {
     expect(clocksAfterMove(clock({ whiteMs: 3_000 }), 'white', after(4_000))).toMatchObject({ flagged: true });
+  });
+
+  it('sin reloj nunca hay flagged ni gasto', () => {
+    expect(clocksAfterMove(clock({ whiteMs: 0, blackMs: 0, untimed: true }), 'white', after(86_400_000)))
+      .toEqual({ whiteMs: 0, blackMs: 0, flagged: false });
   });
 });

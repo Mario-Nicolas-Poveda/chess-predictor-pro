@@ -15,10 +15,10 @@ export function toGameState(m: MatchRecord, moves: MoveRecord[], since: number, 
   const last = moves.at(-1);
   const rematchBy = m.rematchOfferedAt && now.getTime() - m.rematchOfferedAt.getTime() < REMATCH_MS ? m.rematchOfferBy : null;
   return {
-    id: m.id, status: m.status, version: m.version, timeControl: m.timeControl, yourColor: you,
+    id: m.id, status: m.status, version: m.version, timeControl: m.timeControl, rated: m.rated, ai: null, yourColor: you,
     ply: m.ply, turn, fen: m.fen, check: last?.ply === m.ply && /[+#]$/.test(last.san),
     moves: moves.filter(x => x.ply > since).map(toMoveDTO),
-    clock: { whiteMs: m.whiteMs, blackMs: m.blackMs, incrementMs: m.incrementMs, running: m.status === 'active' ? turn : null,
+    clock: { whiteMs: m.whiteMs, blackMs: m.blackMs, incrementMs: m.incrementMs, running: m.status === 'active' && m.timeControl !== 'none' ? turn : null,
       turnStartedAt: m.turnStartedAt?.toISOString() ?? null, serverNow: now.toISOString() },
     drawOffer: m.drawOfferBy,
     pendingExpiresAt: m.status === 'pending' ? new Date(m.createdAt.getTime() + PENDING_MS).toISOString() : null,

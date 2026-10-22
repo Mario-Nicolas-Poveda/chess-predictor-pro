@@ -21,7 +21,11 @@ export class UnauthorizedError extends AppError {
   constructor(message = 'Sesión inválida o expirada') { super('UNAUTHORIZED', message, 401); }
 }
 export class ForbiddenError extends AppError {
-  constructor(message = 'No tienes permiso para esto') { super('FORBIDDEN', message, 403); }
+  // un solo argumento = el mensaje (como en el Sprint 1); con dos, el primero es el código
+  constructor(codeOrMessage?: string, message?: string) {
+    super(message === undefined ? 'FORBIDDEN' : codeOrMessage ?? 'FORBIDDEN',
+      message ?? codeOrMessage ?? 'No tienes permiso para esto', 403);
+  }
 }
 export class NotFoundError extends AppError {
   constructor(code = 'NOT_FOUND', message = 'No encontrado', meta?: ErrorMeta) { super(code, message, 404, undefined, meta); }
@@ -34,6 +38,14 @@ export class UnprocessableError extends AppError {
 }
 export class UnsupportedMediaTypeError extends AppError {
   constructor() { super('UNSUPPORTED_MEDIA_TYPE', 'El cuerpo debe ser JSON', 415); }
+}
+export class PayloadTooLargeError extends AppError {
+  constructor(code = 'PAYLOAD_TOO_LARGE', message = 'El archivo es demasiado grande', meta?: ErrorMeta) { super(code, message, 413, undefined, meta); }
+}
+export class TooManyRequestsError extends AppError {
+  constructor(public readonly retryAfterS: number, message = 'Demasiadas solicitudes. Espera un momento.') {
+    super('RATE_LIMITED', message, 429, undefined, { retryAfterS });
+  }
 }
 export class ServiceUnavailableError extends AppError {
   constructor(message = 'Servicio no disponible') { super('SERVICE_UNAVAILABLE', message, 503); }

@@ -1,4 +1,6 @@
 import { AppError } from '@/core/shared/errors/AppError';
+import { recommendedLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { ArenaRepository } from '../domain/ArenaRepository';
 import { other, turnOf, type MatchRecord } from '../domain/Match';
 import type { MovePicker } from '../domain/MovePicker';
@@ -10,7 +12,7 @@ const DRAW_FROM_PLY = 20;      // las acepta desde la jugada 10; antes las recha
 
 // Solo en desarrollo (ENABLE_DEV_ROUTES=true). Sin procesos en segundo plano: el bot piensa cuando el humano consulta
 export class BotTurn {
-  constructor(private repo: ArenaRepository, private makeMove: MakeMove, private picker: MovePicker) {}
+  constructor(private repo: ArenaRepository, private makeMove: MakeMove, private picker: MovePicker, private players: PlayerDirectory) {}
 
   // true si el bot cambió la partida (hay que releerla)
   async run(m: MatchRecord): Promise<boolean> {
@@ -27,8 +29,10 @@ export class BotTurn {
       }
       // en pending el turno corre desde que se creó la partida (el bot con blancas abre)
       if (turnOf(m.ply) !== bot || now - (m.turnStartedAt ?? m.createdAt).getTime() < THINK_MS) return false;
-      const history = (await this.repo.listMoves(m.id)).map(x => x.uci);
-      await this.makeMove.execute(botId, m.id, { uci: this.picker.pick(history), ply: m.ply });
+      // juega con el motor al nivel de ELO más cercano al del bot
+      const [me] = await this.players.getMany([botId]);
+      const uci = this.picker.pick({ fen: m.fen }, recommendedLevel(me?.elo ?? 1200));
+      await this.makeMove.execute(botId, m.id, { uci, ply: m.ply });
       return true;
     } catch (e) {
       // dos consultas a la vez: una gana y la otra recibe STALE_PLY (o NO_DRAW_OFFER), que se ignora

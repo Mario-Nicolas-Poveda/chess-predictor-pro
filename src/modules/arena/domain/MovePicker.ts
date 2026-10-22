@@ -1,4 +1,6 @@
-// elige la jugada (uci) de un bot tras history; el motor de IA del Sprint 4 la reemplaza
+import type { AiLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+
+// elige la jugada (uci) de la IA en esa posición y nivel. Solo se llama si hay jugadas legales
 export interface MovePicker {
-  pick(history: string[]): string;
+  pick(position: { fen: string }, level: AiLevel): string;
 }

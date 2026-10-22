@@ -1,4 +1,5 @@
 import 'server-only';
+import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
 import { SupabasePlayerDirectory } from '@/modules/matchmaking/infrastructure/SupabasePlayerDirectory';
 import { AnswerDraw } from '../../application/AnswerDraw';
 import { BotTurn } from '../../application/BotTurn';
@@ -11,14 +12,13 @@ import { MakeMove } from '../../application/MakeMove';
 import { OfferDraw } from '../../application/OfferDraw';
 import { Resign } from '../../application/Resign';
 import { ChessJsRules } from '../../infrastructure/ChessJsRules';
-import { GreedyMovePicker } from '../../infrastructure/GreedyMovePicker';
 import { SupabaseArenaRepository } from '../../infrastructure/SupabaseArenaRepository';
 
 const repo = new SupabaseArenaRepository();
 const players = new SupabasePlayerDirectory();
 export const makeMove = new MakeMove(repo, players, new ChessJsRules());
 // los bots juegan solos únicamente con ENABLE_DEV_ROUTES=true
-const bots = process.env.ENABLE_DEV_ROUTES === 'true' ? new BotTurn(repo, makeMove, new GreedyMovePicker()) : undefined;
+const bots = process.env.ENABLE_DEV_ROUTES === 'true' ? new BotTurn(repo, makeMove, new EngineMovePicker(), players) : undefined;
 export const getGameState = new GetGameState(repo, players, bots);
 export const getMove = new GetMove(repo);
 export const resign = new Resign(repo, players);

@@ -16,7 +16,7 @@ Cada respuesta usa el código que corresponde. Éxito sin cuerpo = **204**. Recu
 | **405 Method Not Allowed** | Método no soportado en una ruta que existe (lo responde Next solo, sin cuerpo JSON) | — |
 | **409 Conflict** | Choca con el estado actual | `EMAIL_TAKEN`, `USERNAME_TAKEN`, `ALREADY_IN_QUEUE`, `ACTIVE_MATCH_EXISTS`, `MATCH_NOT_PENDING`, `NOT_YOUR_TURN`, `STALE_PLY` (`meta.currentPly`), `MATCH_FINISHED`, `MATCH_ABORTED`, `MATCH_NOT_ACTIVE`, `DRAW_ALREADY_OFFERED`, `OWN_DRAW_OFFER`, `MATCH_NOT_FINISHED`, `REMATCH_ALREADY_OFFERED`, `CONFLICT` |
 | **415 Unsupported Media Type** | Body que no es `application/json` en POST/PATCH/PUT | `UNSUPPORTED_MEDIA_TYPE` |
-| **422 Unprocessable Content** | JSON válido que no se puede aplicar: jugada ilegal en esa posición | `ILLEGAL_MOVE` |
+| **422 Unprocessable Content** | JSON válido que no se puede aplicar: jugada ilegal en esa posición, o coronación sin la pieza (`e7e8` en vez de `e7e8q`) | `ILLEGAL_MOVE`, `PROMOTION_REQUIRED` |
 | **500 Internal Server Error** | Error no previsto (se registra con `console.error`, no se expone el detalle) | `INTERNAL` |
 | **503 Service Unavailable** | La base de datos no responde (`/health`) | `SERVICE_UNAVAILABLE` |
 

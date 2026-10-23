@@ -47,6 +47,9 @@ echo "== 200 historial";                j -b $W "$B/matches?limit=5"
 echo "== 400 limit fuera";              j -b $W "$B/matches?limit=99"
 echo "== 200 historia del perfil";      j -b $W "$B/profile/history?days=30"
 echo "== 405 método no permitido";      st -b $W -X PUT $B/matches/$M/moves
+# la revancha recién aceptada es una partida con ELO en juego (pending) en la posición inicial
+echo "== 403 analizar tu partida con ELO"; j -b $W -X POST $B/ai/move -d '{"fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","level":3}'
+echo "== 403 predicción con ELO";       j -b $W $B/matches/$M/prediction
 echo "== 403 tercero";                  J3=$(mktemp); j -c $J3 -X POST $B/auth/register -d "{\"email\":\"c$R@t.dev\",\"username\":\"c_$R\",\"password\":\"Clave1234\"}" >/dev/null; j -b $J3 $B/matches/$M/state
 echo "== 401 sin sesión";               j $B/matches/$M/state
 rm -f $J1 $J2 $J3

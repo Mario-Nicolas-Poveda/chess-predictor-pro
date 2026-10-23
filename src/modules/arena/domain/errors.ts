@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, UnprocessableError } from '@/core/shared/errors/AppError';
+import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '@/core/shared/errors/AppError';
 import type { MatchStatus } from '../infrastructure/dto/arenaSchemas';
 
 export class IllegalMoveError extends UnprocessableError {
@@ -21,3 +21,4 @@ export const matchNotActive = (status?: MatchStatus) => new ConflictError('MATCH
   status === 'pending' ? 'Aún no empezó: cancélala' : 'La partida no está en juego');
 export const noDrawOffer = () => new NotFoundError('NO_DRAW_OFFER', 'No hay oferta de tablas');
 export const ownDrawOffer = () => new ConflictError('OWN_DRAW_OFFER', 'No puedes aceptar tu propia oferta');
+export const notAiMatch = () => new ForbiddenError('NOT_AI_MATCH', 'Solo se puede en partidas contra la IA');

@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
 import type { GameRules, Outcome, PlayResult } from '../domain/GameRules';
-import { IllegalMoveError } from '../domain/errors';
+import { IllegalMoveError, PromotionRequiredError } from '../domain/errors';
 
 const toMove = (uci: string) => ({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
 
@@ -17,8 +17,11 @@ export class ChessJsRules implements GameRules {
     const g = replay(history);
     const mover = g.turn() === 'w' ? 'white' : 'black';
     let move;
-    try { move = g.move(toMove(next)); }                // chess.js lanza si es ilegal
-    catch { throw new IllegalMoveError(next); }
+    try { move = g.move(toMove(next)); }                // chess.js lanza si es ilegal o si falta la letra de la coronación
+    catch {
+      const needsPiece = next.length === 4 && g.moves({ verbose: true }).some(m => m.from + m.to === next && m.promotion);
+      throw needsPiece ? new PromotionRequiredError(next) : new IllegalMoveError(next);
+    }
     // chess.js acepta e2e4q como e2e4: la letra de coronación sobrante también es ilegal (se guarda el uci tal cual)
     if ((move.promotion ?? '') !== next.slice(4)) throw new IllegalMoveError(next);
     const outcome: Outcome | null =
@@ -32,5 +35,10 @@ export class ChessJsRules implements GameRules {
 
   legalMoves(history: string[]) {
     return replay(history).moves({ verbose: true }).map(m => m.from + m.to + (m.promotion ?? ''));
+  }
+
+  sanAt(fen: string, uci: string) {
+    try { return new Chess(fen).move(toMove(uci)).san; }
+    catch { throw new IllegalMoveError(uci); }
   }
 }

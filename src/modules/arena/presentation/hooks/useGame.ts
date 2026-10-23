@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/apiClient';
 import type { GameState, MoveDTO } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { arenaApi } from '../api/arenaApi';
+import { livePosition, sameBoard } from '../game/livePosition';
 
 type S = { server: GameState | null; moves: MoveDTO[]; etag: string | null; offset: number; optimistic: string | null; notice: string; offline: boolean; error: string | null };
 type A =
@@ -13,9 +14,10 @@ type A =
   | { type: 'NOTICE'; notice: string } | { type: 'OFFLINE'; offline: boolean } | { type: 'ERROR'; error: string };
 
 const INITIAL: S = { server: null, moves: [], etag: null, offset: 0, optimistic: null, notice: '', offline: false, error: null };
+export const PROMO_HINT = 'Falta la pieza de la coronación: escribe g8=D, =T, =A o =C.';
 const ERRORS: Record<number, string> = { 400: 'El enlace no es válido.', 403: 'No participas en esta partida.', 404: 'Esta partida no existe.' };
 
-function reducer(s: S, a: A): S {
+export function reducer(s: S, a: A): S {
   switch (a.type) {
     case 'STATE': return { ...s, server: a.state, moves: a.moves, etag: a.etag, offset: a.offset, optimistic: null, offline: false,
       notice: a.notice ?? (a.state.ply !== s.server?.ply ? '' : s.notice) };
@@ -115,11 +117,18 @@ export function useGame(matchId: string) {
     dispatch({ type: 'OPTIMISTIC', uci });
     try {
       const r = await arenaApi.move(matchId, uci, ply);   // 201
+      const expected = livePosition(cur.fen, uci).fen();
+      if (!sameBoard(expected, r.state.fen)) {
+        console.warn('[arena] posición distinta a la del servidor', { expected, server: r.state.fen });
+        dispatch({ type: 'ROLLBACK' });
+        return reload();   // manda el servidor
+      }
       commit(r.state, null, [r.move]);
     } catch (e) {
       dispatch({ type: 'ROLLBACK' });
       if (!(e instanceof ApiError)) return notice('No se pudo enviar la jugada. Reintenta.');
       if (e.status === 401) return toLogin();
+      if (e.code === 'PROMOTION_REQUIRED') return notice(PROMO_HINT);
       if (e.status === 422) return notice('Esa jugada no es legal en esta posición.');
       if (e.code === 'STALE_PLY' || e.code === 'NOT_YOUR_TURN') { notice('La posición cambió.'); return reload(); }
       if (e.code === 'MATCH_FINISHED' || e.code === 'MATCH_ABORTED') return reload();

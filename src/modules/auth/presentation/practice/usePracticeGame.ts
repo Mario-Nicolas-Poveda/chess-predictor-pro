@@ -34,8 +34,15 @@ export function usePracticeGame() {
     setHistory(h => [...h, mv.from + mv.to]);
   }, []);
 
+  // la práctica corona dama sola, pero solo cuando la jugada es una coronación
+  const queenIf = useCallback((from: string, to: string) =>
+    game.moves({ verbose: true }).some(m => m.from === from && m.to === to && m.promotion) ? 'q' : undefined, [game]);
+
   const reply = useCallback((key: string) => {
-    const tryMove = (uci: string) => { try { return game.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: 'q' }); } catch { return null; } };
+    const tryMove = (uci: string) => {
+      const from = uci.slice(0, 2), to = uci.slice(2, 4);
+      try { return game.move({ from, to, promotion: queenIf(from, to) }); } catch { return null; }
+    };
     let mv: Move | null = null;
     for (const uci of [REPLIES[key], ...FALLBACK_REPLIES]) if (uci && (mv = tryMove(uci))) break;
     if (!mv) {
@@ -47,18 +54,18 @@ export function usePracticeGame() {
     if (!mv) { setStatus(OVER); return; }
     apply(mv);
     setStatus(game.isGameOver() ? OVER : `El rival respondió ${sanEs(mv.san)}. Tu turno.`);
-  }, [game, apply]);
+  }, [game, apply, queenIf]);
 
   const play = useCallback((from: string, to: string) => {
     let mv: Move;
-    try { mv = game.move({ from, to, promotion: 'q' }); } catch { return; }   // chess.js lanza si es ilegal
+    try { mv = game.move({ from, to, promotion: queenIf(from, to) }); } catch { return; }   // chess.js lanza si es ilegal
     apply(mv);
     setSel(null);
     if (game.isGameOver()) { setStatus(OVER); return; }
     setBusy(true);
     setStatus(`Jugaste ${sanEs(mv.san)}. El rival piensa…`);
     timer.current = setTimeout(() => reply(from + to), 900);
-  }, [game, apply, reply]);
+  }, [game, apply, reply, queenIf]);
 
   const onSquare = useCallback((sq: Square) => {
     if (busy) return;

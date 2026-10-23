@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js';
+import { Chess, validateFen } from 'chess.js';
 import type { GameRules, Outcome, PlayResult } from '../domain/GameRules';
 import { IllegalMoveError, PromotionRequiredError } from '../domain/errors';
 
@@ -40,5 +40,9 @@ export class ChessJsRules implements GameRules {
   sanAt(fen: string, uci: string) {
     try { return new Chess(fen).move(toMove(uci)).san; }
     catch { throw new IllegalMoveError(uci); }
+  }
+
+  isValidFen(fen: string) {
+    return validateFen(fen).ok;
   }
 }

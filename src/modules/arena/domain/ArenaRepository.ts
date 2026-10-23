@@ -1,3 +1,4 @@
+import type { AiLevel, AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import type { Color, EndReason } from '../infrastructure/dto/arenaSchemas';
 import type { Outcome } from './GameRules';
@@ -24,6 +25,12 @@ export interface ArenaRepository {
   eloSeries(userId: string, days: number): Promise<{ date: string; elo: number }[]>;
   rematch(id: string, by: Color): Promise<string | null>;              // null = ofrecida; id = creada (arena_rematch)
   cancelRematch(id: string): Promise<boolean>;                         // false si no había oferta pendiente
+  // contra la IA (0005)
+  createAiGame(userId: string, level: AiLevel, color: Color, timeControl: AiTimeControl, prediction: boolean): Promise<string>;   // AI_GAME_IN_PROGRESS
+  openAiGame(userId: string): Promise<MatchRecord | null>;             // la partida contra la IA sin terminar (sin settle)
+  openRatedMatch(userId: string): Promise<MatchRecord | null>;         // la partida con ELO en juego (mm_open_match)
+  takeback(id: string, by: Color, expectedPly: number): Promise<number>;   // el ply nuevo (arena_takeback)
+  claimAiTurn(id: string, ply: number, ms: number): Promise<boolean>;  // true = este proceso piensa la jugada (ai_claim)
 }
 
 export type Outcome3 = 'win' | 'loss' | 'draw';

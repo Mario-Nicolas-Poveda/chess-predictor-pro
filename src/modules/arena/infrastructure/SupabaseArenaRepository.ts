@@ -1,10 +1,11 @@
 import 'server-only';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
-import { ConflictError, ForbiddenError, NotFoundError, type AppError } from '@/core/shared/errors/AppError';
+import { ConflictError, NotFoundError, type AppError } from '@/core/shared/errors/AppError';
+import type { AiLevel, AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../domain/ArenaRepository';
 import type { MatchRecord, MoveRecord } from '../domain/Match';
-import { matchFinished, matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../domain/errors';
+import { matchFinished, matchNotActive, matchNotFound, noDrawOffer, notAiMatch, ownDrawOffer, stalePly } from '../domain/errors';
 import type { Color, EndReason, MatchStatus } from './dto/arenaSchemas';
 
 type MatchRow = { id: string; white_id: string; black_id: string; time_control: TimeControl | 'none'; status: MatchStatus;
@@ -42,7 +43,7 @@ const RPC_ERRORS: Record<string, () => AppError> = {
   MATCH_NOT_FINISHED: () => new ConflictError('MATCH_NOT_FINISHED', 'La revancha se pide cuando la partida termina'),
   REMATCH_ALREADY_OFFERED: () => new ConflictError('REMATCH_ALREADY_OFFERED', 'Ya pediste la revancha'),
   ACTIVE_MATCH_EXISTS: () => new ConflictError('ACTIVE_MATCH_EXISTS', 'Uno de los dos ya tiene otra partida o está buscando'),
-  NOT_AI_MATCH: () => new ForbiddenError('NOT_AI_MATCH', 'Solo se puede en partidas contra la IA'),
+  NOT_AI_MATCH: notAiMatch,
   NOT_RATED_MATCH: () => new ConflictError('NOT_RATED_MATCH', 'Contra la IA no hay revancha: empieza otra partida'),
   AI_THINKING: () => new ConflictError('AI_THINKING', 'Espera a que la IA juegue'),
   NOTHING_TO_UNDO: () => new ConflictError('NOTHING_TO_UNDO', 'No hay jugadas tuyas para deshacer'),
@@ -145,6 +146,39 @@ export class SupabaseArenaRepository implements ArenaRepository {
       .eq('id', id).not('rematch_offer_by', 'is', null).is('rematch_id', null).select('id');
     if (error) throw error;
     return data.length > 0;
+  }
+
+  async createAiGame(userId: string, level: AiLevel, color: Color, timeControl: AiTimeControl, prediction: boolean) {
+    const { data, error } = await supabaseAdmin.rpc('ai_create_game',
+      { p_user: userId, p_level: level, p_color: color, p_time_control: timeControl, p_prediction: prediction });
+    if (error) throw fromRpc(error);
+    return data as string;
+  }
+
+  async openAiGame(userId: string) {
+    const { data, error } = await supabaseAdmin.from('matches').select('*').eq('rated', false)
+      .in('status', ['pending', 'active']).or(`white_id.eq.${userId},black_id.eq.${userId}`)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle<MatchRow>();
+    if (error) throw error;
+    return data ? mapMatch(data) : null;
+  }
+
+  async openRatedMatch(userId: string) {
+    const { data, error } = await supabaseAdmin.rpc('mm_open_match', { p_user: userId }).maybeSingle<MatchRow>();
+    if (error) throw error;
+    return data ? mapMatch(data) : null;
+  }
+
+  async takeback(id: string, by: Color, expectedPly: number) {
+    const { data, error } = await supabaseAdmin.rpc('arena_takeback', { p_match: id, p_color: by, p_expected_ply: expectedPly });
+    if (error) throw fromRpc(error);
+    return data as number;
+  }
+
+  async claimAiTurn(id: string, ply: number, ms: number) {
+    const { data, error } = await supabaseAdmin.rpc('ai_claim', { p_match: id, p_ply: ply, p_ms: ms });
+    if (error) throw error;
+    return data as boolean;
   }
 
   async botIds(ids: string[]) {

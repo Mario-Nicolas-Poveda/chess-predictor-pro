@@ -3,6 +3,11 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-21
+### Corregido
+- Coronar a torre, alfil o caballo ya no deja la partida bloqueada con un jaque que no existe (#91)
+- 422 PROMOTION_REQUIRED cuando la jugada de coronación no dice la pieza (#91)
+
 ## [0.3.0] - 2026-10-19
 Sprint 3 · Arena.
 

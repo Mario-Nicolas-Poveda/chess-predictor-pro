@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Move } from 'chess.js';
 import { normSan, sanEs } from '@/components/chess/san';
+import { PROMO_HINT } from '../hooks/useGame';
 
 /** Escribir la jugada: se compara con las legales en español (normSan) y se manda su UCI. */
 export function SanInput({ legal, disabled, onPlay }: { legal: Move[]; disabled: boolean; onPlay: (uci: string) => void }) {
@@ -13,7 +14,11 @@ export function SanInput({ legal, disabled, onPlay }: { legal: Move[]; disabled:
     const want = normSan(text);
     if (!want) return;
     const m = legal.find(l => normSan(sanEs(l.san)) === want);
-    if (!m) { setError(`«${text.trim()}» no es una jugada legal aquí.`); return; }
+    if (!m) {
+      // 'g8' sin pieza y solo coincide una coronación: pedir la pieza, nunca dama por defecto
+      const promo = legal.some(l => l.promotion && normSan(sanEs(l.san)).slice(0, -1) === want);
+      setError(promo ? PROMO_HINT : `«${text.trim()}» no es una jugada legal aquí.`); return;
+    }
     setError(''); setText('');
     onPlay(m.from + m.to + (m.promotion ?? ''));
   };

@@ -142,6 +142,12 @@ describe('MakeMove', () => {
     await expect(move('ana', 'e2e5', 0)).rejects.toMatchObject({ code: 'ILLEGAL_MOVE', status: 422 });
   });
 
+  it('coronación sin la pieza → 422 PROMOTION_REQUIRED y la partida no cambia', async () => {
+    await play('h2h4', 'g7g5', 'h4g5', 'g8f6', 'g5f6', 'h8g8', 'f6e7', 'g8g6');
+    await expect(move('ana', 'e7d8', 8)).rejects.toMatchObject({ code: 'PROMOTION_REQUIRED', status: 422 });
+    expect(repo.m.ply).toBe(8);
+  });
+
   it('mate → finished y gana quien movió, por checkmate', async () => {
     await play('e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6');
     expect((await move('ana', 'h5f7', 6)).state).toMatchObject({ status: 'finished', check: true, pollAfterMs: 0,

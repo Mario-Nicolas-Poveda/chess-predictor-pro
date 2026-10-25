@@ -10,9 +10,9 @@ Cada respuesta usa el código que corresponde. Éxito sin cuerpo = **204**. Recu
 | **204 No Content** | DELETE correcto (también deshacer contra la IA: `DELETE /matches/:id/moves/last?ply=n`), logout. **Sin cuerpo** | — |
 | **304 Not Modified** | `GET /matches/:id/state` o `GET /matches/:id/prediction` con `If-None-Match` igual al `ETag`: no cambió. **Sin cuerpo** | — |
 | **400 Bad Request** | Datos que no pasan Zod · JSON mal formado · id con formato inválido | `VALIDATION_ERROR`, `INVALID_JSON` |
-| **401 Unauthorized** | Sin sesión o JWT vencido · correo o contraseña incorrectos | `UNAUTHORIZED`, `INVALID_CREDENTIALS` |
+| **401 Unauthorized** | Sin sesión o JWT vencido · el usuario de la sesión ya no existe · correo o contraseña incorrectos | `UNAUTHORIZED`, `INVALID_CREDENTIALS` |
 | **403 Forbidden** | Con sesión, pero sin permiso sobre ese recurso · predicción o deshacer en una partida con ELO · pedir jugadas de tu partida con ELO en juego (antitrampa) | `FORBIDDEN`, `NOT_AI_MATCH`, `LIVE_GAME_ANALYSIS` |
-| **404 Not Found** | El recurso no existe · ruta de API inexistente | `NOT_FOUND`, `NOT_IN_QUEUE`, `MATCH_NOT_FOUND`, `MOVE_NOT_FOUND`, `NO_DRAW_OFFER`, `NO_REMATCH_OFFER`, `USER_NOT_FOUND`, `NO_AVATAR`, `AI_LEVEL_NOT_FOUND`, `ROUTE_NOT_FOUND` |
+| **404 Not Found** | El recurso no existe · ruta de API inexistente | `NOT_FOUND`, `NOT_IN_QUEUE`, `MATCH_NOT_FOUND`, `MOVE_NOT_FOUND`, `NO_DRAW_OFFER`, `NO_REMATCH_OFFER`, `NO_AVATAR`, `AI_LEVEL_NOT_FOUND`, `ROUTE_NOT_FOUND` |
 | **405 Method Not Allowed** | Método no soportado en una ruta que existe (lo responde Next solo, sin cuerpo JSON) | — |
 | **409 Conflict** | Choca con el estado actual | `EMAIL_TAKEN`, `USERNAME_TAKEN`, `ALREADY_IN_QUEUE`, `ACTIVE_MATCH_EXISTS`, `MATCH_NOT_PENDING`, `NOT_YOUR_TURN`, `STALE_PLY` (`meta.currentPly`), `MATCH_FINISHED`, `MATCH_ABORTED`, `MATCH_NOT_ACTIVE`, `DRAW_ALREADY_OFFERED`, `OWN_DRAW_OFFER`, `MATCH_NOT_FINISHED`, `REMATCH_ALREADY_OFFERED`, `AI_GAME_IN_PROGRESS` (`meta.matchId`), `AI_THINKING`, `NOTHING_TO_UNDO`, `NOT_RATED_MATCH`, `CONFLICT` |
 | **413 Content Too Large** | Archivo de más de lo permitido (foto de perfil: 1 MB). Se rechaza por `Content-Length` sin leer el cuerpo | `FILE_TOO_LARGE` |

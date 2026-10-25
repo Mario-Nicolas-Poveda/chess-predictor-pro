@@ -386,6 +386,10 @@ describe('Contra la IA', () => {
       await create({ level: 2 });
       expect((await levels()).activeGame).toEqual({ matchId: 'm1', level: 2 });
     });
+
+    it('niveles con el usuario de la sesión borrado → 401', async () => {
+      await expect(new GetAiLevels(repo, players, ai).execute('nadie')).rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
+    });
   });
 
   describe('PlayAiTurn', () => {

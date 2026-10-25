@@ -1,7 +1,7 @@
 import { NotFoundError } from '@/core/shared/errors/AppError';
 import type { AvatarStorage } from '../domain/AvatarStorage';
 import type { UserRepository } from '../domain/UserRepository';
-import { userNotFound } from './SetAvatar';
+import { userNotFound } from './GetUserProfile';
 
 // quita la foto; si era de Google (sin archivo propio) solo se borra la URL
 export class RemoveAvatar {

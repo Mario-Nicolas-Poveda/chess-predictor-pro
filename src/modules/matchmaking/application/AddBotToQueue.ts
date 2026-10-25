@@ -1,4 +1,4 @@
-import { NotFoundError } from '@/core/shared/errors/AppError';
+import { NotFoundError, UnauthorizedError } from '@/core/shared/errors/AppError';
 import type { MatchmakingRepository } from '../domain/MatchmakingRepository';
 import type { PlayerDirectory } from '../domain/PlayerDirectory';
 import { BOT_USERNAMES, type AddBotInput } from '../infrastructure/dto/matchmakingSchemas';
@@ -9,7 +9,7 @@ export class AddBotToQueue {
 
   async execute(userId: string, { timeControl, username }: AddBotInput) {
     const [me] = await this.players.getMany([userId]);
-    if (!me) throw new NotFoundError('NOT_FOUND', 'Usuario no encontrado');
+    if (!me) throw new UnauthorizedError();   // usuario de la sesión borrado
     // por defecto, el bot de ELO más cercano a quien lo pide
     const [bot] = (await this.players.findByUsernames(username ? [username] : BOT_USERNAMES))
       .sort((a, b) => Math.abs(a.elo - me.elo) - Math.abs(b.elo - me.elo));

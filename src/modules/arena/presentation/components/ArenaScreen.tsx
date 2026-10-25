@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 import { framesOf } from '@/components/chess/replay';
+import { useFocusMode } from '@/components/layout/FocusMode';
 import { sanEs } from '@/components/chess/san';
 import type { BoardView } from '@/components/three/scenes/gameBoardScene';
 import { Button } from '@/components/ui/Button';
@@ -14,10 +15,13 @@ import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/mat
 import { useBoardInput } from '../hooks/useBoardInput';
 import { useClock } from '../hooks/useClock';
 import { useGame } from '../hooks/useGame';
+import { exitCopy, useArenaPanel } from '../game/arenaPanel';
 import { livePosition } from '../game/livePosition';
 import { OUTCOME_TITLE, eloDelta, outcomeOf, reasonText } from '../reasons';
+import { ArenaHeader } from './ArenaHeader';
 import { ArenaLayout } from './ArenaLayout';
 import { EndBand } from './EndBand';
+import { ExitDialog } from './ExitDialog';
 import { materialOf } from './PlayerStrip';
 import { PromotionDialog } from './PromotionDialog';
 
@@ -32,6 +36,8 @@ export function ArenaScreen() {
   const { prefs } = usePreferences();
   const [flipped, setFlipped] = useState<boolean | null>(null);   // null = tu color
   const [confirming, setConfirming] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const s = g.server;
   const ucis = useMemo(() => [...g.moves.map(m => m.uci), ...(g.optimistic ? [g.optimistic] : [])], [g.moves, g.optimistic]);
@@ -45,6 +51,9 @@ export function ArenaScreen() {
   const clock = useClock(s?.clock, g.offset, g.reload, { paused: !!g.optimistic, tick: s?.status === 'pending' });
 
   const finished = s?.status === 'finished';
+  // modo enfoque: sin menú de módulos mientras se juega; vuelve al terminar
+  useFocusMode(s?.status === 'pending' || s?.status === 'active');
+  const panel = useArenaPanel(s?.status);
   useEffect(() => { if (finished) router.prefetch(`/dashboard/arena/${matchId}/resultado`); }, [finished, router, matchId]);
 
   if (g.error) return (
@@ -102,6 +111,19 @@ export function ArenaScreen() {
       captured: mine, advantage: materialOf(mine) - materialOf(theirs), ms: clock[c], clockActive: s.clock.running === c };
   };
 
+  const pill = panel.open ? null
+    : input.promo ? 'Corona tu peón'
+    : g.yourTurn ? (s.check ? '¡Jaque!' : 'Tu turno')
+    : s.status === 'pending' && s.turn !== you ? `Esperando a ${rival}…`
+    : s.ai ? 'La IA piensa…' : `${rival} piensa…`;
+  const exit = exitCopy(s);
+  const leave = async () => {
+    setLeaving(true);
+    if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
+    else await g.resign();                            // 200 → se ve el final
+    setLeaving(false); setExiting(false);
+  };
+
   const flip = (
     <button type="button" aria-pressed={orientation !== you} onClick={() => setFlipped(f => !f)}
       className="inline-flex h-11 items-center gap-2 rounded-full px-[18px] text-sm font-medium text-accent hover:bg-band">
@@ -134,13 +156,17 @@ export function ArenaScreen() {
             <Button variant="ghost" className={small} onClick={() => void g.offerDraw()} disabled={theirOffer}>Ofrecer tablas</Button>
           )}
           {s.status === 'active' && <Button variant="ghost" className={small} onClick={() => setConfirming(true)}>Rendirse</Button>}
-          {flip}
         </div>
       </div>
     );
 
-  return (
-    <ArenaLayout
+  return (<>
+    {playing && (
+      <ArenaHeader label={s.ai ? `Contra la IA · ${s.ai.name} · nivel ${s.ai.level}` : `Partida en vivo · ${t.label} ${t.kind}`}
+        pill={pill} pillAccent={pill === '¡Jaque!'} flipped={orientation !== you} onFlip={() => setFlipped(f => !f)}
+        panelOpen={panel.open} onTogglePanel={panel.toggle} onExit={() => setExiting(true)} />
+    )}
+    <ArenaLayout panelOpen={panel.open}
       eyebrow={`Partida · ${t.label} ${t.kind} · #${s.id.slice(0, 4)}`} title={title} titleAccent={s.check && g.yourTurn && !outcome} sub={sub}
       notice={playing ? g.notice : ''} live={live} sync={sync}
       rival={strip(rivalColor)} you={strip(you)}
@@ -151,5 +177,6 @@ export function ArenaScreen() {
           eloDelta={s.result.elo[you].after - s.result.elo[you].before}
           resultHref={`/dashboard/arena/${s.id}/resultado`} onAgain={() => router.push('/dashboard/play')} />}
       actions={actions} />
-  );
+    {playing && <ExitDialog open={exiting} text={exit.text} confirm={exit.confirm} busy={leaving} onConfirm={() => void leave()} onClose={() => setExiting(false)} />}
+  </>);
 }

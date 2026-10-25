@@ -102,7 +102,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
 
   let view: BoardView | null = null;
   let colorsKey = '';
-  const target = { a: 0, fin: 0 }, cam = { a: 0, fin: 0, x: 0, y: 0 }, mouse = { x: 0, y: 0 };
+  const target = { a: 0, fin: 0 }, cam = { a: 0, fin: 0 };
 
   const update = (v: BoardView) => {
     const first = view === null;
@@ -173,7 +173,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     if (v.selected) putOn(selPlane, v.selected); else selPlane.visible = false;
     lastPlanes.forEach((pl, i) => { const sq = v.lastMove?.[i]; if (sq) putOn(pl, sq); else pl.visible = false; });
     if (v.check) putOn(checkPlane, v.check); else checkPlane.visible = false;
-    if (!v.interactive) hoverPlane.visible = false;
+    if (!v.interactive) { hoverPlane.visible = false; hovered = null; }
     stage.invalidate();
   };
 
@@ -198,12 +198,14 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   let onPickableFn: (b: boolean) => void = () => {};
   let pickable = false, down: { x: number; y: number } | null = null;
   const setPickable = (b: boolean) => { if (b !== pickable) { pickable = b; onPickableFn(b); } };
+  // el cursor solo resalta la casilla: se dibuja un frame únicamente si cambia
+  let hovered: Square | null = null;
   const onMove = (ev: PointerEvent) => {
-    const r = canvas.getBoundingClientRect();
-    mouse.x = ((ev.clientX - r.left) / r.width) * 2 - 1; mouse.y = ((ev.clientY - r.top) / r.height) * 2 - 1;
-    const sq = pick(ev), ok = isPickable(sq);
-    if (ok && sq) putOn(hoverPlane, sq); else hoverPlane.visible = false;
+    const sq = pick(ev), ok = isPickable(sq), next = ok ? sq : null;
     setPickable(ok);
+    if (next === hovered) return;
+    hovered = next;
+    if (next) putOn(hoverPlane, next); else hoverPlane.visible = false;
     stage.invalidate();
   };
   const onDown = (ev: PointerEvent) => { down = { x: ev.clientX, y: ev.clientY }; };
@@ -214,9 +216,9 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     const sq = pick(ev);
     if (sq) onSquareFn(sq);
   };
-  const onLeave = () => { mouse.x = 0; mouse.y = 0; hoverPlane.visible = false; setPickable(false); stage.invalidate(); };
+  const onLeave = () => { hovered = null; hoverPlane.visible = false; setPickable(false); stage.invalidate(); };
 
-  // cámara: giro del tablero, alejamiento al terminar y parallax suave; el jaque late (único frame continuo)
+  // cámara fija (sin parallax): solo se mueve al girar el tablero y al terminar; el jaque late (único frame continuo)
   stage.onFrame(now => {
     const l = layoutOf(canvas);
     if (l !== layout) {
@@ -231,16 +233,14 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     }
     cam.a += (target.a - cam.a) * (reducedMotion ? 1 : .06);
     cam.fin += (target.fin - cam.fin) * (reducedMotion ? 1 : .04);
-    cam.x += ((reducedMotion ? 0 : mouse.x) * .8 - cam.x) * .05;
-    cam.y += ((reducedMotion ? 0 : mouse.y) * .45 - cam.y) * .05;
     // angosto: sin capturadas a los lados, la cámara se acerca y el tablero llena el ancho
     const narrow = layout === 'narrow';
     const f = narrow ? Math.max(.93, 1.12 / camera.aspect) : Math.max(1, 1.2 / camera.aspect);
     const fit = f * (1 + .12 * cam.fin), R = 11 * fit;
-    camera.position.set(Math.sin(cam.a) * R + Math.cos(cam.a) * cam.x, (13 + cam.y) * fit, Math.cos(cam.a) * R - Math.sin(cam.a) * cam.x);
+    camera.position.set(Math.sin(cam.a) * R, 13 * fit, Math.cos(cam.a) * R);
     camera.lookAt(0, 0, Math.cos(cam.a) * ((narrow ? .75 * f : .35) + 1.5 * cam.fin));
     if (checkPlane.visible) (checkPlane.material as MeshBasicMaterial).opacity = reducedMotion ? .42 : .32 + .2 * Math.sin(now / 180);
-    const moving = Math.abs(target.a - cam.a) + Math.abs(target.fin - cam.fin) + Math.abs(mouse.x * .8 - cam.x) + Math.abs(mouse.y * .45 - cam.y) > .001;
+    const moving = Math.abs(target.a - cam.a) + Math.abs(target.fin - cam.fin) > .001;
     return moving || (checkPlane.visible && !reducedMotion);
   });
 

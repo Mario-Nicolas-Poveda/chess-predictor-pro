@@ -146,7 +146,7 @@ export function useGame(matchId: string) {
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),
     // rechazar o retirar: 204, y en 404 la oferta ya no estaba; en los dos casos se quita la banda
     declineDraw: () => { withdrew.current = true; return arenaApi.declineDraw(matchId).catch(e => fail(e, { NO_DRAW_OFFER: '' })).finally(refresh); },
-    cancel: () => arenaApi.cancel(matchId).then(() => router.push('/dashboard/play'),
+    cancel: () => arenaApi.cancel(matchId).then(() => router.push(live.current.server?.ai ? '/dashboard/ai' : '/dashboard/play'),
       e => fail(e, { MATCH_NOT_PENDING: 'La partida ya empezó: puedes rendirte.' })),
   };
 }

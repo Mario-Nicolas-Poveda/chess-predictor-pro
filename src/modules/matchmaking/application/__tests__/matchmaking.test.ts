@@ -90,8 +90,8 @@ describe('JoinQueue', () => {
     await expect(join('ana')).rejects.toMatchObject({ code: 'ACTIVE_MATCH_EXISTS', status: 409, meta: { matchId: 'm1' } });
   });
 
-  it('usuario inexistente → 404', async () => {
-    await expect(join('nadie')).rejects.toMatchObject({ status: 404 });
+  it('usuario de la sesión inexistente → 401', async () => {
+    await expect(join('nadie')).rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
   });
 });
 

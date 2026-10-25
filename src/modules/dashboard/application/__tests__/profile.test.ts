@@ -108,9 +108,9 @@ describe('SetAvatar', () => {
     expect(files.size).toBe(0);
   });
 
-  it('usuario inexistente → 404', async () => {
+  it('usuario de la sesión inexistente → 401', async () => {
     await expect(new SetAvatar(memoryRepo(), memoryStorage().storage, noLimit).execute('x', webp))
-      .rejects.toMatchObject({ code: 'USER_NOT_FOUND', status: 404 });
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
   });
 });
 
@@ -139,9 +139,9 @@ describe('RemoveAvatar', () => {
 });
 
 describe('GetUserProfile', () => {
-  it('usuario inexistente → NOT_FOUND 404 (no un 500)', async () => {
+  it('usuario de la sesión inexistente → 401 (no un 404 ni un 500)', async () => {
     await expect(new GetUserProfile(memoryRepo()).execute('x'))
-      .rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
   });
 });
 
@@ -156,11 +156,11 @@ describe('preferencias', () => {
     expect((await new GetUserProfile(repo).execute('1')).preferences).toEqual(DEFAULT_PREFERENCES);
   });
 
-  it('usuario inexistente → 404 al guardar y al restablecer', async () => {
+  it('usuario de la sesión inexistente → 401 al guardar y al restablecer', async () => {
     await expect(new SaveProfilePreferences(memoryRepo()).execute('x', DEFAULT_PREFERENCES))
-      .rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
     await expect(new ResetProfilePreferences(memoryRepo()).execute('x'))
-      .rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
   });
 });
 

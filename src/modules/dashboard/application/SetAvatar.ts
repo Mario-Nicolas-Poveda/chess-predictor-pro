@@ -1,9 +1,7 @@
-import { NotFoundError } from '@/core/shared/errors/AppError';
 import type { ImageType } from '@/core/shared/http/sniffImage';
 import type { AvatarStorage } from '../domain/AvatarStorage';
 import type { UserRepository } from '../domain/UserRepository';
-
-export const userNotFound = () => new NotFoundError('USER_NOT_FOUND', 'El usuario no existe');
+import { userNotFound } from './GetUserProfile';
 
 // sube la foto a una ruta nueva (se cachea un año sin invalidar nada) y borra la anterior
 export class SetAvatar {

@@ -1,7 +1,8 @@
-import { NotFoundError } from '@/core/shared/errors/AppError';
+import { UnauthorizedError } from '@/core/shared/errors/AppError';
 import type { UserRepository } from '../domain/UserRepository';
 
-export const userNotFound = () => new NotFoundError('NOT_FOUND', 'Usuario no encontrado');
+// el id sale siempre de la sesión: si el usuario ya no existe (p. ej. borrado), la sesión no vale → 401 y el cliente va al login
+export const userNotFound = () => new UnauthorizedError();
 
 export class GetUserProfile {
   constructor(private users: UserRepository) {}

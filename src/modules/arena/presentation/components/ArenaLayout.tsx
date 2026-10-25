@@ -20,10 +20,12 @@ export type ArenaLayoutProps = {
   overlay?: ReactNode;      // diálogo de coronación o banda del final, sobre el escenario
   actions?: ReactNode;      // botones del panel (tablas, rendirse, girar…)
   panelOpen?: boolean;      // false: el panel se pliega (y queda inert) y el tablero ocupa el centro
+  evalBar?: ReactNode;      // barra de ventaja a la izquierda del tablero (contra la IA)
+  prediction?: ReactNode;   // tarjeta de predicción en el panel
 };
 
 // el tablero cabe en la altura de la ventana (portátiles de 768 px): bajo cabecera, franjas y márgenes; 3D en 6:5, 2D cuadrado
-const STAGE_WIDTH = { '3d': 'min(100%, calc((100dvh - 232px) * 1.2))', '2d': 'min(100%, calc(100dvh - 232px))' };
+const STAGE_WIDTH = { '3d': 'calc((100dvh - 232px) * 1.2)', '2d': 'calc(100dvh - 232px)' };
 
 /** Tablero con las franjas de los jugadores · panel de la partida (debajo en pantallas de menos de 1024 px). */
 export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
@@ -33,9 +35,12 @@ export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
       {/* fuera del panel: se sigue oyendo con el panel oculto */}
       <p role="status" aria-live="polite" className="sr-only">{p.live}</p>
       <section aria-label="Tablero" className="flex min-w-0 flex-1 justify-center animate-rise">
-        <div className="flex w-full flex-col gap-2.5" style={{ maxWidth: STAGE_WIDTH[mode] }}>
+        <div className="flex w-full flex-col gap-2.5" style={{ maxWidth: `min(100%, calc(${STAGE_WIDTH[mode]} + ${p.evalBar ? 24 : 0}px))` }}>
           <PlayerStrip {...p.rival} />
-          <BoardStage view={p.view} onSquare={p.onSquare} label={p.stageLabel}>{p.overlay}</BoardStage>
+          <div className="flex gap-3">
+            {p.evalBar}
+            <div className="min-w-0 flex-1"><BoardStage view={p.view} onSquare={p.onSquare} label={p.stageLabel}>{p.overlay}</BoardStage></div>
+          </div>
           <PlayerStrip {...p.you} />
         </div>
       </section>
@@ -49,6 +54,7 @@ export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
             <p className="mt-1 min-h-[25px] text-ink-soft">{p.sub}</p>
             {p.notice && <p className="text-[15px] text-accent animate-rise">{p.notice}</p>}
           </div>
+          {p.prediction}
           <p className="flex items-center gap-2.5 font-mono text-xs text-ink-soft">
             <span aria-hidden="true" className="relative flex size-2">
               <span className="absolute inset-0 rounded-full bg-ok opacity-50 motion-safe:animate-ping" />

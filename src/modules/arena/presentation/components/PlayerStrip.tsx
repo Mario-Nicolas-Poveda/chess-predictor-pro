@@ -37,21 +37,22 @@ export function CapturedRow({ ids, color, advantage }: { ids: string[]; color: '
 
 type Props = {
   name: string; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
+  glyph?: string;      // contra la IA: la pieza del nivel en el círculo y el ELO aproximado
   captured: string[]; advantage: number; ms?: number; clockActive?: boolean;   // sin ms (repetición) no hay reloj
 };
 
-export function PlayerStrip({ name, elo, color, you, thinking, captured, advantage, ms, clockActive }: Props) {
+export function PlayerStrip({ name, elo, color, you, thinking, glyph, captured, advantage, ms, clockActive }: Props) {
   return (
     // tu franja es siempre la de abajo; el lector de pantalla oye cuál es la tuya
     <div role="group" aria-label={you ? `Tú: ${name}, ELO ${elo}, ${color === 'white' ? 'blancas' : 'negras'}` : undefined} className="flex min-h-[52px] items-center gap-3.5">
-      <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full font-display text-xl ${you ? 'bg-ink text-paper' : 'bg-band text-ink'}`}>
-        {name.charAt(0).toUpperCase()}
+      <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full text-xl ${glyph ? 'bg-ink font-chess text-paper' : you ? 'bg-ink font-display text-paper' : 'bg-band font-display text-ink'}`}>
+        {glyph ?? name.charAt(0).toUpperCase()}
       </span>
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-semibold">
           {name} {thinking && <span className="text-caption font-normal text-ink-faint">· piensa…</span>}
         </span>
-        <span className="font-mono text-xs text-ink-faint nums">ELO {elo} · {color === 'white' ? 'blancas' : 'negras'}</span>
+        <span className="font-mono text-xs text-ink-faint nums">{glyph ? '≈' : 'ELO'} {elo} · {color === 'white' ? 'blancas' : 'negras'}</span>
       </div>
       {/* captura piezas del color contrario */}
       <CapturedRow ids={captured} color={color === 'white' ? 'b' : 'w'} advantage={advantage} />

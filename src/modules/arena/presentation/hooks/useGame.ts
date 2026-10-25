@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/apiClient';
 import type { GameState, MoveDTO } from '@/modules/arena/infrastructure/dto/arenaSchemas';
+import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
 import { arenaApi } from '../api/arenaApi';
 import { livePosition, sameBoard } from '../game/livePosition';
 
@@ -136,11 +137,26 @@ export function useGame(matchId: string) {
     }
   };
 
+  /** Contra la IA: quita tu última jugada y la respuesta (204) y recarga el estado completo. true si se deshizo. */
+  const undo = async () => {
+    const cur = live.current.server;
+    if (!cur?.ai || s.optimistic || cur.turn !== cur.yourColor) return false;
+    try { await aiApi.takeback(matchId, cur.ply); reload(); return true; }
+    catch (e) {
+      if (!(e instanceof ApiError)) { notice('No se pudo deshacer. Reintenta.'); return false; }
+      if (e.status === 401) { toLogin(); return false; }
+      if (e.code === 'AI_THINKING') notice('Espera a que la IA juegue.');
+      else if (e.code === 'STALE_PLY') reload();
+      else if (e.code !== 'NOTHING_TO_UNDO') notice(e.message);   // sin nada que deshacer el botón ya está apagado
+      return false;
+    }
+  };
+
   const withState = (call: Promise<{ state: GameState }>, map?: Record<string, string>) =>
     call.then(r => commit(r.state, null), e => fail(e, map));
 
   return {
-    ...s, yourTurn, play, reload: refresh,
+    ...s, yourTurn, play, undo, say: notice, reload: refresh,
     resign: () => withState(arenaApi.resign(matchId)),
     offerDraw: () => { notice(''); return withState(arenaApi.offerDraw(matchId)); },
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),

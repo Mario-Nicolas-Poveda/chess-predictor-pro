@@ -1,6 +1,7 @@
 'use client';
 
 import { PanelRightClose, PanelRightOpen, RefreshCw } from 'lucide-react';
+import { BoardModeToggle } from './BoardModeToggle';
 
 const icon = 'grid size-11 place-items-center rounded-full text-ink hover:bg-band aria-pressed:bg-band';
 
@@ -22,6 +23,7 @@ export function ArenaHeader({ label, pill, pillAccent, flipped, onFlip, panelOpe
           {pill && <span className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-medium ${pillAccent ? 'bg-accent text-on-accent' : 'bg-band text-ink'}`}>{pill}</span>}
         </div>
         <div role="toolbar" aria-label="Partida" className="flex shrink-0 items-center gap-1.5">
+          <div className="mr-1.5"><BoardModeToggle /></div>
           <button type="button" className={icon} aria-pressed={flipped} aria-label="Girar tablero" title="Girar tablero" onClick={onFlip}>
             <RefreshCw size={20} aria-hidden="true" />
           </button>

@@ -11,7 +11,8 @@ import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/them
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { useReplay } from '../hooks/useReplay';
 import { OUTCOME_TITLE, REASON_SHORT, dayLabel, outcomeOf } from '../reasons';
-import { GameBoard3D } from './GameBoard3D';
+import { BoardModeToggle } from './BoardModeToggle';
+import { BoardStage } from './BoardStage';
 import { MoveList } from './MoveList';
 import { PlayerStrip, materialOf } from './PlayerStrip';
 
@@ -73,9 +74,10 @@ export function ReplayPlayer() {
             <span className="font-display text-[26px] italic leading-none">{current}</span>
             <span className="font-mono text-[11px] text-ink-faint">{r.ply ? `jugada ${r.ply} de ${r.last}` : 'posición inicial'}</span>
           </p>
+          <BoardModeToggle />
         </div>
         <PlayerStrip {...strip(rivalColor)} />
-        <GameBoard3D view={view} onSquare={noop} label="" />
+        <BoardStage view={view} onSquare={noop} label="" />
         <PlayerStrip {...strip(you)} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <button type="button" aria-label="Posición inicial" className={btn} disabled={r.ply === 0} onClick={() => r.go(0)}><ChevronFirst size={22} aria-hidden="true" /></button>

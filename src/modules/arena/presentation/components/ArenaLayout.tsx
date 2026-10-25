@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import type { Move } from 'chess.js';
 import type { Square } from '@/components/chess/types';
 import type { BoardView } from '@/components/three/scenes/gameBoardScene';
-import { GameBoard3D } from './GameBoard3D';
+import { useBoardMode } from '../hooks/useBoardMode';
+import { BoardStage } from './BoardStage';
 import { MoveList } from './MoveList';
 import { PlayerStrip } from './PlayerStrip';
 import { SanInput } from './SanInput';
@@ -21,19 +22,20 @@ export type ArenaLayoutProps = {
   panelOpen?: boolean;      // false: el panel se pliega (y queda inert) y el tablero ocupa el centro
 };
 
-// el tablero cabe en la altura de la ventana (portátiles de 768 px): escenario 6:5 bajo cabecera, franjas y márgenes
-const STAGE_WIDTH = 'min(100%, calc((100dvh - 232px) * 1.2))';
+// el tablero cabe en la altura de la ventana (portátiles de 768 px): bajo cabecera, franjas y márgenes; 3D en 6:5, 2D cuadrado
+const STAGE_WIDTH = { '3d': 'min(100%, calc((100dvh - 232px) * 1.2))', '2d': 'min(100%, calc(100dvh - 232px))' };
 
 /** Tablero con las franjas de los jugadores · panel de la partida (debajo en pantallas de menos de 1024 px). */
 export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
+  const { mode } = useBoardMode();
   return (
     <div className="mx-auto flex max-w-[1320px] flex-col items-stretch gap-y-8 px-5 pb-14 pt-6 lg:flex-row lg:items-start lg:px-10">
       {/* fuera del panel: se sigue oyendo con el panel oculto */}
       <p role="status" aria-live="polite" className="sr-only">{p.live}</p>
       <section aria-label="Tablero" className="flex min-w-0 flex-1 justify-center animate-rise">
-        <div className="flex w-full flex-col gap-2.5" style={{ maxWidth: STAGE_WIDTH }}>
+        <div className="flex w-full flex-col gap-2.5" style={{ maxWidth: STAGE_WIDTH[mode] }}>
           <PlayerStrip {...p.rival} />
-          <GameBoard3D view={p.view} onSquare={p.onSquare} label={p.stageLabel}>{p.overlay}</GameBoard3D>
+          <BoardStage view={p.view} onSquare={p.onSquare} label={p.stageLabel}>{p.overlay}</BoardStage>
           <PlayerStrip {...p.you} />
         </div>
       </section>

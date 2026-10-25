@@ -6,12 +6,13 @@ import type { PieceType } from '@/components/chess/types';
 
 const OPTIONS: [PieceType, string][] = [['q', 'Dama'], ['r', 'Torre'], ['b', 'Alfil'], ['n', 'Caballo']];
 
-/** Sobre el escenario: el foco entra al primer botón y Esc cancela. */
+/** Sobre el escenario: el foco entra al primer botón; Esc o tocar fuera cancelan (la pieza vuelve a su casilla). */
 export function PromotionDialog({ color, onPick, onCancel }: { color: 'w' | 'b'; onPick: (t: PieceType) => void; onCancel: () => void }) {
   const first = useRef<HTMLButtonElement>(null);
   useEffect(() => { first.current?.focus(); }, []);
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="promo-title" onKeyDown={e => { if (e.key === 'Escape') onCancel(); }}
+      onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
       className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-[22px] bg-paper/74 backdrop-blur-[6px]">
       <h2 id="promo-title" className="font-display text-[40px] font-semibold leading-none">Corona tu peón.</h2>
       <div className="flex flex-wrap justify-center gap-3">

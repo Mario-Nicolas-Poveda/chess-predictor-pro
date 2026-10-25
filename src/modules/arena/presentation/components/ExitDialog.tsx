@@ -2,13 +2,15 @@
 
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { useLightDismiss } from '@/components/ui/useLightDismiss';
 
-/** Confirmación de "Salir", bajo el botón. Esc la cierra (lo hace el navegador) y el foco entra a "Seguir jugando". */
+/** Confirmación de "Salir", bajo el botón. Esc o tocar fuera = "Seguir jugando"; el foco entra ahí. */
 export function ExitDialog({ open, text, confirm, busy, onConfirm, onClose }: {
   open: boolean; text: string; confirm: string; busy: boolean; onConfirm: () => void; onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const stay = useRef<HTMLButtonElement>(null);
+  useLightDismiss(ref, onClose, !busy);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;

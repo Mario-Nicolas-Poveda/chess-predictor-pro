@@ -1,14 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
-import { ApiError } from '@/lib/apiClient';
 import { AvatarDialog } from '../avatar/AvatarDialog';
-import { avatarApi } from '../avatar/avatarApi';
+import { RemoveAvatar } from '../avatar/RemoveAvatar';
 import { useProfile } from '../hooks/useProfile';
 import { useProfileHistory } from '../hooks/useProfileHistory';
 import { CustomizeSheet } from './CustomizeSheet';
@@ -21,10 +18,7 @@ export function ProfileView() {
   const { history, results } = useProfileHistory();
   const sheetRef = useRef<HTMLDialogElement>(null);
   const customizeRef = useRef<HTMLDialogElement>(null);
-  const router = useRouter();
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [removing, setRemoving] = useState(false);
 
   if (error) return (
     <div role="alert" className="mx-auto max-w-[1200px] space-y-4 px-5 py-16 lg:px-10">
@@ -35,18 +29,6 @@ export function ProfileView() {
 
   if (!profile) return <ProfileSkeleton />;
 
-  const removePhoto = async () => {
-    setRemoving(true);
-    try {
-      await avatarApi.remove();
-      setProfile({ ...profile, avatarUrl: null });
-      setConfirming(false);
-      toast.success('Foto quitada.');
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 401) router.replace('/login?next=/dashboard/profile');
-      else toast.error('No se pudo quitar la foto. Intenta de nuevo.');
-    } finally { setRemoving(false); }
-  };
   const btn = 'h-11! px-5! text-[15px]';
 
   return (
@@ -57,18 +39,11 @@ export function ProfileView() {
             <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
           </Button>
           <Button variant="ghost" className={btn} onClick={() => setPhotoOpen(true)}>{profile.avatarUrl ? 'Cambiar foto' : 'Subir foto'}</Button>
-          {profile.avatarUrl && !confirming && <Button variant="ghost" className={btn} onClick={() => setConfirming(true)}>Quitar foto</Button>}
-          {confirming && (
-            <p role="group" aria-label="Quitar foto" className="flex basis-full flex-wrap items-center gap-3 text-[15px]">
-              ¿Quitar tu foto? Volverás a la inicial.
-              <Button className={btn} loading={removing} onClick={() => void removePhoto()}>Quitar foto</Button>
-              <Button variant="ghost" className={btn} disabled={removing} onClick={() => setConfirming(false)}>Cancelar</Button>
-            </p>
-          )}
+          <RemoveAvatar className={btn} />
         </>} />
       <AvatarDialog open={photoOpen} onClose={() => setPhotoOpen(false)} onSaved={avatarUrl => setProfile({ ...profile, avatarUrl })} />
       <EditProfileSheet ref={sheetRef} profile={profile} onSaved={setProfile} />
-      <CustomizeSheet ref={customizeRef} />
+      <CustomizeSheet ref={customizeRef} onPhoto={() => setPhotoOpen(true)} />
     </>
   );
 }

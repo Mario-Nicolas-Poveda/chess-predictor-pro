@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
+import { useLightDismiss } from '@/components/ui/useLightDismiss';
 import { NAV, isActive } from './nav';
 import { UserBlock } from './UserBlock';
 
@@ -11,6 +12,7 @@ export function MobileMenu({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
   const close = () => ref.current?.close();
+  useLightDismiss(ref, close);
 
   return (
     <div className={className}>

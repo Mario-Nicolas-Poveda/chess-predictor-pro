@@ -27,11 +27,7 @@ export function UserBlock({ className = '' }: { className?: string }) {
 
   return (
     <div className={`items-center gap-3 ${className}`}>
-      <Avatar key={profile.avatarUrl} src={profile.avatarUrl} size={40} fallback={
-        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-ink font-display text-xl text-paper">
-          {profile.username.charAt(0).toUpperCase()}
-        </span>
-      } />
+      <Avatar user={profile} size={40} />
       <div className="leading-tight">
         <p className="text-sm font-medium text-ink">{profile.username}</p>
         <button type="button" onClick={logout} disabled={leaving}

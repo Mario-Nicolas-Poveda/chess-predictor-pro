@@ -1,5 +1,6 @@
 import { PIECE_NAME, PIECE_VALUE, glyph } from '@/components/chess/glyphs';
 import type { PieceType } from '@/components/chess/types';
+import { Avatar } from '@/components/ui/Avatar';
 
 const ORDER: PieceType[] = ['q', 'r', 'b', 'n', 'p'];
 const typeOf = (id: string) => id[1] as PieceType;
@@ -36,18 +37,18 @@ export function CapturedRow({ ids, color, advantage }: { ids: string[]; color: '
 }
 
 type Props = {
-  name: string; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
+  name: string; avatarUrl?: string | null; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
   glyph?: string;      // contra la IA: la pieza del nivel en el círculo y el ELO aproximado
   captured: string[]; advantage: number; ms?: number; clockActive?: boolean;   // sin ms (repetición) no hay reloj
 };
 
-export function PlayerStrip({ name, elo, color, you, thinking, glyph, captured, advantage, ms, clockActive }: Props) {
+export function PlayerStrip({ name, avatarUrl = null, elo, color, you, thinking, glyph, captured, advantage, ms, clockActive }: Props) {
   return (
     // tu franja es siempre la de abajo; el lector de pantalla oye cuál es la tuya
     <div role="group" aria-label={you ? `Tú: ${name}, ELO ${elo}, ${color === 'white' ? 'blancas' : 'negras'}` : undefined} className="flex min-h-[52px] items-center gap-3.5">
-      <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full text-xl ${glyph ? 'bg-ink font-chess text-paper' : you ? 'bg-ink font-display text-paper' : 'bg-band font-display text-ink'}`}>
-        {glyph ?? name.charAt(0).toUpperCase()}
-      </span>
+      {glyph
+        ? <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-ink font-chess text-xl text-paper">{glyph}</span>
+        : <Avatar user={{ username: name, avatarUrl }} size={40} className={you ? 'bg-ink text-paper' : 'bg-band text-ink'} />}
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-semibold">
           {name} {thinking && <span className="text-caption font-normal text-ink-faint">· piensa…</span>}

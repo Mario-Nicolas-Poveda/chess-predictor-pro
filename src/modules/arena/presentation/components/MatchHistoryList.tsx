@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { useProfile } from '@/modules/dashboard/presentation/hooks/useProfile';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
@@ -67,8 +68,9 @@ export function MatchHistoryList() {
           return (
             <li key={i.id}>
               <Link href={`/dashboard/partidas/${i.id}${qs}`} scroll={false} aria-current={on ? 'page' : undefined}
-                className={`grid grid-cols-[6px_minmax(0,1fr)_auto] items-center gap-x-4 rounded-2xl px-4 py-3.5 ${on ? 'bg-band' : 'hover:bg-band/60'}`}>
+                className={`grid grid-cols-[6px_auto_minmax(0,1fr)_auto] items-center gap-x-4 rounded-2xl px-4 py-3.5 ${on ? 'bg-band' : 'hover:bg-band/60'}`}>
                 <span aria-hidden="true" className={`h-10 rounded-full ${MARK[i.outcome]}`} />
+                <Avatar user={i.opponent} size={32} className="bg-band text-ink" />
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold">contra {i.opponent.username}</span>
                   <span className="truncate text-[15px] text-ink-soft">

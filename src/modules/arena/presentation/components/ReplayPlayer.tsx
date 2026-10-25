@@ -57,7 +57,7 @@ export function ReplayPlayer() {
   const strip = (c: 'white' | 'black') => {
     const p = c === you ? s.you : s.opponent, mine = c === 'white' ? frame.captured.black : frame.captured.white;
     const theirs = c === 'white' ? frame.captured.white : frame.captured.black;
-    return { name: p.username, elo: s.result!.elo[c].before, color: c, you: c === you, captured: mine, advantage: materialOf(mine) - materialOf(theirs) };
+    return { name: p.username, avatarUrl: p.avatarUrl, elo: s.result!.elo[c].before, color: c, you: c === you, captured: mine, advantage: materialOf(mine) - materialOf(theirs) };
   };
   const btn = 'grid size-11 place-items-center rounded-full text-ink hover:bg-band disabled:opacity-40';
 

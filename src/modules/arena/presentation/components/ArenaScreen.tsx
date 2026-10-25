@@ -112,6 +112,7 @@ export function ArenaScreen() {
     : lastSan ? (lastByYou ? `Jugaste ${sanEs(lastSan)}.` : `${rival} jugó ${sanEs(lastSan)}. Tu turno.`) + (frame.check ? ' Jaque.' : '') : '');
   const sync = g.offline ? 'Sin conexión. Reintentando…'
     : finished ? `Resultado guardado · ${Math.ceil(s.ply / 2)} jugadas`
+    : g.onAir ? `En vivo · jugada ${Math.ceil((s.ply + 1) / 2)}`
     : yourTurn || s.status === 'pending' ? `En línea · sincronizado · jugada ${Math.ceil((s.ply + 1) / 2)}` : `En línea · esperando la jugada de ${rivalLow}`;
   const t = TIME_CONTROL_LABEL[s.timeControl];
 
@@ -226,7 +227,7 @@ export function ArenaScreen() {
         <PredictionPanel prediction={pred.prediction} yourTurn={yourTurn} pinned={pinned?.ply === s.ply ? pinned.uci : null}
           onHover={setHover} onPin={uci => setPinned(p => (p?.ply === s.ply && p.uci === uci ? null : { ply: s.ply, uci }))} />
       )}
-      notice={playing ? g.notice : ''} live={live} sync={sync}
+      notice={playing ? g.notice : ''} live={live} sync={sync} syncLive={g.onAir && !finished}
       rival={strip(rivalColor)} you={strip(you)}
       view={view} stageLabel={finished ? 'Posición final' : orientation === 'white' ? 'Vista desde las blancas' : 'Vista desde las negras'} onSquare={input.onSquare}
       sans={sans} legal={legal} canType={canMove && !input.promo} onPlay={input.play}

@@ -13,7 +13,7 @@ import { SanInput } from './SanInput';
 type Strip = Parameters<typeof PlayerStrip>[0];
 
 export type ArenaLayoutProps = {
-  eyebrow: string; title: string; titleAccent?: boolean; sub: string; notice?: string; sync: string; live: string;
+  eyebrow: string; title: string; titleAccent?: boolean; sub: string; notice?: string; sync: string; syncLive?: boolean; live: string;
   rival: Strip; you: Strip;
   view: BoardView; stageLabel: string; onSquare: (sq: Square) => void;
   sans: string[]; legal: Move[]; canType: boolean; onPlay: (uci: string) => void;
@@ -57,7 +57,8 @@ export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
           {p.prediction}
           <p className="flex items-center gap-2.5 font-mono text-xs text-ink-soft">
             <span aria-hidden="true" className="relative flex size-2">
-              <span className="absolute inset-0 rounded-full bg-ok opacity-50 motion-safe:animate-ping" />
+              {/* late solo con el canal en vivo */}
+              {p.syncLive && <span className="absolute inset-0 rounded-full bg-ok opacity-50 motion-safe:animate-ping" />}
               <span className="relative size-2 rounded-full bg-ok" />
             </span>
             {p.sync}

@@ -42,13 +42,14 @@ type Props = {
 
 export function PlayerStrip({ name, elo, color, you, thinking, captured, advantage, ms, clockActive }: Props) {
   return (
-    <div className="flex min-h-[52px] items-center gap-3.5">
+    // tu franja es siempre la de abajo; el lector de pantalla oye cuál es la tuya
+    <div role="group" aria-label={you ? `Tú: ${name}, ELO ${elo}, ${color === 'white' ? 'blancas' : 'negras'}` : undefined} className="flex min-h-[52px] items-center gap-3.5">
       <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full font-display text-xl ${you ? 'bg-ink text-paper' : 'bg-band text-ink'}`}>
         {name.charAt(0).toUpperCase()}
       </span>
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-semibold">
-          {name} {(you || thinking) && <span className="text-caption font-normal text-ink-faint">{you ? '(tú)' : '· piensa…'}</span>}
+          {name} {thinking && <span className="text-caption font-normal text-ink-faint">· piensa…</span>}
         </span>
         <span className="font-mono text-xs text-ink-faint nums">ELO {elo} · {color === 'white' ? 'blancas' : 'negras'}</span>
       </div>

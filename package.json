@@ -1,6 +1,6 @@
 {
   "name": "chess-predictor-pro",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,7 @@
     "jose": "^6.2.12",
     "lucide-react": "^1.55.0",
     "motion": "^14.3.0",
-    "next": "16.4.0",
+    "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",
@@ -35,7 +35,7 @@
     "@types/react-dom": "^19",
     "@types/three": "0.186.0",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.4"

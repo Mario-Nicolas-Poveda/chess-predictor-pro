@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useLightDismiss } from '@/components/ui/useLightDismiss';
 import { avatarApi, fileProblem, sizeProblem, uploadFailure } from './avatarApi';
 import { centered, type Crop } from './crop';
 import { CropArea, CropPreview, D } from './CropArea';
@@ -25,6 +26,7 @@ export function AvatarDialog({ open, onClose, onSaved }: { open: boolean; onClos
   const [error, setError] = useState<{ text: string; code?: string } | null>(null);
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
+  useLightDismiss(ref, onClose, !busy);   // cerrar sin subir nada; no mientras sube
 
   useEffect(() => {
     const d = ref.current;
@@ -76,8 +78,6 @@ export function AvatarDialog({ open, onClose, onSaved }: { open: boolean; onClos
 
   return (
     <dialog ref={ref} aria-labelledby="avatar-title" onClose={reset}
-      onCancel={e => { if (busy) e.preventDefault(); }}
-      onClick={e => { if (e.target === e.currentTarget && !busy) ref.current?.close(); }}   // tocar fuera cierra (no mientras sube)
       className="m-auto w-[min(600px,calc(100vw-16px))] max-h-[calc(100dvh-16px)] overflow-y-auto rounded-[22px] bg-paper p-4 text-ink shadow-[0_18px_50px_-12px_rgb(0_0_0/.35)] backdrop:bg-[rgb(20_12_10/.38)] sm:p-7">
       <header className="flex items-start justify-between gap-4">
         <h2 id="avatar-title" className="font-display text-[32px] font-semibold leading-tight">Tu foto de perfil.</h2>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as m from 'motion/react-m';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { EASE_OUT } from '@/lib/motion';
 import { TIME_CONTROL_LABEL, type MatchSummary, type PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
@@ -61,9 +62,7 @@ export function MatchFound({ match, onBack }: { match: MatchSummary; onBack: () 
 function Player({ p, side, tone }: { p: PlayerSummary; side: string; tone: string }) {
   return (
     <div className="flex items-center gap-4">
-      <span aria-hidden="true" className={`grid size-[52px] shrink-0 place-items-center rounded-full font-display text-[26px] text-on-accent ${tone}`}>
-        {p.username.charAt(0).toUpperCase()}
-      </span>
+      <Avatar user={p} size={52} className={`text-on-accent ${tone}`} />
       <span className="flex min-w-0 flex-col leading-[1.15]">
         <span className="truncate font-display text-4xl font-semibold">{p.username}</span>
         <span className="text-caption text-ink-soft">{side} · <span className="nums">{p.elo}</span></span>

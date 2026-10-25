@@ -152,7 +152,7 @@ export function ArenaScreen() {
     const p = c === you ? s.you : s.opponent, mine = c === 'white' ? frame.captured.black : frame.captured.white;
     const theirs = c === 'white' ? frame.captured.white : frame.captured.black;
     const level = ai && c !== you ? AI_LEVELS.find(l => l.level === ai.level) : undefined;
-    return { name: ai && c !== you ? `IA · ${ai.name}` : p.username, elo: p.elo, color: c, you: c === you, glyph: level && glyph(level.piece, 'w'),
+    return { name: ai && c !== you ? `IA · ${ai.name}` : p.username, avatarUrl: p.avatarUrl, elo: p.elo, color: c, you: c === you, glyph: level && glyph(level.piece, 'w'),
       thinking: c !== you && s.status === 'active' && (s.turn === c || !ready),
       captured: mine, advantage: materialOf(mine) - materialOf(theirs), ...(hasClock && { ms: clock[c], clockActive: s.clock.running === c }) };
   };

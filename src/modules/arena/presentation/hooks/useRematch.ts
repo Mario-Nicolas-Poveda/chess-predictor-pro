@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/apiClient';
 import type { GameState } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { arenaApi } from '../api/arenaApi';
+import { useMatchDoorbell } from './useMatchDoorbell';
 
 export type RematchView =
   | { kind: 'none'; notice?: string }
@@ -16,6 +17,7 @@ const WATCH_MS = 2 * 60_000;   // la oferta caduca a los 2 min: después no hace
 
 /**
  * Carga el estado final y vigila la revancha: cada 3 s durante 2 minutos (1,5 s con una oferta en juego), en pausa con la pestaña oculta.
+ * El timbre de match:<id> recarga al instante, también pasados los 2 minutos.
  * Si la partida no terminó, vuelve a la arena.
  */
 export function useRematch(matchId: string) {
@@ -24,7 +26,8 @@ export function useRematch(matchId: string) {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<RematchView>({ kind: 'none' });
   const [busy, setBusy] = useState(false);
-  const [poke, setPoke] = useState(0);   // tras pedir o cancelar, se vuelve a vigilar otros 2 minutos
+  const [poke, setPoke] = useState(0);   // tras pedir, cancelar o el timbre, se vuelve a vigilar otros 2 minutos
+  useMatchDoorbell(matchId, () => setPoke(n => n + 1));
 
   const toLogin = useCallback(() => router.replace(`/login?next=${encodeURIComponent(`/dashboard/arena/${matchId}/resultado`)}`), [router, matchId]);
 

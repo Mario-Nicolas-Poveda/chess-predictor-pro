@@ -3,6 +3,10 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-25
+### Seguridad
+- Next 16.4.3: corrige dos ejecuciones remotas de código y un DoS de Next 16.4.0 (#118)
+
 ## [0.3.1] - 2026-10-21
 ### Corregido
 - Coronar a torre, alfil o caballo ya no deja la partida bloqueada con un jaque que no existe (#91)

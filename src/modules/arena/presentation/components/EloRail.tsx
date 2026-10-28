@@ -11,7 +11,8 @@ export function EloRail({ before, after }: { before: number; after: number }) {
   const t = { duration: 1.2, delay: .5, ease: EASE_OUT };
   return (
     <div aria-hidden="true" className="flex flex-col gap-2">
-      <div className="relative h-4">
+      {/* overflow-x-clip: la capa desplazada se sale por la derecha (scroll horizontal en el celular); los puntos nunca tocan el borde, hay ±50 de margen */}
+      <div className="relative h-4 overflow-x-clip">
         <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-rule" />
         {/* tramo entre los dos al 35 %: crece desde before */}
         <m.div className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-accent/35"

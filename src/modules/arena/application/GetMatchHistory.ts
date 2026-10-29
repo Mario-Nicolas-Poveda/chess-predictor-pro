@@ -8,7 +8,7 @@ export async function withOpponents(players: PlayerDirectory, rows: HistoryRow[]
   return rows.flatMap(r => {
     const opp = list.find(p => p.id === r.opponentId);
     return opp ? [{ id: r.id, timeControl: r.timeControl, endedAt: r.endedAt.toISOString(), yourColor: r.yourColor,
-      outcome: r.outcome, reason: r.reason, eloDelta: r.eloDelta, plies: r.plies, opponent: { ...opp, elo: r.opponentElo } }] : [];
+      outcome: r.outcome, reason: r.reason, eloDelta: r.eloDelta, plies: r.plies, rated: r.rated, opponent: { ...opp, elo: r.opponentElo } }] : [];
   });
 }
 

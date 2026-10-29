@@ -1,3 +1,4 @@
+import type { AiLevel, AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import type { Color, EndReason } from '../infrastructure/dto/arenaSchemas';
 import type { Outcome } from './GameRules';
@@ -20,14 +21,20 @@ export interface ArenaRepository {
   clearDrawOffer(id: string): Promise<boolean>;                        // false si no había oferta
   acceptDraw(id: string, by: Color): Promise<void>;                    // NO_DRAW_OFFER, OWN_DRAW_OFFER o MATCH_NOT_ACTIVE
   botIds(ids: string[]): Promise<string[]>;                            // los que son bots (users.is_bot)
-  history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number): Promise<HistoryRow[]>;   // terminadas, la más nueva primero
+  history(userId: string, outcome: Outcome3 | null, before: string | null, limit: number, rated?: boolean): Promise<HistoryRow[]>;   // terminadas, la más nueva primero
   eloSeries(userId: string, days: number): Promise<{ date: string; elo: number }[]>;
   rematch(id: string, by: Color): Promise<string | null>;              // null = ofrecida; id = creada (arena_rematch)
   cancelRematch(id: string): Promise<boolean>;                         // false si no había oferta pendiente
+  // contra la IA (0005)
+  createAiGame(userId: string, level: AiLevel, color: Color, timeControl: AiTimeControl, prediction: boolean): Promise<string>;   // AI_GAME_IN_PROGRESS
+  openAiGame(userId: string): Promise<MatchRecord | null>;             // la partida contra la IA sin terminar (sin settle)
+  openRatedMatch(userId: string): Promise<MatchRecord | null>;         // la partida con ELO en juego (mm_open_match)
+  takeback(id: string, by: Color, expectedPly: number): Promise<number>;   // el ply nuevo (arena_takeback)
+  claimAiTurn(id: string, ply: number, ms: number): Promise<boolean>;  // true = este proceso piensa la jugada (ai_claim)
 }
 
 export type Outcome3 = 'win' | 'loss' | 'draw';
 export interface HistoryRow {
-  id: string; timeControl: TimeControl; endedAt: Date; yourColor: Color; outcome: Outcome3; reason: EndReason;
-  eloDelta: number; plies: number; opponentId: string; opponentElo: number;
+  id: string; timeControl: TimeControl | 'none'; endedAt: Date; yourColor: Color; outcome: Outcome3; reason: EndReason;
+  eloDelta: number; plies: number; opponentId: string; opponentElo: number; rated: boolean;
 }

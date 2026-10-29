@@ -1,5 +1,6 @@
 import { PIECE_NAME, PIECE_VALUE, glyph } from '@/components/chess/glyphs';
 import type { PieceType } from '@/components/chess/types';
+import { Avatar } from '@/components/ui/Avatar';
 
 const ORDER: PieceType[] = ['q', 'r', 'b', 'n', 'p'];
 const typeOf = (id: string) => id[1] as PieceType;
@@ -36,21 +37,23 @@ export function CapturedRow({ ids, color, advantage }: { ids: string[]; color: '
 }
 
 type Props = {
-  name: string; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
+  name: string; avatarUrl?: string | null; elo: number; color: 'white' | 'black'; you?: boolean; thinking?: boolean;
+  glyph?: string;      // contra la IA: la pieza del nivel en el círculo y el ELO aproximado
   captured: string[]; advantage: number; ms?: number; clockActive?: boolean;   // sin ms (repetición) no hay reloj
 };
 
-export function PlayerStrip({ name, elo, color, you, thinking, captured, advantage, ms, clockActive }: Props) {
+export function PlayerStrip({ name, avatarUrl = null, elo, color, you, thinking, glyph, captured, advantage, ms, clockActive }: Props) {
   return (
-    <div className="flex min-h-[52px] items-center gap-3.5">
-      <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full font-display text-xl ${you ? 'bg-ink text-paper' : 'bg-band text-ink'}`}>
-        {name.charAt(0).toUpperCase()}
-      </span>
+    // tu franja es siempre la de abajo; el lector de pantalla oye cuál es la tuya
+    <div role="group" aria-label={you ? `Tú: ${name}, ELO ${elo}, ${color === 'white' ? 'blancas' : 'negras'}` : undefined} className="flex min-h-[52px] items-center gap-3.5">
+      {glyph
+        ? <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-ink font-chess text-xl text-paper">{glyph}</span>
+        : <Avatar user={{ username: name, avatarUrl }} size={40} className={you ? 'bg-ink text-paper' : 'bg-band text-ink'} />}
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-semibold">
-          {name} {(you || thinking) && <span className="text-caption font-normal text-ink-faint">{you ? '(tú)' : '· piensa…'}</span>}
+          {name} {thinking && <span className="text-caption font-normal text-ink-faint">· piensa…</span>}
         </span>
-        <span className="font-mono text-xs text-ink-faint nums">ELO {elo} · {color === 'white' ? 'blancas' : 'negras'}</span>
+        <span className="font-mono text-xs text-ink-faint nums">{glyph ? '≈' : 'ELO'} {elo} · {color === 'white' ? 'blancas' : 'negras'}</span>
       </div>
       {/* captura piezas del color contrario */}
       <CapturedRow ids={captured} color={color === 'white' ? 'b' : 'w'} advantage={advantage} />

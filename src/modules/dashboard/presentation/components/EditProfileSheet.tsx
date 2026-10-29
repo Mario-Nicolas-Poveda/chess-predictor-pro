@@ -1,6 +1,6 @@
 'use client';
 
-import type { RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ import { applyApiError } from '@/lib/formErrors';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input, Select, Textarea } from '@/components/ui/Input';
+import { useLightDismiss } from '@/components/ui/useLightDismiss';
 import { usernameSchema } from '@/modules/auth/infrastructure/dto/authSchemas';
 import type { Profile, UpdateProfileInput } from '@/modules/dashboard/infrastructure/dto/profileSchemas';
 import { profileApi } from '../api/profileApi';
@@ -39,13 +40,18 @@ type Props = { ref: RefObject<HTMLDialogElement | null>; profile: Profile; onSav
 
 export function EditProfileSheet({ ref, profile, onSaved }: Props) {
   const router = useRouter();
-  const { register, handleSubmit, reset, setError, control, formState: { errors, isSubmitting, isDirty, dirtyFields } } =
+  const { register, handleSubmit, reset, setError, control, getValues, formState: { errors, isSubmitting, isDirty, dirtyFields } } =
     useForm({ resolver: zodResolver(FormSchema), defaultValues: toForm(profile) });
   const bio = useWatch({ control, name: 'bio' });
 
   // cerrar desde el propio elemento (no leer el ref en el render)
   const close = (e?: { target: unknown }) => (e?.target as Element | undefined)?.closest('dialog')?.close();
   const discard = (e: { target: unknown }) => { reset(); close(e); };
+  // tocar fuera o Esc: con cambios sin guardar, primero pregunta
+  const [asking, setAsking] = useState(false);
+  // se compara al momento: isDirty del render puede ir atrasado
+  const dirty = () => JSON.stringify(getValues()) !== JSON.stringify(toForm(profile));
+  useLightDismiss(ref, () => { if (isSubmitting) return; if (dirty()) setAsking(true); else ref.current?.close(); });
 
   const onSubmit = handleSubmit(async (values, e) => {
     const keys = (Object.keys(dirtyFields) as (keyof FormValues)[]).filter(k => dirtyFields[k]);
@@ -63,7 +69,7 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
   });
 
   return (
-    <dialog ref={ref} aria-labelledby="edit-title" onClose={() => reset()}
+    <dialog ref={ref} aria-labelledby="edit-title" onClose={() => { reset(); setAsking(false); }}
       className="sheet">
       <form onSubmit={onSubmit} noValidate className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-rule px-6 py-5">
@@ -93,10 +99,19 @@ export function EditProfileSheet({ ref, profile, onSaved }: Props) {
             <Input type="url" inputMode="url" {...register('avatarUrl')} />
           </Field>
         </div>
-        <footer className="flex justify-end gap-3 border-t border-rule px-6 py-4">
-          <Button variant="ghost" onClick={discard}>Descartar</Button>
-          <Button type="submit" loading={isSubmitting} disabled={!isDirty}>Guardar cambios</Button>
-        </footer>
+        {asking ? (
+          <footer key="ask" role="alert" className="flex flex-wrap items-center justify-end gap-3 border-t border-rule px-6 py-4">
+            <p className="mr-auto font-medium">¿Descartar los cambios?</p>
+            <Button variant="ghost" autoFocus onClick={() => setAsking(false)}>Seguir editando</Button>
+            <Button onClick={discard}>Descartar</Button>
+          </footer>
+        ) : (
+          // key distinta: si React reutiliza el botón, "Seguir editando" se vuelve submit en mitad del clic
+          <footer key="edit" className="flex justify-end gap-3 border-t border-rule px-6 py-4">
+            <Button variant="ghost" onClick={discard}>Descartar</Button>
+            <Button type="submit" loading={isSubmitting} disabled={!isDirty}>Guardar cambios</Button>
+          </footer>
+        )}
       </form>
     </dialog>
   );

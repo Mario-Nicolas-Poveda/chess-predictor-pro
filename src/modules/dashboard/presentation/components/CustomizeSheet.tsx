@@ -2,21 +2,33 @@
 
 import { useState, type ReactNode, type RefObject } from 'react';
 import { ArrowDown, ArrowUp, X } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Switch } from '@/components/ui/Switch';
-import { ACCENTS, HERO_LAYOUTS, PIECE_MATERIALS, PROFILE_PIECES, THEMES } from '@/modules/dashboard/infrastructure/dto/preferencesSchemas';
+import { useLightDismiss } from '@/components/ui/useLightDismiss';
+import { ACCENTS, BOARD_MODES, HERO_LAYOUTS, PIECE_MATERIALS, PROFILE_PIECES, THEMES } from '@/modules/dashboard/infrastructure/dto/preferencesSchemas';
+import { RemoveAvatar } from '../avatar/RemoveAvatar';
+import { useSession } from '../hooks/useProfile';
 import { usePreferences } from '../preferences/PreferencesProvider';
 import { canHide, moveSection, toggleSection } from '../preferences/sections';
 import { ACCENT_LABEL, HERO_LABEL, MATERIAL_LABEL, PIECE_LABEL, SECTION_LABEL, THEME_LABEL, THEME_SWATCH, accentHex, type SectionId } from '../theme/themes';
 
 const MATERIAL_HEX = { w: '#f3eadb', b: '#2a1d18' } as const;   // los de pieceMaterials() del kit 3D
-const STATUS = { idle: '', saving: 'Guardando…', saved: 'Guardado', error: 'No se pudo guardar' } as const;
+const STATUS = {
+  idle: ['Los cambios se ven y se guardan al instante.', 'bg-ink-faint'], saving: ['Guardando…', 'bg-accent animate-pulse'],
+  saved: ['Guardado.', 'bg-accent'], error: ['No se pudo guardar', 'bg-loss'],
+} as const;
+const BOARD = {
+  '3d': ['Tablero 3D', 'Piezas en relieve y animaciones.'],
+  '2d': ['Tablero 2D', 'Plano y más ligero. Ideal en el móvil.'],
+} as const;
 const ring = 'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
 const pill = `inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-caption shadow-[inset_0_0_0_1px_var(--t-rule)] transition-colors hover:bg-band peer-checked:bg-ink peer-checked:text-paper peer-checked:shadow-none peer-checked:hover:bg-ink ${ring}`;
 
-// Panel lateral: cada cambio se ve al instante en la página y se guarda solo.
-export function CustomizeSheet({ ref }: { ref: RefObject<HTMLDialogElement | null> }) {
+// Panel lateral: cada cambio se ve al instante en la página y se guarda solo. Con `onPhoto` (dashboard), también la foto.
+export function CustomizeSheet({ ref, onPhoto }: { ref: RefObject<HTMLDialogElement | null>; onPhoto?: () => void }) {
   const { prefs, status, set, flush, reset } = usePreferences();
+  const profile = useSession()?.profile;
   const [announce, setAnnounce] = useState('');
 
   const move = (id: SectionId, dir: -1 | 1) => {
@@ -24,25 +36,53 @@ export function CustomizeSheet({ ref }: { ref: RefObject<HTMLDialogElement | nul
     set('sectionOrder', order);
     setAnnounce(`${SECTION_LABEL[id]}, posición ${order.indexOf(id) + 1} de ${order.length}`);
   };
-  // cerrar desde el propio elemento (no leer el ref en el render)
-  const done = async (e: { currentTarget: Element }) => {
-    const dialog = e.currentTarget.closest('dialog');
-    await flush();
-    dialog?.close();
-  };
+  // "Listo", la X, tocar fuera y Esc: guardar lo pendiente y cerrar
+  const done = async () => { await flush(); ref.current?.close(); };
+  useLightDismiss(ref, () => void done());
 
   return (
     <dialog ref={ref} aria-labelledby="pz-title" className="sheet">
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between px-6 py-5">
           <h2 id="pz-title" className="font-display text-[32px] font-semibold leading-none">Personaliza tu perfil.</h2>
-          <button type="button" aria-label="Cerrar" onClick={e => e.currentTarget.closest('dialog')?.close()}
+          <button type="button" aria-label="Cerrar" onClick={() => void done()}
             className="grid size-9 place-items-center rounded-full hover:bg-band">
             <X size={18} aria-hidden="true" />
           </button>
         </header>
 
+        <p aria-live="polite" className="flex items-center gap-2 px-6 pb-4 text-caption text-ink-soft">
+          <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${STATUS[status][1]}`} />
+          {STATUS[status][0]}
+          {status === 'error' && <>{' · '}<button type="button" onClick={() => void flush()} className="font-medium text-accent hover:underline">Reintentar</button></>}
+        </p>
+
         <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 pb-8">
+          {onPhoto && profile && (
+            <Group title="Foto de perfil">
+              <div className="flex flex-wrap items-center gap-3">
+                <Avatar user={profile} size={64} />
+                <Button variant="ghost" className="h-10! px-4! text-caption" onClick={onPhoto}>{profile.avatarUrl ? 'Cambiar foto' : 'Subir foto'}</Button>
+                <RemoveAvatar className="h-10! px-4! text-caption" label="Quitar" />
+              </div>
+              <p className="mt-2 text-caption text-ink-faint">{profile.avatarUrl ? 'Tu foto actual · 512 × 512.' : 'JPG, PNG o WebP · hasta 5 MB.'}</p>
+            </Group>
+          )}
+
+          <Group title="Tablero en las partidas">
+            <div className="grid grid-cols-2 gap-2">
+              {BOARD_MODES.map(m => (
+                <Radio key={m} name="pz-board" checked={prefs.boardMode === m} onChange={() => set('boardMode', m)}
+                  className={`flex h-full flex-col gap-2 rounded-2xl p-3 shadow-[inset_0_0_0_1px_var(--t-rule)] transition-colors hover:bg-band peer-checked:shadow-[inset_0_0_0_2px_var(--t-ink)] ${ring}`}>
+                  <BoardSketch mode={m} />
+                  <span className="font-medium">{BOARD[m][0]}</span>
+                  <span className="text-caption text-ink-soft">{BOARD[m][1]}</span>
+                </Radio>
+              ))}
+            </div>
+            <p className="mt-2 text-caption text-ink-faint">También puedes cambiarlo durante una partida, arriba del tablero.</p>
+          </Group>
+
           <Group title="Tema">
             <div className="grid grid-cols-2 gap-2">
               {THEMES.map(t => (
@@ -118,14 +158,25 @@ export function CustomizeSheet({ ref }: { ref: RefObject<HTMLDialogElement | nul
 
         <footer className="flex items-center gap-4 px-6 py-4 shadow-[0_-1px_0_var(--t-rule)]">
           <button type="button" onClick={() => void reset()} className="text-caption font-medium text-accent hover:underline underline-offset-4">Restablecer</button>
-          <p aria-live="polite" className="flex-1 text-caption text-ink-soft">
-            {STATUS[status]}
-            {status === 'error' && <button type="button" onClick={() => void flush()} className="ml-2 font-medium text-accent hover:underline">Reintentar</button>}
-          </p>
-          <Button onClick={done}>Listo</Button>
+          <span className="flex-1" />
+          <Button onClick={() => void done()}>Listo</Button>
         </footer>
       </div>
     </dialog>
+  );
+}
+
+/** Dibujo de línea de 48 × 40: tablero en perspectiva con una pieza, o cuadrícula plana. */
+function BoardSketch({ mode }: { mode: '3d' | '2d' }) {
+  return (
+    <svg aria-hidden="true" width="48" height="40" viewBox="0 0 48 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+      {mode === '3d' ? <>
+        <path d="M4 34 L12 18 H36 L44 34 Z" /><path d="M8 26 H40 M18 18 L16 34 M30 18 L32 34" />
+        <path d="M22 22 h4 l-1 -7 a3 3 0 1 0 -2 0 Z" fill="currentColor" />
+      </> : <>
+        <rect x="8" y="4" width="32" height="32" rx="2" /><path d="M16 4 V36 M24 4 V36 M32 4 V36 M8 12 H40 M8 20 H40 M8 28 H40" />
+      </>}
+    </svg>
   );
 }
 

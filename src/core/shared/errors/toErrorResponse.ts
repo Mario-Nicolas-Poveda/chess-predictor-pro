@@ -1,7 +1,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { AppError } from './AppError';
+import { AppError, TooManyRequestsError } from './AppError';
 import { zodFields } from './zodFields';
 
 export function toErrorResponse(e: unknown) {
@@ -12,7 +12,7 @@ export function toErrorResponse(e: unknown) {
       fields: zodFields(e) } }, { status: 400 });
   if (e instanceof AppError)
     return NextResponse.json({ error: { code: e.code, message: e.message, fields: e.fields, meta: e.meta } },
-      { status: e.status });
+      { status: e.status, headers: e instanceof TooManyRequestsError ? { 'Retry-After': String(e.retryAfterS) } : undefined });
   console.error('[api] error no controlado', e);
   return NextResponse.json({ error: { code: 'INTERNAL', message: 'Error interno' } }, { status: 500 });
 }

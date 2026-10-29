@@ -105,7 +105,7 @@ export function createMock(): ArenaApi {
       return { before, after: before + eloDelta(before, players[c === 'white' ? 'black' : 'white'].elo, score) };
     };
     return {
-      id, status: g.status, version: g.version, timeControl: '10+0', yourColor: 'white', ply: g.game.ply, turn, fen: g.game.fen,
+      id, status: g.status, version: g.version, timeControl: '10+0', rated: true, ai: null, yourColor: 'white', ply: g.game.ply, turn, fen: g.game.fen,
       check: !!last && /[+#]$/.test(last.san),
       moves: g.moves.filter(m => m.ply > since || m === last),
       clock: { whiteMs: g.ms.white, blackMs: g.ms.black, incrementMs: 0, running: g.status === 'active' ? turn : null,
@@ -122,7 +122,7 @@ export function createMock(): ArenaApi {
     const s = toState(id, g, 0), r = s.result!;
     const outcome = r.winner === null ? 'draw' : r.winner === 'white' ? 'win' : 'loss';
     return { id, timeControl: s.timeControl, endedAt: s.endedAt!, yourColor: 'white', outcome, reason: r.reason,
-      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, opponent: players.black };
+      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, rated: true, opponent: players.black };
   };
   const live = (g: Mock) => {
     flag(g);

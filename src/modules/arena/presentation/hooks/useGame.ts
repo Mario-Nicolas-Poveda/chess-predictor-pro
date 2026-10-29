@@ -4,8 +4,11 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/apiClient';
 import type { GameState, MoveDTO } from '@/modules/arena/infrastructure/dto/arenaSchemas';
+import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
 import { arenaApi } from '../api/arenaApi';
 import { livePosition, sameBoard } from '../game/livePosition';
+import { pollWait } from '../game/pollWait';
+import { useMatchDoorbell } from './useMatchDoorbell';
 
 type S = { server: GameState | null; moves: MoveDTO[]; etag: string | null; offset: number; optimistic: string | null; notice: string; offline: boolean; error: string | null };
 type A =
@@ -43,6 +46,9 @@ export function useGame(matchId: string) {
   // copia síncrona de lo último confirmado: el polling y las acciones la leen sin esperar al render
   const live = useRef<{ server: GameState | null; moves: MoveDTO[]; etag: string | null }>({ server: null, moves: [], etag: null });
   const kick = useRef<(full?: boolean) => void>(() => {});
+  // timbre del servidor: al oírlo se consulta el estado (con ETag) como siempre
+  const onAir = useMatchDoorbell(matchId, () => kick.current());
+  const onAirRef = useRef(onAir);
   const withdrew = useRef(false);   // la oferta la quitaste tú: no avisar "rechazó"
 
 
@@ -65,9 +71,11 @@ export function useGame(matchId: string) {
   useEffect(() => {
     const ctrl = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined, fails = 0, gen = 0, full = true;
+    let busy = false, again = false;   // nunca dos consultas a la vez: lo pedido en vuelo se repite al terminar
     const run = async (my: number) => {
       if (my !== gen) return;
       if (document.hidden) { timer = setTimeout(() => run(my), 1000); return; }   // pestaña oculta: en pausa
+      busy = true;
       try {
         const since = full ? 0 : live.current.moves.length, etag = full ? null : live.current.etag;
         if (full) live.current = { ...live.current, moves: [] };
@@ -76,8 +84,8 @@ export function useGame(matchId: string) {
         fails = 0; full = false;
         dispatch({ type: 'OFFLINE', offline: false });
         if (r !== 'not-modified') commit(r.state, r.etag);
-        if (my !== gen) return;   // commit pidió el estado completo
-        const next = live.current.server?.pollAfterMs ?? 1500;
+        if (again) return;   // commit pidió el estado completo o sonó el timbre: se repite en finally
+        const next = pollWait(live.current.server?.pollAfterMs ?? 1500, onAirRef.current);
         if (next > 0) timer = setTimeout(() => run(my), next);
       } catch (e) {
         if (ctrl.signal.aborted || my !== gen) return;
@@ -86,12 +94,18 @@ export function useGame(matchId: string) {
         fails++;
         if (fails >= 5) dispatch({ type: 'OFFLINE', offline: true });
         timer = setTimeout(() => run(my), Math.min(15_000, 2000 * 2 ** (fails - 1)));
+      } finally {
+        busy = false;
+        if (again && my === gen) { again = false; clearTimeout(timer); void run(++gen); }
       }
     };
-    kick.current = (f = false) => { full ||= f; clearTimeout(timer); void run(++gen); };
+    kick.current = (f = false) => { full ||= f; if (busy) { again = true; return; } clearTimeout(timer); void run(++gen); };
     kick.current(true);
     return () => { ctrl.abort(); clearTimeout(timer); gen++; };
   }, [matchId, commit, toLogin]);
+
+  // se cayó el canal: no esperar los 10 s del respaldo
+  useEffect(() => { const was = onAirRef.current; onAirRef.current = onAir; if (was && !onAir) kick.current(); }, [onAir]);
 
   const reload = useCallback(() => kick.current(true), []);
   const refresh = useCallback(() => kick.current(), []);
@@ -136,17 +150,32 @@ export function useGame(matchId: string) {
     }
   };
 
+  /** Contra la IA: quita tu última jugada y la respuesta (204) y recarga el estado completo. true si se deshizo. */
+  const undo = async () => {
+    const cur = live.current.server;
+    if (!cur?.ai || s.optimistic || cur.turn !== cur.yourColor) return false;
+    try { await aiApi.takeback(matchId, cur.ply); reload(); return true; }
+    catch (e) {
+      if (!(e instanceof ApiError)) { notice('No se pudo deshacer. Reintenta.'); return false; }
+      if (e.status === 401) { toLogin(); return false; }
+      if (e.code === 'AI_THINKING') notice('Espera a que la IA juegue.');
+      else if (e.code === 'STALE_PLY') reload();
+      else if (e.code !== 'NOTHING_TO_UNDO') notice(e.message);   // sin nada que deshacer el botón ya está apagado
+      return false;
+    }
+  };
+
   const withState = (call: Promise<{ state: GameState }>, map?: Record<string, string>) =>
     call.then(r => commit(r.state, null), e => fail(e, map));
 
   return {
-    ...s, yourTurn, play, reload: refresh,
+    ...s, onAir, yourTurn, play, undo, say: notice, reload: refresh,
     resign: () => withState(arenaApi.resign(matchId)),
     offerDraw: () => { notice(''); return withState(arenaApi.offerDraw(matchId)); },
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),
     // rechazar o retirar: 204, y en 404 la oferta ya no estaba; en los dos casos se quita la banda
     declineDraw: () => { withdrew.current = true; return arenaApi.declineDraw(matchId).catch(e => fail(e, { NO_DRAW_OFFER: '' })).finally(refresh); },
-    cancel: () => arenaApi.cancel(matchId).then(() => router.push('/dashboard/play'),
+    cancel: () => arenaApi.cancel(matchId).then(() => router.push(live.current.server?.ai ? '/dashboard/ai' : '/dashboard/play'),
       e => fail(e, { MATCH_NOT_PENDING: 'La partida ya empezó: puedes rendirte.' })),
   };
 }

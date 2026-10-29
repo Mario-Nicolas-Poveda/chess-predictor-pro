@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from '@/core/shared/errors/AppError';
+import { ConflictError, UnauthorizedError } from '@/core/shared/errors/AppError';
 import type { MatchmakingRepository } from '../domain/MatchmakingRepository';
 import type { PlayerDirectory } from '../domain/PlayerDirectory';
 import type { TimeControl } from '../infrastructure/dto/matchmakingSchemas';
@@ -15,7 +15,7 @@ export class JoinQueue {
     if (open) throw new ConflictError('ACTIVE_MATCH_EXISTS', 'Ya tienes una partida en curso', undefined, { matchId: open.id });
     if (await this.repo.findEntry(userId)) throw alreadyInQueue();
     const [me] = await this.players.getMany([userId]);
-    if (!me) throw new NotFoundError('NOT_FOUND', 'Usuario no encontrado');
+    if (!me) throw new UnauthorizedError();   // usuario de la sesión borrado
     const entry = await this.repo.enqueue({ userId, elo: me.elo, timeControl, isBot: false });
     return searching(entry, (await this.repo.countSearching())[timeControl]);
   }

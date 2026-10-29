@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
+import { AvatarDialog } from '../avatar/AvatarDialog';
+import { RemoveAvatar } from '../avatar/RemoveAvatar';
 import { useProfile } from '../hooks/useProfile';
 import { useProfileHistory } from '../hooks/useProfileHistory';
 import { CustomizeSheet } from './CustomizeSheet';
@@ -16,6 +18,7 @@ export function ProfileView() {
   const { history, results } = useProfileHistory();
   const sheetRef = useRef<HTMLDialogElement>(null);
   const customizeRef = useRef<HTMLDialogElement>(null);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   if (error) return (
     <div role="alert" className="mx-auto max-w-[1200px] space-y-4 px-5 py-16 lg:px-10">
@@ -26,15 +29,21 @@ export function ProfileView() {
 
   if (!profile) return <ProfileSkeleton />;
 
+  const btn = 'h-11! px-5! text-[15px]';
+
   return (
     <>
-      <ProfileContent profile={profile} history={history} results={results} achievements={[]} onEdit={() => sheetRef.current?.showModal()} actions={
-        <Button className="h-11! px-5! text-[15px]" onClick={() => customizeRef.current?.showModal()}>
-          <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
-        </Button>
-      } />
+      <ProfileContent profile={profile} history={history} results={results} achievements={[]}
+        onEdit={() => sheetRef.current?.showModal()} onPhoto={() => setPhotoOpen(true)} actions={<>
+          <Button className={btn} onClick={() => customizeRef.current?.showModal()}>
+            <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
+          </Button>
+          <Button variant="ghost" className={btn} onClick={() => setPhotoOpen(true)}>{profile.avatarUrl ? 'Cambiar foto' : 'Subir foto'}</Button>
+          <RemoveAvatar className={btn} />
+        </>} />
+      <AvatarDialog open={photoOpen} onClose={() => setPhotoOpen(false)} onSaved={avatarUrl => setProfile({ ...profile, avatarUrl })} />
       <EditProfileSheet ref={sheetRef} profile={profile} onSaved={setProfile} />
-      <CustomizeSheet ref={customizeRef} />
+      <CustomizeSheet ref={customizeRef} onPhoto={() => setPhotoOpen(true)} />
     </>
   );
 }

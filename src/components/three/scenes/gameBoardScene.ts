@@ -5,6 +5,7 @@ import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
 
+export type BoardArrow = { from: Square; to: Square; tone: 'hint' | 'candidate' };
 export type BoardView = {
   pieces: BoardPiece[];
   captured: { white: string[]; black: string[] };   // fuera del tablero, en dos filas a cada lado
@@ -19,6 +20,8 @@ export type BoardView = {
   toppled: 'white' | 'black' | null;                // rey que cae al terminar
   ended: boolean;                                   // la cámara se aleja y sube el tablero
   colors: { tileL: string; tileD: string; frame: string; accent: string };
+  arrows?: BoardArrow[];                            // pista o mejores jugadas (Contra la IA)
+  intro?: boolean;                                  // false: sin la caída de piezas al montar (al volver de 2D)
 };
 export interface GameBoardScene {
   update(v: BoardView): void;
@@ -28,10 +31,14 @@ export interface GameBoardScene {
 }
 
 const FILES = 'abcdefgh';
-// Capturadas fuera del tablero: las negras a la derecha, las blancas a la izquierda, 8 por columna
-const gravePos = (color: 'w' | 'b', n: number) => {
+type Layout = 'wide' | 'narrow';
+const layoutOf = (canvas: HTMLCanvasElement): Layout => (canvas.clientWidth < 600 ? 'narrow' : 'wide');
+// Capturadas fuera del tablero. Ancho: las negras a la derecha, las blancas a la izquierda, 8 por columna.
+// Angosto: delante y detrás del tablero en una fila de hasta 15, para que la cámara se acerque.
+const gravePos = (color: 'w' | 'b', n: number, layout: Layout) => {
+  if (layout === 'narrow') return color === 'b' ? { x: -3.5 + n * .55, z: 5, scale: .55 } : { x: 3.5 - n * .55, z: -5, scale: .55 };
   const col = Math.floor(n / 8), row = n % 8;
-  return color === 'b' ? { x: 5.05 + col * .62, z: 3.3 - row * .9 } : { x: -5.05 - col * .62, z: -3.3 + row * .9 };
+  return color === 'b' ? { x: 5.05 + col * .62, z: 3.3 - row * .9, scale: .62 } : { x: -5.05 - col * .62, z: -3.3 + row * .9, scale: .62 };
 };
 
 export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
@@ -68,6 +75,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   const graved = new Set<string>();                   // en la fila de capturadas
   let lifted: string | null = null;
   let toppledId: string | null = null;
+  let layout = layoutOf(canvas);
 
   // marcas reutilizadas: no se crean mallas en cada update
   const markMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: .55, depthWrite: false });
@@ -95,9 +103,36 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     return g;
   };
 
+  // flechas tendidas sobre el tablero; se rehacen solo si cambia la lista o el acento
+  const arrowRoot = new THREE.Group();
+  scene.add(arrowRoot);
+  let arrowsKey = '';
+  const setArrows = (list: BoardArrow[], accent: string) => {
+    const k = list.map(a => `${a.from}${a.to}${a.tone}`).join('|') + accent;
+    if (k === arrowsKey) return;
+    arrowsKey = k;
+    for (const h of [...arrowRoot.children]) {
+      const m = h.children[0] as Mesh;
+      m.geometry.dispose(); (m.material as MeshBasicMaterial).dispose(); arrowRoot.remove(h);
+    }
+    for (const a of list) {
+      const A = squareToXZ(a.from), B = squareToXZ(a.to), e = Math.hypot(B.x - A.x, B.z - A.z) - .08;
+      const sh = new THREE.Shape();
+      sh.moveTo(.2, -.1); sh.lineTo(e - .42, -.1); sh.lineTo(e - .42, -.3); sh.lineTo(e, 0);
+      sh.lineTo(e - .42, .3); sh.lineTo(e - .42, .1); sh.lineTo(.2, .1); sh.closePath();
+      const mesh = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({
+        color: srgb(accent), transparent: true, opacity: a.tone === 'hint' ? .85 : .78, depthWrite: false, side: THREE.DoubleSide }));
+      mesh.rotation.x = -Math.PI / 2;                          // el plano XY queda tendido en XZ
+      const holder = new THREE.Group(); holder.add(mesh);
+      holder.position.set(A.x, .035, A.z);
+      holder.rotation.y = Math.atan2(-(B.z - A.z), B.x - A.x);  // apunta de A a B
+      arrowRoot.add(holder);
+    }
+  };
+
   let view: BoardView | null = null;
   let colorsKey = '';
-  const target = { a: 0, fin: 0 }, cam = { a: 0, fin: 0, x: 0, y: 0 }, mouse = { x: 0, y: 0 };
+  const target = { a: 0, fin: 0 }, cam = { a: 0, fin: 0 };
 
   const update = (v: BoardView) => {
     const first = view === null;
@@ -108,6 +143,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       tileL.color.copy(srgb(v.colors.tileL)); tileD.color.copy(srgb(v.colors.tileD)); frameMat.color.copy(srgb(v.colors.frame));
       accentMats.forEach(m => m.color.copy(srgb(v.colors.accent)));
     }
+    setArrows(v.arrows ?? [], v.colors.accent);
     target.a = v.orientation === 'white' ? 0 : Math.PI;
     target.fin = v.ended ? 1 : 0;
 
@@ -116,6 +152,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       v.pieces.forEach((p, i) => {
         const g = addPiece(p);
         placed.set(p.id, p);
+        if (v.intro === false) return;
         g.position.y = 5 + Math.random() * 2;
         tweens.to(g, { y: 0 }, { dur: 900, delay: 200 + i * 30, ease: ease.bounce });
       });
@@ -126,8 +163,8 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       let g = groups.get(id);
       if (!g) { const color = side === 'white' ? 'w' : 'b'; g = addPiece({ id, type: id[1] as BoardPiece['type'], color, square: 'a1' }); }
       placed.delete(id); graved.add(id);
-      const { x, z } = gravePos(side === 'white' ? 'w' : 'b', n);
-      tweens.to(g, { x, y: -.2, z }, { dur: 560, hop: .9, delay: 300, scaleTo: .62 });
+      const { x, z, scale } = gravePos(side === 'white' ? 'w' : 'b', n, layout);
+      tweens.to(g, { x, y: -.2, z }, { dur: 560, hop: .9, delay: 300, scaleTo: scale });
     }));
     const selId = v.selected ? v.pieces.find(p => p.square === v.selected)?.id ?? null : null;
     if (lifted && lifted !== selId && placed.has(lifted)) tweens.to(groups.get(lifted)!, { y: 0 }, { dur: 180 });
@@ -168,7 +205,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     if (v.selected) putOn(selPlane, v.selected); else selPlane.visible = false;
     lastPlanes.forEach((pl, i) => { const sq = v.lastMove?.[i]; if (sq) putOn(pl, sq); else pl.visible = false; });
     if (v.check) putOn(checkPlane, v.check); else checkPlane.visible = false;
-    if (!v.interactive) hoverPlane.visible = false;
+    if (!v.interactive) { hoverPlane.visible = false; hovered = null; }
     stage.invalidate();
   };
 
@@ -193,12 +230,14 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   let onPickableFn: (b: boolean) => void = () => {};
   let pickable = false, down: { x: number; y: number } | null = null;
   const setPickable = (b: boolean) => { if (b !== pickable) { pickable = b; onPickableFn(b); } };
+  // el cursor solo resalta la casilla: se dibuja un frame únicamente si cambia
+  let hovered: Square | null = null;
   const onMove = (ev: PointerEvent) => {
-    const r = canvas.getBoundingClientRect();
-    mouse.x = ((ev.clientX - r.left) / r.width) * 2 - 1; mouse.y = ((ev.clientY - r.top) / r.height) * 2 - 1;
-    const sq = pick(ev), ok = isPickable(sq);
-    if (ok && sq) putOn(hoverPlane, sq); else hoverPlane.visible = false;
+    const sq = pick(ev), ok = isPickable(sq), next = ok ? sq : null;
     setPickable(ok);
+    if (next === hovered) return;
+    hovered = next;
+    if (next) putOn(hoverPlane, next); else hoverPlane.visible = false;
     stage.invalidate();
   };
   const onDown = (ev: PointerEvent) => { down = { x: ev.clientX, y: ev.clientY }; };
@@ -209,19 +248,31 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     const sq = pick(ev);
     if (sq) onSquareFn(sq);
   };
-  const onLeave = () => { mouse.x = 0; mouse.y = 0; hoverPlane.visible = false; setPickable(false); stage.invalidate(); };
+  const onLeave = () => { hovered = null; hoverPlane.visible = false; setPickable(false); stage.invalidate(); };
 
-  // cámara: giro del tablero, alejamiento al terminar y parallax suave; el jaque late (único frame continuo)
+  // cámara fija (sin parallax): solo se mueve al girar el tablero y al terminar; el jaque late (único frame continuo)
   stage.onFrame(now => {
+    const l = layoutOf(canvas);
+    if (l !== layout) {
+      // cambió el ancho del escenario: las capturadas van a su sitio en el nuevo layout
+      layout = l;
+      (['white', 'black'] as const).forEach(side => view?.captured[side].forEach((id, n) => {
+        const g = groups.get(id);
+        if (!g || !graved.has(id)) return;
+        const { x, z, scale } = gravePos(side === 'white' ? 'w' : 'b', n, layout);
+        tweens.to(g, { x, y: -.2, z }, { dur: 300, scaleTo: scale });
+      }));
+    }
     cam.a += (target.a - cam.a) * (reducedMotion ? 1 : .06);
     cam.fin += (target.fin - cam.fin) * (reducedMotion ? 1 : .04);
-    cam.x += ((reducedMotion ? 0 : mouse.x) * .8 - cam.x) * .05;
-    cam.y += ((reducedMotion ? 0 : mouse.y) * .45 - cam.y) * .05;
-    const fit = Math.max(1, 1.2 / camera.aspect) * (1 + .12 * cam.fin), R = 11 * fit;
-    camera.position.set(Math.sin(cam.a) * R + Math.cos(cam.a) * cam.x, (13 + cam.y) * fit, Math.cos(cam.a) * R - Math.sin(cam.a) * cam.x);
-    camera.lookAt(0, 0, Math.cos(cam.a) * (.35 + 1.5 * cam.fin));
+    // angosto: sin capturadas a los lados, la cámara se acerca y el tablero llena el ancho
+    const narrow = layout === 'narrow';
+    const f = narrow ? Math.max(.93, 1.12 / camera.aspect) : Math.max(1, 1.2 / camera.aspect);
+    const fit = f * (1 + .12 * cam.fin), R = 11 * fit;
+    camera.position.set(Math.sin(cam.a) * R, 13 * fit, Math.cos(cam.a) * R);
+    camera.lookAt(0, 0, Math.cos(cam.a) * ((narrow ? .75 * f : .35) + 1.5 * cam.fin));
     if (checkPlane.visible) (checkPlane.material as MeshBasicMaterial).opacity = reducedMotion ? .42 : .32 + .2 * Math.sin(now / 180);
-    const moving = Math.abs(target.a - cam.a) + Math.abs(target.fin - cam.fin) + Math.abs(mouse.x * .8 - cam.x) + Math.abs(mouse.y * .45 - cam.y) > .001;
+    const moving = Math.abs(target.a - cam.a) + Math.abs(target.fin - cam.fin) > .001;
     return moving || (checkPlane.visible && !reducedMotion);
   });
 

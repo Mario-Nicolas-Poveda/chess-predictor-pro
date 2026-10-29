@@ -7,6 +7,10 @@ export function deviceQuality(): Quality {
   return weak ? 'low' : 'high';
 }
 
+/** Píxeles del canvas por píxel CSS, en alta y en baja: más de 2× no se nota y cuesta el doble.
+ *  Con WebGL por software no se llega aquí: el escenario lanza y la pantalla usa su alternativa 2D. */
+export const pixelRatio = () => Math.min(2, window.devicePixelRatio || 1);
+
 const SOFTWARE_RE = /swiftshader|llvmpipe|software|basic render/i;
 
 /** WebGL por software (SwiftShader, llvmpipe…): cualquier usuario sin GPU, no solo Lighthouse. */

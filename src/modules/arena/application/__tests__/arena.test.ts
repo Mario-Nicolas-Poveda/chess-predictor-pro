@@ -1,24 +1,32 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
-import { ConflictError } from '@/core/shared/errors/AppError';
+import { ConflictError, TooManyRequestsError } from '@/core/shared/errors/AppError';
 import { zodFields } from '@/core/shared/errors/zodFields';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../../domain/ArenaRepository';
 import { eloDelta } from '../../domain/elo';
-import { matchNotActive, matchNotFound, noDrawOffer, ownDrawOffer, stalePly } from '../../domain/errors';
+import { matchFinished, matchNotActive, matchNotFound, noDrawOffer, notAiMatch, ownDrawOffer, stalePly } from '../../domain/errors';
+import type { AiPlayers } from '../../domain/AiPlayers';
 import { other, turnOf, type MatchRecord, type MoveRecord } from '../../domain/Match';
 import { ChessJsRules } from '../../infrastructure/ChessJsRules';
 import { HistoryQuerySchema, type Color, type EndReason } from '../../infrastructure/dto/arenaSchemas';
-import { GreedyMovePicker } from '../../infrastructure/GreedyMovePicker';
+import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
+import { AI_LEVELS, CreateAiGameSchema, type AiLevel, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import { AnswerDraw } from '../AnswerDraw';
 import { BotTurn } from '../BotTurn';
+import { CreateAiGame } from '../CreateAiGame';
+import { GetAiLevels } from '../GetAiLevels';
 import { GetGameState } from '../GetGameState';
+import { GetPrediction } from '../GetPrediction';
 import { GetMatchHistory } from '../GetMatchHistory';
 import { GetProfileHistory } from '../GetProfileHistory';
 import { Rematch } from '../Rematch';
 import { MakeMove } from '../MakeMove';
 import { OfferDraw } from '../OfferDraw';
+import { PlayAiTurn } from '../PlayAiTurn';
 import { Resign } from '../Resign';
+import { SuggestMove } from '../SuggestMove';
+import { Takeback } from '../Takeback';
 
 const record = (): MatchRecord => ({
   id: 'm1', whiteId: 'ana', blackId: 'bob', timeControl: '10+0', status: 'pending', createdAt: new Date(),
@@ -26,6 +34,7 @@ const record = (): MatchRecord => ({
   whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: null, startedAt: null, endedAt: null,
   result: null, endReason: null, drawOfferBy: null, drawOfferedAt: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
   whiteEloBefore: null, blackEloBefore: null, whiteEloAfter: null, blackEloAfter: null,
+  rated: true, aiPrediction: false, takebacks: 0,
 });
 
 // Una sola partida (m1). Imita lo que hacen las funciones SQL de 0004 en lo que tocan estos casos de uso
@@ -106,18 +115,59 @@ class MemoryArenaRepo implements ArenaRepository {
     if (m.drawOfferBy === by) throw ownDrawOffer();
     this.close('draw', 'agreement');
   }
+  // 0005: una partida contra la IA reemplaza a m1 (la IA de nivel n es el usuario 'ian')
+  async createAiGame(userId: string, level: AiLevel, color: Color, timeControl: AiTimeControl, prediction: boolean) {
+    const open = await this.openAiGame(userId);
+    if (open) throw new ConflictError('AI_GAME_IN_PROGRESS', 'Ya tienes una partida contra la IA sin terminar', undefined, { matchId: open.id });
+    const [whiteId, blackId] = color === 'white' ? [userId, `ia${level}`] : [`ia${level}`, userId];
+    this.m = { ...record(), whiteId, blackId, timeControl, rated: false, aiPrediction: prediction };
+    this.moves = [];
+    return this.m.id;
+  }
+  private open(userId: string, rated: boolean) {
+    const m = this.m;
+    return m.rated === rated && (m.status === 'pending' || m.status === 'active') && (m.whiteId === userId || m.blackId === userId)
+      ? { ...m } : null;
+  }
+  async openAiGame(userId: string) { return this.open(userId, false); }
+  async openRatedMatch(userId: string) { return this.open(userId, true); }
+  async takeback(id: string, by: Color, expectedPly: number) {
+    const m = this.get(id);
+    if (!m) throw matchNotFound();
+    if (m.rated) throw notAiMatch();
+    if (m.status !== 'pending' && m.status !== 'active') throw matchFinished();
+    if (m.ply !== expectedPly) throw stalePly();
+    if (turnOf(m.ply) !== by) throw new ConflictError('AI_THINKING', 'Espera a que la IA juegue');
+    const target = m.ply - 2;
+    if (target < (by === 'white' ? 0 : 1)) throw new ConflictError('NOTHING_TO_UNDO', 'No hay jugadas tuyas para deshacer');
+    this.moves = this.moves.filter(x => x.ply <= target);
+    const ucis = this.moves.map(x => x.uci);
+    const fen = ucis.length ? rules.play(ucis.slice(0, -1), ucis.at(-1)!).fen : record().fen;
+    this.touch({ ply: target, fen, takebacks: m.takebacks + 1, turnStartedAt: new Date(), drawOfferBy: null, drawOfferedAt: null });
+    this.lease = null;
+    return target;
+  }
+  lease: { ply: number; until: number } | null = null;
+  async claimAiTurn(_id: string, ply: number, ms: number) {
+    if (this.lease && this.lease.ply === ply && this.lease.until > Date.now()) return false;
+    this.lease = { ply, until: Date.now() + ms };
+    return true;
+  }
 }
 
 const player = (id: string, elo: number): PlayerSummary => ({ id, username: id, displayName: null, avatarUrl: null, elo });
 const players: PlayerDirectory = {
-  getMany: async ids => [player('ana', 1450), player('bob', 1478)].filter(p => ids.includes(p.id)),
+  getMany: async ids => [player('ana', 1450), player('bob', 1478), ...AI_LEVELS.map(l => player(`ia${l.level}`, l.elo))]
+    .filter(p => ids.includes(p.id)),
   findByUsernames: async () => [],
 };
 const rules = new ChessJsRules();
+// los usuarios 'ia1'…'ia5' juegan con el motor
+const ai: AiPlayers = { levelOf: async id => (/^ia[1-5]$/.test(id) ? (Number(id[2]) as AiLevel) : null) };
 
 let repo: MemoryArenaRepo;
 beforeEach(() => { repo = new MemoryArenaRepo(); });
-const move = (userId: string, uci: string, ply: number) => new MakeMove(repo, players, rules).execute(userId, 'm1', { uci, ply });
+const move = (userId: string, uci: string, ply: number) => new MakeMove(repo, players, ai, rules).execute(userId, 'm1', { uci, ply });
 // desde el inicio; ana lleva blancas
 const play = async (...ucis: string[]) => { for (const [i, uci] of ucis.entries()) await move(i % 2 ? 'bob' : 'ana', uci, i); };
 
@@ -166,12 +216,12 @@ describe('MakeMove', () => {
 });
 
 describe('GetGameState', () => {
-  const get = (since = 0, etag: string | null = null) => new GetGameState(repo, players).execute('ana', 'm1', since, etag);
+  const get = (since = 0, etag: string | null = null) => new GetGameState(repo, players, ai).execute('ana', 'm1', since, etag);
 
   it('ETag por versión; con el mismo ETag → notModified', async () => {
     const r = await get();
     expect(r.etag).toBe('"m-0"');
-    expect(await get(0, r.etag)).toEqual({ etag: '"m-0"', notModified: true });
+    expect(await get(0, r.etag)).toEqual({ etag: '"m-0"', aiToMove: false, notModified: true });
   });
 
   it('since=3 trae solo las jugadas 4 en adelante', async () => {
@@ -186,21 +236,11 @@ describe('GetGameState', () => {
 });
 
 describe('Bot de desarrollo (BotTurn dentro de GetGameState)', () => {
-  const get = () => new GetGameState(repo, players, new BotTurn(repo, new MakeMove(repo, players, rules), new GreedyMovePicker()))
-    .execute('ana', 'm1', 0, null);
+  const get = () => new GetGameState(repo, players, ai, new BotTurn(repo)).execute('ana', 'm1', 0, null);
   beforeEach(async () => { repo.bots = ['bob']; await play('e2e4'); });   // bob lleva negras: le toca
 
-  it('mueve al consultar si su turno empezó hace más de 0,7 s', async () => {
-    repo.m.turnStartedAt = new Date(Date.now() - 1000);
-    expect(await get()).toMatchObject({ state: { ply: 2, turn: 'white' } });
-  });
-
-  it('antes de 0,7 s no mueve', async () => {
-    expect(await get()).toMatchObject({ state: { ply: 1 } });
-  });
-
   it('rechaza tablas antes de la jugada 10 y las acepta desde ahí', async () => {
-    const offer = () => new OfferDraw(repo, players).execute('ana', 'm1');
+    const offer = () => new OfferDraw(repo, players, ai).execute('ana', 'm1');
     await offer();
     repo.m.drawOfferedAt = new Date(Date.now() - 2000);
     expect(await get()).toMatchObject({ state: { status: 'active', drawOffer: null } });
@@ -211,7 +251,7 @@ describe('Bot de desarrollo (BotTurn dentro de GetGameState)', () => {
 });
 
 describe('Resign', () => {
-  const resign = (userId: string) => new Resign(repo, players).execute(userId, 'm1');
+  const resign = (userId: string) => new Resign(repo, players, ai).execute(userId, 'm1');
 
   it('en active gana el rival', async () => {
     await play('e2e4');
@@ -224,8 +264,8 @@ describe('Resign', () => {
 });
 
 describe('Tablas', () => {
-  const offer = (userId: string) => new OfferDraw(repo, players).execute(userId, 'm1');
-  const answer = () => new AnswerDraw(repo, players);
+  const offer = (userId: string) => new OfferDraw(repo, players, ai).execute(userId, 'm1');
+  const answer = () => new AnswerDraw(repo, players, ai);
   beforeEach(async () => { await play('e2e4'); });   // en juego, turno de negras
 
   it('ofrecer dos veces → 409 DRAW_ALREADY_OFFERED', async () => {
@@ -256,7 +296,7 @@ describe('Tablas', () => {
 describe('Historial', () => {
   const row = (id: string, outcome: Outcome3, hour: number): HistoryRow => ({ id, timeControl: '10+0',
     endedAt: new Date(`2026-10-18T${10 + hour}:00:00Z`), yourColor: 'white', outcome, reason: 'checkmate',
-    eloDelta: outcome === 'win' ? 17 : -15, plies: 7, opponentId: 'bob', opponentElo: 1478 });
+    eloDelta: outcome === 'win' ? 17 : -15, plies: 7, opponentId: 'bob', opponentElo: 1478, rated: true });
   const list = (q: object) => new GetMatchHistory(repo, players).execute('ana', HistoryQuerySchema.parse(q));
   beforeEach(() => { repo.rows = [row('a', 'win', 1), row('b', 'loss', 2), row('c', 'win', 3)]; });
 
@@ -286,7 +326,7 @@ describe('Historial', () => {
 
 describe('Revancha', () => {
   const rematch = () => new Rematch(repo);
-  beforeEach(async () => { await play('e2e4'); await new Resign(repo, players).execute('bob', 'm1'); });
+  beforeEach(async () => { await play('e2e4'); await new Resign(repo, players, ai).execute('bob', 'm1'); });
 
   it('ofrecer → offered; otra vez → 409; el rival acepta → partida con colores cambiados y el mismo ritmo', async () => {
     expect(await rematch().request('ana', 'm1')).toEqual({ state: 'offered' });
@@ -310,5 +350,158 @@ describe('Revancha', () => {
     await rematch().request('ana', 'm1');
     await expect(rematch().cancel('bob', 'm1')).resolves.toBeUndefined();
     expect(repo.m.rematchOfferBy).toBeNull();
+  });
+});
+
+describe('Contra la IA', () => {
+  const noLimit = async () => {};
+  const engine = new EngineMovePicker(() => 0.5);
+  // ana contra la IA de nivel 1 (rápida); con 'black', la IA abre
+  const create = (input: object = {}, rng = () => 0.9) =>
+    new CreateAiGame(repo, players, ai, noLimit, rng).execute('ana', CreateAiGameSchema.parse({ level: 1, ...input }));
+  const aiTurn = () => new PlayAiTurn(repo, ai, engine, new MakeMove(repo, players, ai, rules)).run('m1');
+  const takeback = (ply: number) => new Takeback(repo).execute('ana', 'm1', ply);
+  const prediction = (etag: string | null = null) => new GetPrediction(repo, rules, engine, noLimit).execute('ana', 'm1', etag);
+  const suggest = (userId: string, fen: string, limit = noLimit) => new SuggestMove(repo, rules, engine, limit).execute(userId, fen, 1);
+
+  describe('CreateAiGame', () => {
+    it('con blancas: tu turno, sin ELO, sin reloj y con el nivel', async () => {
+      expect(await create({ color: 'white', level: 3 })).toMatchObject({ turn: 'white', yourColor: 'white', rated: false,
+        clock: { running: null }, ai: { level: 3, name: 'Alfil', prediction: true, takebacks: 0 } });
+    });
+
+    it('al azar con rng 0,9 → negras: le toca a la IA (la ruta la hace jugar) y se consulta cada 700 ms', async () => {
+      const state = await create({ color: 'random' });
+      expect(state).toMatchObject({ yourColor: 'black', turn: 'white', pollAfterMs: 700 });
+    });
+
+    it('otra sin terminar → 409 AI_GAME_IN_PROGRESS con meta.matchId', async () => {
+      await create();
+      await expect(create()).rejects.toMatchObject({ code: 'AI_GAME_IN_PROGRESS', status: 409, meta: { matchId: 'm1' } });
+    });
+
+    it('niveles: recomendado por tu ELO (1450 → Alfil) y la partida sin terminar', async () => {
+      const levels = () => new GetAiLevels(repo, players, ai).execute('ana');
+      expect(await levels()).toMatchObject({ recommended: 3, activeGame: null });
+      await create({ level: 2 });
+      expect((await levels()).activeGame).toEqual({ matchId: 'm1', level: 2 });
+    });
+
+    it('niveles con el usuario de la sesión borrado → 401', async () => {
+      await expect(new GetAiLevels(repo, players, ai).execute('nadie')).rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
+    });
+  });
+
+  describe('PlayAiTurn', () => {
+    it('turno de la IA → juega una jugada legal y sube ply', async () => {
+      await create({ color: 'black' });
+      expect(await aiTurn()).toBe('played');
+      expect(repo.m).toMatchObject({ ply: 1, status: 'active' });
+      expect(repo.moves[0]!.san).toBeTruthy();
+    });
+
+    it('dos a la vez → una juega y la otra recibe busy', async () => {
+      await create({ color: 'black' });
+      expect((await Promise.all([aiTurn(), aiTurn()])).sort()).toEqual(['busy', 'played']);
+      expect(repo.m.ply).toBe(1);
+    });
+
+    it('turno del humano o partida entre humanos → not-ai-turn', async () => {
+      expect(await aiTurn()).toBe('not-ai-turn');   // m1: ana contra bob
+      await play('e2e4');
+      expect(await aiTurn()).toBe('not-ai-turn');
+    });
+
+    it('la consulta del estado avisa (aiToMove) si la IA lleva 1,5 s sin jugar, también con 304', async () => {
+      await create({ color: 'black' });
+      const get = (etag: string | null = null) => new GetGameState(repo, players, ai).execute('ana', 'm1', 0, etag);
+      expect((await get()).aiToMove).toBe(false);
+      repo.m.createdAt = new Date(Date.now() - 2000);
+      const r = await get();
+      expect(r.aiToMove).toBe(true);
+      expect(await get(r.etag)).toMatchObject({ notModified: true, aiToMove: true });
+    });
+
+    it('en tu jugada: sin reloj, ai lleno y 700 ms mientras piensa la IA', async () => {
+      await create();
+      const { state } = await move('ana', 'e2e4', 0);
+      expect(state).toMatchObject({ status: 'active', clock: { running: null }, pollAfterMs: 700, ai: { level: 1, name: 'Peón' } });
+    });
+  });
+
+  describe('Takeback', () => {
+    beforeEach(async () => { await create(); await move('ana', 'e2e4', 0); await aiTurn(); });   // ply 2, tu turno
+
+    it('tras tu jugada y la respuesta → 204, ply 0 y cuenta el deshacer', async () => {
+      await expect(takeback(2)).resolves.toBeUndefined();
+      expect(repo.m).toMatchObject({ ply: 0, takebacks: 1, fen: record().fen });
+      expect(repo.moves).toEqual([]);
+    });
+
+    it('ply viejo → 409 STALE_PLY con meta.currentPly', async () => {
+      await expect(takeback(1)).rejects.toMatchObject({ code: 'STALE_PLY', status: 409, meta: { currentPly: 2 } });
+    });
+
+    it('sin jugadas tuyas → 409 NOTHING_TO_UNDO', async () => {
+      await takeback(2);
+      await expect(takeback(0)).rejects.toMatchObject({ code: 'NOTHING_TO_UNDO', status: 409 });
+    });
+  });
+
+  it('Takeback en una partida con ELO → 403 NOT_AI_MATCH', async () => {
+    await play('e2e4', 'e7e5');
+    await expect(takeback(2)).rejects.toMatchObject({ code: 'NOT_AI_MATCH', status: 403 });
+  });
+
+  describe('GetPrediction', () => {
+    it('200 con ETag "p-<ply>-<deshacer>" y tus 3 jugadas con SAN; mismo ETag → 304 sin llamar al motor', async () => {
+      await create();
+      const r = await prediction();
+      expect(r).toMatchObject({ etag: '"p-0-0"', notModified: false, prediction: { ply: 0 } });
+      if (r.notModified) throw new Error('esperaba 200');
+      expect(r.prediction.top).toHaveLength(3);
+      expect(r.prediction.top[0]).toHaveProperty('san');
+      const spy = vi.spyOn(engine, 'predict');
+      expect(await prediction(r.etag)).toEqual({ etag: '"p-0-0"', notModified: true });
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('turno de la IA → top vacío', async () => {
+      await create({ color: 'black' });
+      expect(await prediction()).toMatchObject({ prediction: { top: [] } });
+    });
+
+    it('partida con ELO → 403 NOT_AI_MATCH', async () => {
+      await expect(prediction()).rejects.toMatchObject({ code: 'NOT_AI_MATCH', status: 403 });
+    });
+  });
+
+  describe('SuggestMove', () => {
+    const START = record().fen;
+
+    it('200 con uci y SAN', async () => {
+      expect(await suggest('eva', START)).toMatchObject({ uci: expect.any(String), san: expect.any(String) });
+    });
+
+    it('FEN que no es una posición (sin reyes) → 400 fields.fen', async () => {
+      await expect(suggest('eva', '8/8/8/8/8/8/8/8 w - - 0 1')).rejects.toMatchObject({ status: 400, fields: { fen: expect.any(Array) } });
+    });
+
+    it('el FEN de tu partida con ELO en juego, aunque cambie el turno → 403 LIVE_GAME_ANALYSIS', async () => {
+      await play('e2e4');
+      const fen = repo.m.fen.replace(' b ', ' w ');
+      await expect(suggest('ana', fen)).rejects.toMatchObject({ code: 'LIVE_GAME_ANALYSIS', status: 403 });
+    });
+
+    it('posición de mate → 422 GAME_OVER', async () => {
+      await expect(suggest('eva', 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3'))
+        .rejects.toMatchObject({ code: 'GAME_OVER', status: 422 });
+    });
+
+    it('límite superado → 429 con retryAfterS', async () => {
+      const full = async () => { throw new TooManyRequestsError(42); };
+      await expect(suggest('eva', START, full)).rejects.toMatchObject({ code: 'RATE_LIMITED', status: 429, meta: { retryAfterS: 42 } });
+    });
   });
 });

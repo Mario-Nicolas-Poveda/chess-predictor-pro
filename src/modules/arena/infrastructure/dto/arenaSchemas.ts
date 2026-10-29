@@ -1,5 +1,6 @@
 // Contrato compartido con el front: solo zod, sin imports de servidor
 import { z } from 'zod';
+import type { AiLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { PlayerSummary, TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 
 export const UciSchema = z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/, { error: 'Jugada en formato UCI, por ejemplo e2e4 o e7e8q' });
@@ -26,7 +27,9 @@ export interface GameState {
   id: string;
   status: MatchStatus;
   version: number;
-  timeControl: TimeControl;
+  timeControl: TimeControl | 'none';       // 'none' = sin reloj (solo contra la IA): clock.running siempre null
+  rated: boolean;                          // false = contra la IA: no cambia el ELO
+  ai: { level: AiLevel; name: string; prediction: boolean; takebacks: number } | null;   // null = rival humano
   yourColor: Color;
   ply: number;
   turn: Color;
@@ -46,8 +49,8 @@ export interface GameState {
 }
 
 export interface MatchListItem {
-  id: string; timeControl: TimeControl; endedAt: string; yourColor: Color;
-  outcome: 'win' | 'loss' | 'draw'; reason: EndReason; eloDelta: number; plies: number;
+  id: string; timeControl: TimeControl | 'none'; endedAt: string; yourColor: Color;
+  outcome: 'win' | 'loss' | 'draw'; reason: EndReason; eloDelta: number; plies: number; rated: boolean;
   opponent: PlayerSummary;                 // elo = el que tenía en esa partida
 }
 
@@ -56,4 +59,4 @@ export interface ProfileHistory {
   results: { id: string; outcome: 'win' | 'loss' | 'draw'; opponent: string; endedAt: string }[];   // últimas 34, de la más nueva a la más vieja
 }
 
-export const POLL_MS = { pending: 1500, yourTurn: 3000, theirTurn: 1000, finished: 0 } as const;
+export const POLL_MS = { pending: 1500, yourTurn: 3000, theirTurn: 1000, aiTurn: 700, finished: 0 } as const;

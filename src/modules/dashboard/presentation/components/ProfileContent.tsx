@@ -2,8 +2,9 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { TrendingUp } from 'lucide-react';
+import { Camera, TrendingUp } from 'lucide-react';
 import { CountUp } from '@/components/motion/CountUp';
+import { Avatar } from '@/components/ui/Avatar';
 import { GrowBar } from '@/components/motion/GrowBar';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { Band, BigNumber, SectionTitle } from '@/components/ui/Section';
@@ -15,7 +16,7 @@ import { PieceShowcase } from './PieceShowcase';
 import { ResultsStrip, type GameResult } from './ResultsStrip';
 
 export type ProfileExtras = { history: EloPoint[]; results: GameResult[]; achievements: string[] };
-type Props = ProfileExtras & { profile: Profile; onEdit?: () => void; actions?: ReactNode };
+type Props = ProfileExtras & { profile: Profile; onEdit?: () => void; onPhoto?: () => void; actions?: ReactNode };
 
 // fuera del componente: CountUp reinicia la cuenta si cambia la identidad de format
 const percent = (v: number) => `${Math.round(v)}%`;
@@ -35,7 +36,7 @@ const HERO_ORDER = {
   pieza: { name: 1, piece: 0, elo: 2 },
 } as const;
 
-export function ProfileContent({ profile, history, results, achievements, onEdit, actions }: Props) {
+export function ProfileContent({ profile, history, results, achievements, onEdit, onPhoto, actions }: Props) {
   const { prefs } = usePreferences();
   const order = HERO_ORDER[prefs.heroLayout];
   const country = profile.country ? regions.of(profile.country) : null;
@@ -53,18 +54,21 @@ export function ProfileContent({ profile, history, results, achievements, onEdit
     <div className="flex flex-col">
       <section aria-labelledby="who" className="order-none bg-paper px-5 pb-[96px] pt-[72px] lg:px-10">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-12 gap-y-8">
-          <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4 animate-rise" style={{ order: order.name }}>
-            <p className="eyebrow">Perfil · {profile.email}</p>
-            <h1 id="who" className={`break-words pb-[.12em] font-display font-semibold leading-[.82] tracking-[-.03em] ${nameSize(profile.username)}`}>{profile.username}</h1>
-            <p className="mt-2 text-ink-soft">{[profile.displayName, country, `Miembro desde ${monthYear.format(new Date(profile.createdAt))}`].filter(Boolean).join(' · ')}</p>
-            {achievements.length > 0 && (
-              <p className="font-display text-[22px] italic">
-                {achievements.map((a, i) => <span key={a}>{i > 0 && <span aria-hidden="true" className="px-2.5 not-italic text-loss">·</span>}{a}</span>)}
-              </p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-3">
-              {actions}
-              {onEdit && <Button variant="ghost" className="h-11! px-5! text-[15px]" onClick={onEdit}>Editar datos</Button>}
+          <div className="flex min-w-0 flex-[1_1_380px] flex-wrap items-center gap-x-10 gap-y-6 animate-rise" style={{ order: order.name }}>
+            <HeroPhoto profile={profile} onPhoto={onPhoto} />
+            <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
+              <p className="eyebrow">Perfil · {profile.email}</p>
+              <h1 id="who" className={`break-words pb-[.12em] font-display font-semibold leading-[.82] tracking-[-.03em] ${nameSize(profile.username)}`}>{profile.username}</h1>
+              <p className="mt-2 text-ink-soft">{[profile.displayName, country, `Miembro desde ${monthYear.format(new Date(profile.createdAt))}`].filter(Boolean).join(' · ')}</p>
+              {achievements.length > 0 && (
+                <p className="font-display text-[22px] italic">
+                  {achievements.map((a, i) => <span key={a}>{i > 0 && <span aria-hidden="true" className="px-2.5 not-italic text-loss">·</span>}{a}</span>)}
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-3">
+                {actions}
+                {onEdit && <Button variant="ghost" className="h-11! px-5! text-[15px]" onClick={onEdit}>Editar datos</Button>}
+              </div>
             </div>
           </div>
           <div className="max-w-full flex-[0_0_340px] animate-rise [animation-delay:.08s]" style={{ order: order.piece }}>
@@ -89,6 +93,24 @@ export function ProfileContent({ profile, history, results, achievements, onEdit
       <FormSection results={results} {...bandProps('forma')} />
       <NextSection elo={profile.eloRating} {...bandProps('next')} />
     </div>
+  );
+}
+
+/** Foto de 176 px con anillo; con `onPhoto` es el botón que abre el diálogo (insignia de cámara y franja "Cambiar foto"). */
+function HeroPhoto({ profile, onPhoto }: { profile: Profile; onPhoto?: () => void }) {
+  const photo = <Avatar user={profile} size={176} className="bg-ink text-paper" />;
+  if (!onPhoto) return <span className="rounded-full p-1.5 shadow-[0_0_0_1px_var(--t-rule)]">{photo}</span>;
+  return (
+    <button type="button" aria-label="Cambiar foto de perfil" onClick={onPhoto}
+      className="group relative shrink-0 rounded-full p-1.5 shadow-[0_0_0_1px_var(--t-rule)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent">
+      <span className="relative block overflow-hidden rounded-full">
+        {photo}
+        <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-ink/70 py-2 text-center text-sm text-paper opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">Cambiar foto</span>
+      </span>
+      <span aria-hidden="true" className="absolute bottom-2 right-2 grid size-11 place-items-center rounded-full border-4 border-paper bg-accent text-on-accent">
+        <Camera size={18} />
+      </span>
+    </button>
   );
 }
 

@@ -3,6 +3,33 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+Sprint 4 · IA.
+
+### Añadido
+- Contra la IA: cinco niveles (Peón a Dama), con blancas, negras o al azar, con o sin reloj; no cambia el ELO (#92, #94, #100)
+- Motor de IA propio: negamax con poda alfa-beta, quiescencia y profundidad iterativa (#93)
+- Predicción: ventaja y tus tres mejores jugadas con flechas; pista (#94, #101)
+- Deshacer tu jugada contra la IA (#94, #101)
+- Modo enfoque en la partida (sin menú de módulos) y panel plegable (#97)
+- Tablero 3D o 2D, guardado en tus preferencias (#99)
+- Foto de perfil con recorte (#95, #102)
+- Timbre en tiempo real: la jugada del rival llega al instante (#96, #104)
+- Códigos nuevos: 413 y 429 (#94, #95)
+
+### Cambiado
+- 401 en vez de 404 cuando el usuario de la sesión ya no existe (#127)
+- CI con las acciones en Node 24 y runner fijo `ubuntu-24.04` (#124)
+
+### Corregido
+- Coronar a torre, alfil o caballo ya no deja la partida bloqueada (v0.3.1, #91)
+- El 3D se ve nítido en el celular; la repetición en móvil ya no dibuja la jugada encima del tablero (#98)
+- El tablero ya no se mueve con el mouse; sin "(tú)" junto al nombre
+- Personalizar y los demás paneles se cierran tocando fuera (#103)
+- La revancha pedida después de 2 minutos aparece sin recargar (#89)
+- El resultado ya no tiene scroll horizontal en el celular (#131)
+- Script para borrar los usuarios de prueba de Supabase (#90)
+
 ## [0.3.2] - 2026-10-25
 ### Seguridad
 - Next 16.4.3: corrige dos ejecuciones remotas de código y un DoS de Next 16.4.0 (#118)

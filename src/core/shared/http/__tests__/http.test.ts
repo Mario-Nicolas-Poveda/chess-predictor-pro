@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError, z } from 'zod';
 import { readJson } from '../readJson';
-import { created, noContent } from '../responses';
+import { accepted, created, noContent } from '../responses';
 
 const Schema = z.object({ timeControl: z.enum(['3+2', '5+0', '10+0']) }).strict();
 const post = (body: string, type?: string) =>
@@ -40,5 +40,13 @@ describe('responses', () => {
     expect(res.status).toBe(201);
     expect(res.headers.get('location')).toBe('/api/v1/matchmaking/status');
     expect(await res.json()).toEqual({ id: 'm1' });
+  });
+
+  it('accepted → 202; con Location si hay dónde consultar', async () => {
+    expect(accepted({ state: 'offered' }).headers.get('location')).toBeNull();
+    const res = accepted({ review: 'pending' }, '/api/v1/matches/m1/review');
+    expect(res.status).toBe(202);
+    expect(res.headers.get('location')).toBe('/api/v1/matches/m1/review');
+    expect(await res.json()).toEqual({ review: 'pending' });
   });
 });

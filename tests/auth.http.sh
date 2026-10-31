@@ -28,4 +28,7 @@ echo "== logout 204";     curl -s -o /dev/null -w '%{http_code}\n' -b $J -c $J -
 echo "== me 401";         j -b $J $B/auth/me
 echo "== login demo";     j -X POST $B/auth/login -d '{"email":"demo@chesspredictor.dev","password":"Demo1234"}'
 echo "== login 401";      j -X POST $B/auth/login -d '{"email":"demo@chesspredictor.dev","password":"mala1234"}'
+echo "== 429 tras 20 intentos con el mismo correo"
+for i in $(seq 1 21); do C=$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -X POST $B/auth/login -d "{\"email\":\"$U@t.dev\",\"password\":\"mala1234\"}"); done; echo "$C"
+curl -s -D - -o /dev/null -H 'content-type: application/json' -X POST $B/auth/login -d "{\"email\":\"$U@t.dev\",\"password\":\"mala1234\"}" | grep -i retry-after
 rm -f $J

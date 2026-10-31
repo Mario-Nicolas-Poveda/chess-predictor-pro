@@ -18,7 +18,7 @@ Cada respuesta usa el código que corresponde. Éxito sin cuerpo = **204**. Recu
 | **413 Content Too Large** | Archivo de más de lo permitido (foto de perfil: 1 MB). Se rechaza por `Content-Length` sin leer el cuerpo | `FILE_TOO_LARGE` |
 | **415 Unsupported Media Type** | Body que no es `application/json` en POST/PATCH/PUT · foto que no va en `multipart/form-data` · archivo que no es JPEG, PNG o WebP **por sus bytes** (SVG nunca) | `UNSUPPORTED_MEDIA_TYPE` |
 | **422 Unprocessable Content** | JSON válido que no se puede aplicar: jugada ilegal en esa posición, o coronación sin la pieza (`e7e8` en vez de `e7e8q`) · posición sin jugadas en `POST /ai/move` | `ILLEGAL_MOVE`, `PROMOTION_REQUIRED`, `GAME_OVER` |
-| **429 Too Many Requests** | Pasó el límite de uso (ventana fija por usuario en la BD): partidas contra la IA, jugadas sugeridas, predicción, foto. Lleva cabecera `Retry-After` en segundos y `meta.retryAfterS` | `RATE_LIMITED` |
+| **429 Too Many Requests** | Pasó el límite de uso (ventana fija en la BD): por usuario en partidas contra la IA, jugadas sugeridas, predicción y foto; por IP y por correo al iniciar sesión; por IP al registrarse. Lleva cabecera `Retry-After` en segundos y `meta.retryAfterS` | `RATE_LIMITED` |
 | **500 Internal Server Error** | Error no previsto (se registra con `console.error`, no se expone el detalle) | `INTERNAL` |
 | **503 Service Unavailable** | La base de datos no responde (`/health`) | `SERVICE_UNAVAILABLE` |
 

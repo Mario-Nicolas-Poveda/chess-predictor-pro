@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { sanEs } from '@/components/chess/san';
 
 /** Lista "n. blancas negras". Al crecer baja el scroll de la caja, nunca el de la página. */
-export function MoveList({ sans, current, onPick }: { sans: string[]; current: number; onPick?: (ply: number) => void }) {
+export function MoveList({ sans, current, onPick, mark }: { sans: string[]; current: number; onPick?: (ply: number) => void; mark?: (ply: number) => ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = box.current;
@@ -24,7 +24,7 @@ export function MoveList({ sans, current, onPick }: { sans: string[]; current: n
     const on = ply === current;
     const cls = `rounded-lg px-2.5 py-1 text-left ${on ? 'bg-ink text-paper' : ''}`;
     return onPick
-      ? <button type="button" data-current={on} onClick={() => onPick(ply)} className={`${cls} hover:bg-paper`} aria-current={on || undefined}>{sanEs(san)}</button>
+      ? <button type="button" data-current={on} onClick={() => onPick(ply)} className={`${cls} hover:bg-paper`} aria-current={on || undefined}>{sanEs(san)}{mark?.(ply)}</button>
       : <span data-current={on} className={cls}>{sanEs(san)}</span>;
   };
   return (

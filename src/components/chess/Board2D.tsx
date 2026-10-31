@@ -39,7 +39,7 @@ export function Board2D({ view, onSquare, children }: { view: BoardView; onSquar
   const [focus, setFocus] = useState(0);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const at = new Map(view.pieces.map(p => [p.square, p]));
-  const { tileL, tileD, frame, accent } = view.colors;
+  const { tileL, tileD, frame, soft, accent } = view.colors;
 
   // las capturadas se quedan donde cayeron (la casilla de la última jugada) y se desvanecen; al retroceder vuelven
   const fallen = view.lastMove?.[1] ?? 'a1';
@@ -106,7 +106,7 @@ export function Board2D({ view, onSquare, children }: { view: BoardView; onSquar
           {view.arrows.map(a => {
             const A = pos(a.from), B = pos(a.to);
             return <path key={`${a.from}${a.to}`} d={arrowPath(A.c * 100 + 50, A.r * 100 + 50, B.c * 100 + 50, B.r * 100 + 50)}
-              fill={accent} opacity={a.tone === 'hint' ? .85 : .78} />;
+              fill={a.tone === 'played' ? soft : accent} opacity={a.tone === 'hint' ? .85 : a.tone === 'played' ? .7 : .78} />;
           })}
         </svg>
       )}

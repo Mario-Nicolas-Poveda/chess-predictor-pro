@@ -7,6 +7,9 @@ export interface Limit { limit: number; windowS: number }
 export type RateLimiter = (key: string, l: Limit) => Promise<void>;
 
 export const LIMITS = {
+  loginIp:    { limit: 30, windowS: 60 },        // POST /auth/login por IP
+  loginEmail: { limit: 20, windowS: 900 },       // POST /auth/login por correo: frena probar claves contra una cuenta
+  register:   { limit: 60, windowS: 3600 },      // POST /auth/register por IP (holgado: un salón comparte IP)
   aiMove:     { limit: 30, windowS: 60 },        // POST /ai/move
   prediction: { limit: 60, windowS: 60 },        // GET /matches/:id/prediction
   aiGames:    { limit: 20, windowS: 3600 },      // POST /ai/games

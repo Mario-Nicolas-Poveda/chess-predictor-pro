@@ -100,7 +100,7 @@ export class OpenAiCompatibleCoachWriter implements CoachWriter {
       method: 'POST', signal,
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.c.apiKey}` },
       body: JSON.stringify({
-        model: this.c.model, messages, max_tokens: this.c.maxTokens ?? 1500,
+        model: this.c.model, messages, max_completion_tokens: this.c.maxTokens ?? 1500,   // max_tokens está obsoleto y los modelos recientes de OpenAI lo rechazan
         ...(this.c.temperature === null ? {} : { temperature: this.c.temperature ?? 0.4 }),
         ...(this.c.jsonMode ? { response_format: { type: 'json_object' } } : {}),
         ...(this.c.reasoningEffort ? { reasoning_effort: this.c.reasoningEffort } : {}),

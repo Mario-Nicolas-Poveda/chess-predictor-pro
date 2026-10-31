@@ -52,7 +52,8 @@ describe('OpenAiCompatibleCoachWriter', () => {
     expect(r).toMatchObject({ source: 'llm', model: 'modelo-x' });
     expect(sent[0]?.url).toBe('https://llm.test/v1/chat/completions');
     expect(sent[0]?.headers.authorization).toBe('Bearer clave-secreta');
-    expect(sent[0]?.body).toMatchObject({ model: 'modelo-x', temperature: 0.4, max_tokens: 1500 });
+    expect(sent[0]?.body).toMatchObject({ model: 'modelo-x', temperature: 0.4, max_completion_tokens: 1500 });
+    expect(sent[0]?.body).not.toHaveProperty('max_tokens');
   });
 
   it('una respuesta inválida se corrige una vez, con los errores', async () => {

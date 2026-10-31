@@ -122,7 +122,7 @@ export function createMock(): ArenaApi {
     const s = toState(id, g, 0), r = s.result!;
     const outcome = r.winner === null ? 'draw' : r.winner === 'white' ? 'win' : 'loss';
     return { id, timeControl: s.timeControl, endedAt: s.endedAt!, yourColor: 'white', outcome, reason: r.reason,
-      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, rated: true, opponent: players.black };
+      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, rated: true, opponent: players.black, review: null };
   };
   const live = (g: Mock) => {
     flag(g);

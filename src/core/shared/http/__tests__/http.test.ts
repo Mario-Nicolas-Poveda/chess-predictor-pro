@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError, z } from 'zod';
+import { clientIp } from '../clientIp';
 import { readJson } from '../readJson';
 import { accepted, created, noContent } from '../responses';
 
@@ -25,6 +26,18 @@ describe('readJson', () => {
   it('acepta charset en el content-type y devuelve los datos', async () => {
     await expect(readJson(post('{"timeControl":"10+0"}', 'application/json; charset=utf-8'), Schema))
       .resolves.toEqual({ timeControl: '10+0' });
+  });
+});
+
+describe('clientIp', () => {
+  const req = (header?: string) => new Request('http://localhost/', { headers: header ? { 'x-forwarded-for': header } : {} });
+
+  it('toma la primera IP de x-forwarded-for', () => {
+    expect(clientIp(req('203.0.113.7, 10.0.0.1'))).toBe('203.0.113.7');
+  });
+
+  it('sin cabecera usa una clave común', () => {
+    expect(clientIp(req())).toBe('sin-ip');
   });
 });
 

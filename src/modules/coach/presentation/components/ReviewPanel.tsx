@@ -44,7 +44,7 @@ function Ready({ review, analysis, coach, ply, onPly, moment, onMoment, onReanal
   return (
     <>
       <div className="flex flex-col gap-3.5 rounded-[14px] border border-rule bg-vellum p-4">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft">Análisis{analysis.opening ? ` · ${analysis.opening}` : ''}</p>
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft">Análisis{analysis.opening && <> · <span className="normal-case">{analysis.opening}</span></>}</p>
         <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
           <div className="flex items-end gap-[22px]">
             <div className="flex flex-col gap-0.5">

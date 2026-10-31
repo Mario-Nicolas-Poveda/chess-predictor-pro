@@ -21,7 +21,7 @@ describe('ReviewPanel', () => {
     expect(h).toContain('?? 1');
     expect(h).toContain('3… Cf6??');
     expect(h).toContain('Mejor: 3… g6');
-    expect(h).toContain('Análisis · Apertura de alfil');
+    expect(h).toContain('Análisis · <span class="normal-case">Apertura de alfil</span>');
     expect(h).toContain('Ver 3… Cf6');
     expect(h).toContain('Consejos automáticos a partir del análisis del motor.');
     expect(h).toContain('Análisis listo.');

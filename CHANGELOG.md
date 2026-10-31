@@ -3,6 +3,10 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-31
+### Seguridad
+- Límite de intentos al iniciar sesión (por IP y por correo) y al registrarse (por IP): 429 con `Retry-After` (#146)
+
 ## [0.4.0] - 2026-10-29
 Sprint 4 · IA.
 

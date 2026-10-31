@@ -23,11 +23,11 @@ export const ACCENT_HEX: Record<AccentId, { light: string; dark: string }> = {
 };
 
 /** Colores que usa la escena 3D del perfil para el pedestal, según el tema. */
-export const THEME_3D: Record<ThemeId, { tileL: string; tileD: string; frame: string; dark: boolean }> = {
-  pergamino: { tileL: '#efe4d3', tileD: '#c9b08e', frame: '#4a2c24', dark: false },
-  noche:     { tileL: '#d6bd91', tileD: '#5b3a24', frame: '#2c1b10', dark: true },
-  salvia:    { tileL: '#e9eee2', tileD: '#9fb197', frame: '#2c3b30', dark: false },
-  pizarra:   { tileL: '#e7ebf1', tileD: '#9aa6b8', frame: '#1f2937', dark: false },
+export const THEME_3D: Record<ThemeId, { tileL: string; tileD: string; frame: string; soft: string; dark: boolean }> = {
+  pergamino: { tileL: '#efe4d3', tileD: '#c9b08e', frame: '#4a2c24', soft: '#5c4a46', dark: false },
+  noche:     { tileL: '#d6bd91', tileD: '#5b3a24', frame: '#2c1b10', soft: '#cbbca6', dark: true },
+  salvia:    { tileL: '#e9eee2', tileD: '#9fb197', frame: '#2c3b30', soft: '#4a5a4e', dark: false },
+  pizarra:   { tileL: '#e7ebf1', tileD: '#9aa6b8', frame: '#1f2937', soft: '#465264', dark: false },
 };
 
 export const accentHex = (theme: ThemeId, accent: AccentId) => (THEME_3D[theme].dark ? ACCENT_HEX[accent].dark : ACCENT_HEX[accent].light);

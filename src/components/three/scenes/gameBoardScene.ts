@@ -5,7 +5,7 @@ import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
 
-export type BoardArrow = { from: Square; to: Square; tone: 'hint' | 'candidate' };
+export type BoardArrow = { from: Square; to: Square; tone: 'hint' | 'candidate' | 'played' };
 export type BoardView = {
   pieces: BoardPiece[];
   captured: { white: string[]; black: string[] };   // fuera del tablero, en dos filas a cada lado
@@ -19,7 +19,7 @@ export type BoardView = {
   interactive: boolean;                             // false en turno del rival, en repetición o al terminar
   toppled: 'white' | 'black' | null;                // rey que cae al terminar
   ended: boolean;                                   // la cámara se aleja y sube el tablero
-  colors: { tileL: string; tileD: string; frame: string; accent: string };
+  colors: { tileL: string; tileD: string; frame: string; soft: string; accent: string };
   arrows?: BoardArrow[];                            // pista o mejores jugadas (Contra la IA)
   intro?: boolean;                                  // false: sin la caída de piezas al montar (al volver de 2D)
 };
@@ -107,8 +107,8 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   const arrowRoot = new THREE.Group();
   scene.add(arrowRoot);
   let arrowsKey = '';
-  const setArrows = (list: BoardArrow[], accent: string) => {
-    const k = list.map(a => `${a.from}${a.to}${a.tone}`).join('|') + accent;
+  const setArrows = (list: BoardArrow[], accent: string, soft: string) => {
+    const k = list.map(a => `${a.from}${a.to}${a.tone}`).join('|') + accent + soft;
     if (k === arrowsKey) return;
     arrowsKey = k;
     for (const h of [...arrowRoot.children]) {
@@ -121,7 +121,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       sh.moveTo(.2, -.1); sh.lineTo(e - .42, -.1); sh.lineTo(e - .42, -.3); sh.lineTo(e, 0);
       sh.lineTo(e - .42, .3); sh.lineTo(e - .42, .1); sh.lineTo(.2, .1); sh.closePath();
       const mesh = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({
-        color: srgb(accent), transparent: true, opacity: a.tone === 'hint' ? .85 : .78, depthWrite: false, side: THREE.DoubleSide }));
+        color: srgb(a.tone === 'played' ? soft : accent), transparent: true, opacity: a.tone === 'hint' ? .85 : a.tone === 'played' ? .7 : .78, depthWrite: false, side: THREE.DoubleSide }));
       mesh.rotation.x = -Math.PI / 2;                          // el plano XY queda tendido en XZ
       const holder = new THREE.Group(); holder.add(mesh);
       holder.position.set(A.x, .035, A.z);
@@ -143,7 +143,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       tileL.color.copy(srgb(v.colors.tileL)); tileD.color.copy(srgb(v.colors.tileD)); frameMat.color.copy(srgb(v.colors.frame));
       accentMats.forEach(m => m.color.copy(srgb(v.colors.accent)));
     }
-    setArrows(v.arrows ?? [], v.colors.accent);
+    setArrows(v.arrows ?? [], v.colors.accent, v.colors.soft);
     target.a = v.orientation === 'white' ? 0 : Math.PI;
     target.fin = v.ended ? 1 : 0;
 

@@ -3,7 +3,7 @@ import { moveLabel } from '@/modules/coach/domain/notation';
 import type { GameReviewDTO, ReviewMoveDTO, TipCategory } from '@/modules/coach/infrastructure/dto/coachSchemas';
 import { TIP_CATEGORY_UI } from '../lib/moveClass';
 
-const ICON: Record<TipCategory, LucideIcon> = { opening: BookOpen, tactics: Zap, strategy: Compass, endgame: Flag, time: Clock, mindset: Smile };
+export const TIP_ICON: Record<TipCategory, LucideIcon> = { opening: BookOpen, tactics: Zap, strategy: Compass, endgame: Flag, time: Clock, mindset: Smile };
 
 /** Resumen, consejos (cada uno lleva a sus jugadas) y qué practicar. */
 export function CoachTips({ coach, moves, onPick }: { coach: NonNullable<GameReviewDTO['coach']>; moves: ReviewMoveDTO[]; onPick: (ply: number) => void }) {
@@ -13,7 +13,7 @@ export function CoachTips({ coach, moves, onPick }: { coach: NonNullable<GameRev
         <h2 id="coach-tips" className="mt-1 font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft">Consejos del entrenador</h2>
         <p className="text-[15px] leading-normal">{coach.summary}</p>
         {coach.tips.map(t => {
-          const Icon = ICON[t.category];
+          const Icon = TIP_ICON[t.category];
           return (
             <article key={t.title} className="flex flex-col gap-2 rounded-[14px] border border-rule bg-vellum p-4">
               <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium uppercase tracking-[.1em] text-ink-soft">

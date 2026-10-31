@@ -11,6 +11,7 @@ import { useThreeScene } from '@/components/three/useThreeScene';
 import { Button, buttonClass } from '@/components/ui/Button';
 import type { AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
+import { CoachCard } from '@/modules/coach/presentation/components/CoachCard';
 import { usePreferences } from '@/modules/dashboard/presentation/preferences/PreferencesProvider';
 import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/themes';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
@@ -110,6 +111,8 @@ export function ResultScreen() {
             </div>
           ))}
         </dl>
+
+        <CoachCard matchId={s.id} ply={s.ply} />
 
         {ai ? (
           <div className="flex flex-wrap items-center gap-3">

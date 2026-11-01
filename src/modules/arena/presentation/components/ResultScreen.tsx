@@ -16,7 +16,7 @@ import { usePreferences } from '@/modules/dashboard/presentation/preferences/Pre
 import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/themes';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { useRematch } from '../hooks/useRematch';
-import { OUTCOME_TITLE, outcomeOf, reasonText } from '../reasons';
+import { OUTCOME_TITLE, ago, outcomeOf, reasonText } from '../reasons';
 import { EloRail } from './EloRail';
 import { RematchPanel } from './RematchPanel';
 
@@ -27,14 +27,6 @@ const clockText = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = String(s % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${r}` : `${m}:${r}`;
 };
-const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
-function ago(iso: string, now: number) {
-  const s = Math.round((Date.parse(iso) - now) / 1000);
-  if (s > -60) return 'hace un momento';
-  if (s > -3600) return rtf.format(Math.round(s / 60), 'minute');
-  if (s > -86400) return rtf.format(Math.round(s / 3600), 'hour');
-  return rtf.format(Math.round(s / 86400), 'day');
-}
 
 /** /dashboard/arena/[id]/resultado: título, cambio de ELO, datos, reyes en 3D y revancha. */
 export function ResultScreen() {

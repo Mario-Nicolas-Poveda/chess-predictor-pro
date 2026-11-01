@@ -184,6 +184,14 @@ describe('JobController', () => {
     expect(t.ctl.getSnapshot()).toEqual({ kind: 'offline', last: pending });
   });
 
+  it('si el POST falla sin red también reintenta: no se queda en "reintentando"', async () => {
+    const t = setup([notFound(), data(pending)], { auto: true, posts: [new TypeError('Failed to fetch')] });
+    t.ctl.start(); await flush();
+    expect(t.ctl.getSnapshot().kind).toBe('offline');
+    await t.tick();
+    expect(t.ctl.getSnapshot().kind).toBe('pending');
+  });
+
   it('doble clic en analizar: un solo POST', async () => {
     const t = setup([notFound()]);
     t.ctl.start(); await flush();

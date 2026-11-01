@@ -30,6 +30,16 @@ export const REASON_SHORT: Record<EndReason, string> = {
   stalemate: 'rey ahogado', insufficient: 'material insuficiente', threefold: 'repetición', fifty: '50 jugadas',
 };
 
+const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
+/** "hace un momento", "hace 2 horas", "hace 12 días". */
+export function ago(iso: string, now: number) {
+  const s = Math.round((Date.parse(iso) - now) / 1000);
+  if (s > -60) return 'hace un momento';
+  if (s > -3600) return rtf.format(Math.round(s / 60), 'minute');
+  if (s > -86400) return rtf.format(Math.round(s / 3600), 'hour');
+  return rtf.format(Math.round(s / 86400), 'day');
+}
+
 /** "Hoy", "Ayer" o "14 oct", con la fecha local. */
 export function dayLabel(iso: string, now: number) {
   const day = (t: number) => new Date(t).toDateString();

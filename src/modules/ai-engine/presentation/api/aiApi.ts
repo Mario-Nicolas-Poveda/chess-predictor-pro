@@ -1,7 +1,8 @@
 import { apiFetch, toApiError } from '@/lib/apiClient';
 import { AI_LEVELS, recommendedLevel, type AiLevelsResponse, type CreateAiGameInput, type Prediction } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { GameState } from '@/modules/arena/infrastructure/dto/arenaSchemas';
-import { arenaApi } from '@/modules/arena/presentation/api/arenaApi';
+import { arenaMock, type ArenaMock } from '@/modules/arena/presentation/api/arenaApi';
+import { livePosition, toMove } from '@/modules/arena/presentation/game/livePosition';
 
 export type PredictionResult = { prediction: Prediction; etag: string } | 'not-modified';
 export type CreateAiGame = Partial<CreateAiGameInput> & { level: number };
@@ -22,15 +23,28 @@ export const aiHttp = {
     apiFetch<void>(`/matches/${matchId}/moves/last?ply=${ply}`, { method: 'DELETE' }),                            // 204
 };
 
-// shortcut: el mock solo cubre elegir nivel y crear (la partida corre en el mock de la arena con el bot local); predicción y deshacer van por http hasta la Fase 6.
-let mockId = 0;
-const mock: Pick<typeof aiHttp, 'levels' | 'create'> = {
-  levels: async () => ({ levels: [...AI_LEVELS], recommended: recommendedLevel(1200), activeGame: null }),
-  async create() {
-    const r = await arenaApi.state(`ai-mock-${++mockId}`, 0, null);   // sin etag nunca da 304
-    if (r === 'not-modified') throw new Error('mock');
-    return { state: r.state };
-  },
-};
+/** Mock con los mismos códigos que la API, sobre la partida en memoria del mock de la arena (siempre con blancas). */
+export function createAiMock(arena: ArenaMock): typeof aiHttp {
+  let mockId = 0;
+  return {
+    levels: async () => ({ levels: [...AI_LEVELS], recommended: recommendedLevel(1200), activeGame: null }),
+    async create({ level, prediction = true }) {
+      const id = `ai-mock-${++mockId}`, l = AI_LEVELS.find(x => x.level === level) ?? AI_LEVELS[0]!;
+      arena.setAi(id, { level: l.level, name: l.name, prediction, takebacks: 0 });
+      const r = await arena.state(id, 0, null);   // sin etag nunca da 304
+      if (r === 'not-modified') throw new Error('mock');
+      return { state: r.state };
+    },
+    async prediction(matchId, etag) {
+      const { fen, ply, turn } = arena.position(matchId), tag = `"p-${ply}"`;
+      if (etag === tag) return 'not-modified';
+      const { predict } = await import('@/modules/ai-engine/domain/search');   // el motor no entra en el paquete de producción
+      const { white, top, depth } = predict(fen, 300);
+      const moves = turn === 'white' ? top.map(m => ({ ...m, san: livePosition(fen, null).move(toMove(m.uci)).san })) : [];
+      return { prediction: { ply, white, top: moves, depth }, etag: tag };
+    },
+    takeback: (matchId, ply) => arena.takeback(matchId, ply),
+  };
+}
 
-export const aiApi = process.env.NEXT_PUBLIC_API_MOCK === '1' ? { ...aiHttp, ...mock } : aiHttp;
+export const aiApi = process.env.NEXT_PUBLIC_API_MOCK === '1' ? createAiMock(arenaMock) : aiHttp;

@@ -62,7 +62,7 @@ export function ArenaScreen() {
   const fen = s?.fen;
   const legal = useMemo(() => (canMove && fen ? livePosition(fen, g.optimistic).moves({ verbose: true }) : []), [canMove, fen, g.optimistic]);
   const input = useBoardInput(legal, g.play);
-  const clock = useClock(s?.clock, g.offset, g.reload, { paused: !!g.optimistic, tick: s?.status === 'pending' });
+  const clock = useClock(s?.clock, g.offset, g.flag, { paused: !!g.optimistic, tick: s?.status === 'pending' });
 
   const finished = s?.status === 'finished';
   // modo enfoque: sin menú de módulos mientras se juega; vuelve al terminar

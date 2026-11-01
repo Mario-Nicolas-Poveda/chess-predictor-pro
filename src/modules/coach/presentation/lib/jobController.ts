@@ -84,7 +84,7 @@ export class JobController<T extends Job> {
       this.etag = null;                                    // el POST no trae ETag: la próxima consulta trae todo
       this.show(data);
     } catch (e) {
-      if (!signal.aborted) this.showError(e, false);
+      if (!signal.aborted) this.showError(e);
     } finally {
       this.requesting = false;
     }
@@ -97,7 +97,7 @@ export class JobController<T extends Job> {
       await this.api.remove();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'REVIEW_IN_PROGRESS') { this.cancelTimer(); void this.poll(); return; }
-      if (!(e instanceof ApiError && e.status === 404)) { this.showError(e, false); return; }
+      if (!(e instanceof ApiError && e.status === 404)) { this.showError(e); return; }
     }
     await this.request();
   };
@@ -114,7 +114,7 @@ export class JobController<T extends Job> {
     else if (this.o.autoWhen?.(data) && !this.autoTried) { this.autoTried = true; void this.request(); }
   }
 
-  private showError(e: unknown, fromPoll: boolean) {
+  private showError(e: unknown) {
     if (e instanceof ApiError) {
       if (e.status === 429) return this.emit({ kind: 'limited', retryAfterS: Number(e.meta?.retryAfterS) || 60, last: this.last });
       if (e.status === 404 && e.code === this.o.notFoundCode) {
@@ -123,9 +123,9 @@ export class JobController<T extends Job> {
       }
       if (e.status < 500) return this.emit({ kind: 'unavailable', code: e.code, message: e.message, meta: e.meta });
     }
-    // Red caída o 5xx: se muestra "sin conexión" y se reintenta con espera creciente (solo las consultas)
+    // Red caída o 5xx: se muestra "sin conexión" y se reintenta con espera creciente, también si falló un POST
     this.emit({ kind: 'offline', last: this.last });
-    if (fromPoll) this.schedule(BACKOFF[Math.min(this.fails++, BACKOFF.length - 1)]!);
+    this.schedule(BACKOFF[Math.min(this.fails++, BACKOFF.length - 1)]!);
   }
 
   private async poll() {
@@ -138,7 +138,7 @@ export class JobController<T extends Job> {
       if (r.kind === 'data') { this.etag = r.etag; this.show(r.data); }
       else if (this.view.kind === 'pending') this.schedule(this.view.data.pollAfterMs || 1500);
     } catch (e) {
-      if (!signal.aborted) this.showError(e, true);
+      if (!signal.aborted) this.showError(e);
     }
   }
 }

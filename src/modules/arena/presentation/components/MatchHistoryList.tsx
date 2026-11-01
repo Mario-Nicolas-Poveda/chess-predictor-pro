@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import type { MatchListItem } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { useProfile } from '@/modules/dashboard/presentation/hooks/useProfile';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { useMatchHistory, type ResultFilter } from '../hooks/useMatchHistory';
@@ -38,6 +39,18 @@ export function HistoryHeader() {
         ))}
       </div>
     </div>
+  );
+}
+
+/** Bajo la fila, y no dentro: la fila ya es un enlace. */
+function ReviewBadgeLine({ item: { id, review } }: { item: MatchListItem }) {
+  if (review?.status === 'pending') return <p className="px-4 pb-1.5 pl-[74px] font-mono text-xs text-ink-soft">Analizando…</p>;
+  if (review?.status !== 'ready' || review.accuracy === null) return null;
+  return (
+    <p className="flex items-center gap-3 px-4 pl-[74px] font-mono text-xs">
+      <span aria-label={`Precisión ${review.accuracy} %`} className="rounded-full bg-band px-2 py-0.5 font-medium shadow-[inset_0_0_0_1px_var(--t-rule)]">{review.accuracy} %</span>
+      <Link href={`/dashboard/partidas/${id}?tab=analisis`} scroll={false} className="inline-flex min-h-11 items-center underline underline-offset-4">Ver análisis</Link>
+    </p>
   );
 }
 
@@ -82,6 +95,7 @@ export function MatchHistoryList() {
                   <span className="text-xs text-ink-faint">{dayLabel(i.endedAt, now)}</span>
                 </span>
               </Link>
+              <ReviewBadgeLine item={i} />
             </li>
           );
         })}

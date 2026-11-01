@@ -29,6 +29,9 @@ export class LocalGame {
     } catch { return null; }
   }
 
+  /** Quita la última jugada. */
+  undo() { this.chess.undo(); this.moves.pop(); }
+
   /** null mientras se juega; si terminó, el ganador (null en tablas) y el motivo. */
   over(): { winner: Color | null; reason: EndReason } | null {
     const c = this.chess;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,6 +11,7 @@ export function UserBlock({ className = '' }: { className?: string }) {
   const { profile } = useProfile();
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
+  useEffect(() => () => setLeaving(false), []);   // Next conserva este estado al ocultar la página: al volver a entrar no sigue "Cerrando…"
   if (!profile) return null;
 
   const logout = async () => {

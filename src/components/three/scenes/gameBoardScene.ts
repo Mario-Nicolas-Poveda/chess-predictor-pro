@@ -276,6 +276,9 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     return moving || (checkPlane.visible && !reducedMotion);
   });
 
+  // el toque ya se atendió en pointerup: sin esto, el click que el navegador manda después cae en lo que acaba de abrirse encima (el diálogo de coronar)
+  const noGhostClick = (e: TouchEvent) => e.preventDefault();
+
   // compila los shaders de las piezas antes de que lleguen
   const warm = [createPiece('p', mats.w, quality), createPiece('p', mats.b, quality)];
   scene.add(...warm);
@@ -286,6 +289,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointerleave', onLeave);
+  canvas.addEventListener('touchend', noGhostClick, { passive: false });
 
   return {
     update,
@@ -296,6 +300,7 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
+      canvas.removeEventListener('touchend', noGhostClick);
       // las piezas fuera de la escena (reemplazadas por coronación) comparten geometrías y materiales del kit
       stage.dispose();
     },

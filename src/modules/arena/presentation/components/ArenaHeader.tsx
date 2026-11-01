@@ -12,17 +12,17 @@ export function ArenaHeader({ label, pill, pillAccent, flipped, onFlip, panelOpe
 }) {
   return (
     <header className="sticky top-0 z-20 bg-paper/82 backdrop-blur-[20px] backdrop-saturate-150">
-      <div className="mx-auto flex min-h-[60px] max-w-[1320px] items-center gap-4 px-5 lg:px-10">
-        {/* texto, no enlace: en plena partida no se sale por accidente */}
+      <div className="mx-auto flex min-h-[60px] max-w-[1320px] flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-1 pt-2 sm:flex-nowrap sm:py-0 lg:px-10">
+        {/* texto, no enlace: en plena partida no se sale por accidente; en el celular, el estado va en su propia fila */}
         <p className="hidden font-display text-[1.45rem] leading-none sm:block">Chess Predictor <em className="text-accent">Pro</em></p>
-        <div className="flex min-w-0 flex-1 items-center gap-3 sm:justify-center">
+        <div className="flex min-w-0 grow basis-full items-center gap-3 sm:basis-0 sm:justify-center">
           <p className="flex min-w-0 items-center gap-2.5 text-caption text-ink-soft">
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ok" />
             <span className="truncate">{label}</span>
           </p>
           {pill && <span className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-medium ${pillAccent ? 'bg-accent text-on-accent' : 'bg-band text-ink'}`}>{pill}</span>}
         </div>
-        <div role="toolbar" aria-label="Partida" className="flex shrink-0 items-center gap-1.5">
+        <div role="toolbar" aria-label="Partida" className="ml-auto flex shrink-0 items-center gap-1.5">
           <div className="mr-1.5"><BoardModeToggle /></div>
           <button type="button" className={icon} aria-pressed={flipped} aria-label="Girar tablero" title="Girar tablero" onClick={onFlip}>
             <RefreshCw size={20} aria-hidden="true" />

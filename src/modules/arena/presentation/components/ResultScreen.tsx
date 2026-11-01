@@ -41,6 +41,7 @@ export function ResultScreen() {
   const router = useRouter();
   const r = useRematch(matchId);
   const [starting, setStarting] = useState(false);
+  useEffect(() => () => setStarting(false), []);   // Next conserva este estado al ocultar la página
   const s = r.state;
   const [now] = useState(() => Date.now());
   const frames = useMemo(() => framesOf(s ? s.moves.map(m => m.uci) : []), [s]);

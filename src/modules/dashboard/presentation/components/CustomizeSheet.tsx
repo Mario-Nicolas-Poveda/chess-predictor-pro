@@ -193,7 +193,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 function Radio({ name, checked, onChange, label, className, style, children }:
   { name: string; checked: boolean; onChange: () => void; label?: string; className: string; style?: React.CSSProperties; children?: ReactNode }) {
   return (
-    <label className="block cursor-pointer" title={label}>
+    <label className="relative block cursor-pointer" title={label}>
       <input type="radio" name={name} checked={checked} onChange={onChange} aria-label={label} className="peer sr-only" />
       <span className={className} style={style}>{children}</span>
     </label>

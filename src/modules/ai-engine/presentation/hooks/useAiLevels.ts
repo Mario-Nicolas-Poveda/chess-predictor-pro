@@ -20,7 +20,8 @@ export function useAiLevels() {
       if (e instanceof ApiError && e.status === 401) router.replace(AI_LOGIN);
       else setError('No se pudieron cargar los niveles. Recarga la página.');
     });
-    return () => { alive = false; };
+    // Next oculta la página al salir sin desmontarla: al volver, el formulario se monta con datos frescos
+    return () => { alive = false; setData(null); };
   }, [router]);
   return { data, error };
 }

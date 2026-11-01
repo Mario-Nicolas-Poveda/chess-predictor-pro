@@ -3,6 +3,14 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-01
+### Corregido
+- Al volver a una pantalla ya no quedan "Empezar partida" o "Jugar otra vez" cargando, ni el aviso falso de partida sin terminar, ni "Cerrando…" en la cabecera (#158)
+- Personalizar: la hoja no salta al elegir una opción en el celular (#159)
+- Coronar en el celular: deja elegir la pieza y el diálogo cabe en pantallas angostas (#160)
+- Cabecera de la partida en el celular: el selector 3D/2D ya no tapa el estado (#161)
+- "Rendirme y empezar otra" funciona con una partida sin jugadas: la cancela (#162)
+
 ## [0.4.1] - 2026-10-31
 ### Seguridad
 - Límite de intentos al iniciar sesión (por IP y por correo) y al registrarse (por IP): 429 con `Retry-After` (#146)

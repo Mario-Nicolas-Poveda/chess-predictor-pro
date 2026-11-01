@@ -8,9 +8,9 @@ import { Switch } from '@/components/ui/Switch';
 import { ApiError } from '@/lib/apiClient';
 import { ENGINE_LEVELS } from '@/modules/ai-engine/domain/levels';
 import { AI_LEVEL_IDS, AI_TIME_CONTROLS, type AiLevel, type AiLevelsResponse, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
-import { arenaApi } from '@/modules/arena/presentation/api/arenaApi';
 import { aiApi } from '../api/aiApi';
 import { AI_LOGIN, useAiLevels } from '../hooks/useAiLevels';
+import { leaveGame } from '../lib/leaveGame';
 import { ActiveAiGameBanner } from './ActiveAiGameBanner';
 import { LevelPedestal } from './LevelPedestal';
 import { LevelPicker } from './LevelPicker';
@@ -76,7 +76,7 @@ function LobbyForm({ data }: { data: AiLevelsResponse }) {
   const start = async (resign?: string) => {
     setBusy(true); setNotice('');
     try {
-      if (resign) await arenaApi.resign(resign);
+      if (resign) await leaveGame(resign);
       const { state } = await aiApi.create(c);   // 201
       router.push(`/dashboard/arena/${state.id}`);
     } catch (e) {

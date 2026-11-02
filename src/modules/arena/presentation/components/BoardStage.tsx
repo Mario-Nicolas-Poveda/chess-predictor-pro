@@ -19,11 +19,11 @@ const LAYER = 'absolute inset-0 transition-opacity duration-300 motion-reduce:tr
 
 /**
  * El 2D pinta al instante y ya se puede jugar. El 3D se prepara oculto cuando el navegador está libre y entra con un
- * fundido cuando dibujó su primer cuadro; si no llega a dibujar, se queda el 2D. Con el foco en el 2D no se cambia.
+ * fundido cuando dibujó su primer cuadro; si no llega a dibujar, se queda el 2D. Con el foco de teclado en el 2D no se cambia.
  */
 function Upgrade3D({ view, onSquare, label, children }: Props) {
   const [ready, setReady] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const [focused, setFocused] = useState(false);   // solo el teclado: un toque también deja el foco en la casilla
   const [gone, setGone] = useState(false);   // el 2D ya se desvaneció: se desmonta
   const swap = ready && !focused;
   useEffect(() => {
@@ -36,7 +36,7 @@ function Upgrade3D({ view, onSquare, label, children }: Props) {
     <div className="relative aspect-[6/5] w-full">
       {!gone && (
         <div className={`${LAYER} flex justify-center ${swap ? 'opacity-0' : ''}`} inert={swap}
-          onFocus={() => setFocused(true)}
+          onFocus={e => setFocused(e.target.matches(':focus-visible'))} onKeyDown={() => setFocused(true)}
           onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false); }}>
           <div className="aspect-square h-full"><Board2D view={view} onSquare={onSquare} /></div>
         </div>

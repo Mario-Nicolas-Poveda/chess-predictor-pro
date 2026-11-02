@@ -45,8 +45,8 @@ export function noHardwareGL(): Promise<boolean> {
   }));
 }
 
-/** Con el contexto ya creado: WebGL por software también es 'low'. */
+/** Con el contexto ya creado: WebGL por software también es 'low', y sin compilación en paralelo (Firefox) los shaders de alta congelan el primer cuadro. */
 export function contextQuality(gl: WebGLRenderingContext | WebGL2RenderingContext): Quality {
-  if (deviceQuality() === 'low') return 'low';
+  if (deviceQuality() === 'low' || !gl.getExtension('KHR_parallel_shader_compile')) return 'low';
   return isSoftwareGL(gl) ? 'low' : 'high';
 }

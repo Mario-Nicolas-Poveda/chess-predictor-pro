@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { analyseMatch, classify, keyMoments, moveAccuracy, winPercent } from '../analyseMatch';
-import { engineGame, game, sanOf } from './games';
+import { engineGame, exact, game, sanOf } from './games';
 
-const review = (sans: string[]) => analyseMatch(game(sans), { sanOf });
+const review = (sans: string[]) => analyseMatch(game(sans), exact);
 const PASTOR = ['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#'];
 
 describe('partidas reales', () => {

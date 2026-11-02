@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { analyseMatch } from '../../domain/analyseMatch';
 import { buildCoachInput, type CoachInput, type GameMeta, type HistoryFacts } from '../../domain/coachInput';
 import { buildPlanInput, type PlanStats } from '../../domain/planInput';
-import { game, sanOf } from '../../domain/__tests__/games';
+import { exact, game } from '../../domain/__tests__/games';
 import { TemplateCoachWriter } from '../TemplateCoachWriter';
 
 const writer = new TemplateCoachWriter();
@@ -17,7 +17,7 @@ const stats: PlanStats = {
 
 let pastor: CoachInput;
 beforeAll(async () => {
-  const a = await analyseMatch(game(['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']), { sanOf });
+  const a = await analyseMatch(game(['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']), exact);
   pastor = buildCoachInput(a, 'black', meta, noHistory);
 }, 20_000);
 
@@ -34,7 +34,7 @@ describe('TemplateCoachWriter.advise', () => {
   });
 
   it('nombra la pieza colgada y agrega el hábito de la partida', async () => {
-    const a = await analyseMatch(game(['e4', 'd5', 'Qg4']), { sanOf });
+    const a = await analyseMatch(game(['e4', 'd5', 'Qg4']), exact);
     const { value } = await writer.advise(buildCoachInput(a, 'white', meta, noHistory));
     expect(value.tips[0]?.body).toContain('En 2. Dg4 tu dama quedó sin defensa');
     expect(value.tips[1]).toMatchObject({ title: 'Desarrolla antes de sacar la dama', plies: [] });

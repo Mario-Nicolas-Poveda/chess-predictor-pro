@@ -1,6 +1,7 @@
 // Contrato compartido con el front: solo zod, sin imports de servidor
 import { z } from 'zod';
 import type { AiLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+import type { ReviewBadge } from '@/modules/coach/infrastructure/dto/coachSchemas';
 import type { PlayerSummary, TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 
 export const UciSchema = z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/, { error: 'Jugada en formato UCI, por ejemplo e2e4 o e7e8q' });
@@ -52,6 +53,7 @@ export interface MatchListItem {
   id: string; timeControl: TimeControl | 'none'; endedAt: string; yourColor: Color;
   outcome: 'win' | 'loss' | 'draw'; reason: EndReason; eloDelta: number; plies: number; rated: boolean;
   opponent: PlayerSummary;                 // elo = el que tenía en esa partida
+  review: ReviewBadge | null;              // null = sin análisis
 }
 
 export interface ProfileHistory {

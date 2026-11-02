@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/apiClient';
+import { coalesce } from '@/lib/coalesce';
 import type { GameState, MoveDTO } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
 import { arenaApi } from '../api/arenaApi';
+import { watchFlag } from '../game/flagWatch';
 import { livePosition, sameBoard } from '../game/livePosition';
 import { pollWait } from '../game/pollWait';
 import { useMatchDoorbell } from './useMatchDoorbell';
@@ -45,9 +47,9 @@ export function useGame(matchId: string) {
   const [s, dispatch] = useReducer(reducer, INITIAL);
   // copia síncrona de lo último confirmado: el polling y las acciones la leen sin esperar al render
   const live = useRef<{ server: GameState | null; moves: MoveDTO[]; etag: string | null }>({ server: null, moves: [], etag: null });
-  const kick = useRef<(full?: boolean) => void>(() => {});
+  const kick = useRef<(full?: boolean) => Promise<void>>(async () => {});
   // timbre del servidor: al oírlo se consulta el estado (con ETag) como siempre
-  const onAir = useMatchDoorbell(matchId, () => kick.current());
+  const onAir = useMatchDoorbell(matchId, () => void kick.current());
   const onAirRef = useRef(onAir);
   const withdrew = useRef(false);   // la oferta la quitaste tú: no avisar "rechazó"
 
@@ -57,7 +59,7 @@ export function useGame(matchId: string) {
   /** Aplica un estado del servidor; si faltan jugadas en medio, pide el estado completo. */
   const commit = useCallback((state: GameState, etag: string | null, extra?: MoveDTO[]) => {
     const moves = mergeMoves(live.current.moves, state, extra);
-    if (moves.length !== state.ply || moves.some((m, i) => m.ply !== i + 1)) { kick.current(true); return; }
+    if (moves.length !== state.ply || moves.some((m, i) => m.ply !== i + 1)) { void kick.current(true); return; }
     const prev = live.current.server, you = state.yourColor;
     // tu oferta desapareció sin terminar la partida y sin que movieras tú: el rival la rechazó (o jugó encima)
     const declined = prev?.drawOffer === you && state.drawOffer === null && state.status === 'active'
@@ -70,45 +72,43 @@ export function useGame(matchId: string) {
 
   useEffect(() => {
     const ctrl = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined, fails = 0, gen = 0, full = true;
-    let busy = false, again = false;   // nunca dos consultas a la vez: lo pedido en vuelo se repite al terminar
-    const run = async (my: number) => {
-      if (my !== gen) return;
-      if (document.hidden) { timer = setTimeout(() => run(my), 1000); return; }   // pestaña oculta: en pausa
-      busy = true;
+    let timer: ReturnType<typeof setTimeout> | undefined, fails = 0, full = true;
+    const load = async () => {
+      clearTimeout(timer);
+      if (document.hidden) { timer = setTimeout(() => void refresher.trigger(), 1000); return; }   // pestaña oculta: en pausa
       try {
         const since = full ? 0 : live.current.moves.length, etag = full ? null : live.current.etag;
         if (full) live.current = { ...live.current, moves: [] };
         const r = await arenaApi.state(matchId, since, etag, ctrl.signal);
-        if (my !== gen) return;
+        if (ctrl.signal.aborted) return;
         fails = 0; full = false;
         dispatch({ type: 'OFFLINE', offline: false });
         if (r !== 'not-modified') commit(r.state, r.etag);
-        if (again) return;   // commit pidió el estado completo o sonó el timbre: se repite en finally
         const next = pollWait(live.current.server?.pollAfterMs ?? 1500, onAirRef.current);
-        if (next > 0) timer = setTimeout(() => run(my), next);
+        if (next > 0) timer = setTimeout(() => void refresher.trigger(), next);
       } catch (e) {
-        if (ctrl.signal.aborted || my !== gen) return;
+        if (ctrl.signal.aborted) return;
         if (e instanceof ApiError && e.status === 401) { toLogin(); return; }
         if (e instanceof ApiError && ERRORS[e.status]) { dispatch({ type: 'ERROR', error: ERRORS[e.status]! }); return; }
         fails++;
         if (fails >= 5) dispatch({ type: 'OFFLINE', offline: true });
-        timer = setTimeout(() => run(my), Math.min(15_000, 2000 * 2 ** (fails - 1)));
-      } finally {
-        busy = false;
-        if (again && my === gen) { again = false; clearTimeout(timer); void run(++gen); }
+        timer = setTimeout(() => void refresher.trigger(), Math.min(15_000, 2000 * 2 ** (fails - 1)));
       }
     };
-    kick.current = (f = false) => { full ||= f; if (busy) { again = true; return; } clearTimeout(timer); void run(++gen); };
-    kick.current(true);
-    return () => { ctrl.abort(); clearTimeout(timer); gen++; };
+    // nunca dos consultas a la vez: lo pedido en vuelo (commit o el timbre) se repite al terminar
+    const refresher = coalesce(load);
+    kick.current = (f = false) => { full ||= f; return refresher.trigger(); };
+    void kick.current(true);
+    return () => { ctrl.abort(); clearTimeout(timer); refresher.stop(); };
   }, [matchId, commit, toLogin]);
 
   // se cayó el canal: no esperar los 10 s del respaldo
-  useEffect(() => { const was = onAirRef.current; onAirRef.current = onAir; if (was && !onAir) kick.current(); }, [onAir]);
+  useEffect(() => { const was = onAirRef.current; onAirRef.current = onAir; if (was && !onAir) void kick.current(); }, [onAir]);
 
-  const reload = useCallback(() => kick.current(true), []);
-  const refresh = useCallback(() => kick.current(), []);
+  const reload = useCallback(() => void kick.current(true), []);
+  const refresh = useCallback(() => void kick.current(), []);
+  // reloj en 0 en pantalla: el servidor solo cierra por tiempo al consultarlo y su reloj puede ir detrás
+  const flag = useCallback(() => watchFlag({ refresh: async () => { await kick.current(); return live.current.server; } }), []);
   const notice = (n: string) => dispatch({ type: 'NOTICE', notice: n });
 
   /** Errores comunes de las acciones: 401 al login, 409 recarga, el resto como aviso. */
@@ -169,7 +169,7 @@ export function useGame(matchId: string) {
     call.then(r => commit(r.state, null), e => fail(e, map));
 
   return {
-    ...s, onAir, yourTurn, play, undo, say: notice, reload: refresh,
+    ...s, onAir, yourTurn, play, undo, flag, say: notice, reload: refresh,
     resign: () => withState(arenaApi.resign(matchId)),
     offerDraw: () => { notice(''); return withState(arenaApi.offerDraw(matchId)); },
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),

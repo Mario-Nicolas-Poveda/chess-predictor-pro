@@ -3,6 +3,27 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-02
+Sprint 5 · AI Coach.
+
+### Añadido
+- AI Coach: al terminar una partida, el análisis del entrenador con tu precisión, tus errores (?!, ?, ??), los momentos clave y de 1 a 3 consejos según tu historial reciente (#138, #140, #142, #143)
+- Análisis con el motor propio: probabilidad de ganar por jugada, fase, apertura y motivos: pieza sin defensa, captura o mate perdidos, mate permitido y hábitos de apertura y de reloj (#138)
+- Consejos escritos por un modelo de lenguaje configurable, con plantillas de respaldo: siempre funciona (#139)
+- Plan de entrenamiento con tus últimas partidas analizadas; página "Entrenador" (#140, #144)
+- Gráfica de ventaja en la repetición (#142)
+- Código nuevo: 202 (trabajo en cola, con `Location`) (#140)
+- CI revisa la rama destino y la descripción de cada PR; cabecera `Server-Timing` (#136)
+
+### Cambiado
+- Móvil: el tablero 2D aparece al instante y el 3D entra solo cuando el navegador está libre, sin el fondo vacío de 6 s (#85)
+- Sin compilación de shaders en paralelo (Firefox), el 3D usa la calidad baja: sin sombras en tiempo real y a 30 fps, para no congelar el primer cuadro (#88)
+
+### Corregido
+- La derrota por tiempo aparece al instante (#141)
+- Tocar el tablero 2D ya no frena la entrada del 3D (#174)
+- La IA ya no deja su permiso de turno en una partida terminada; requiere la migración `0008` (#173)
+
 ## [0.4.3] - 2026-11-01
 ### Corregido
 - Tablero 3D: tocar una casilla destino detrás de la pieza seleccionada juega esa casilla en lugar de deseleccionarla (#170)

@@ -1,0 +1,23 @@
+name: PR checks
+on:
+  pull_request:
+    # edited: corregir la descripción vuelve a correr la revisión sin otro push
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+permissions:
+  contents: read
+jobs:
+  pr:
+    name: rama y descripción
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/check-pr.sh
+          sparse-checkout-cone-mode: false
+      - name: Revisar rama destino y descripción
+        env:
+          # por variable de entorno, nunca ${{ }} dentro de run: así un texto del PR no puede inyectar comandos
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bash scripts/check-pr.sh

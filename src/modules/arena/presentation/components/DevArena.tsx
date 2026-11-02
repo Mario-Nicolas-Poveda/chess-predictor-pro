@@ -14,7 +14,7 @@ import { materialOf } from './PlayerStrip';
 import { PromotionDialog } from './PromotionDialog';
 
 const YOU = { name: 'alice', elo: 1450 }, BOT = { name: 'bob_bot', elo: 1478 };
-const COLORS = { tileL: THEME_3D.pergamino.tileL, tileD: THEME_3D.pergamino.tileD, frame: THEME_3D.pergamino.frame, accent: ACCENT_HEX.vino.light };
+const COLORS = { tileL: THEME_3D.pergamino.tileL, tileD: THEME_3D.pergamino.tileD, frame: THEME_3D.pergamino.frame, soft: THEME_3D.pergamino.soft, accent: ACCENT_HEX.vino.light };
 
 /** /dev/arena: la arena completa contra el bot local, sin backend (juegas con blancas, 10 + 0). */
 export function DevArena() {

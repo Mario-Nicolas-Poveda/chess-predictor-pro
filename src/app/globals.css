@@ -46,6 +46,9 @@
 [data-theme="noche"]   { --t-bg:#14100d; --t-band:#1e1813; --t-panel:#1e1813; --t-ink:#efe5d2; --t-soft:#cbbca6; --t-faint:#a8977f; --t-muted:#6f6152; --t-rule:#3a2e24; --t-loss:#6a584a; --t-on-acc:#14100d; color-scheme: dark; }
 [data-theme="salvia"]  { --t-bg:#eef1e9; --t-band:#e1e7d9; --t-panel:#f7f9f4; --t-ink:#1d2a21; --t-soft:#4a5a4e; --t-faint:#5f6f63; --t-muted:#98a69a; --t-rule:#cdd7c6; --t-loss:#a6b5a0; --t-on-acc:#fbf8f1; color-scheme: light; }
 [data-theme="pizarra"] { --t-bg:#edf0f4; --t-band:#e1e6ed; --t-panel:#f7f9fb; --t-ink:#18212d; --t-soft:#465264; --t-faint:#5d6979; --t-muted:#98a3b2; --t-rule:#cbd3de; --t-loss:#a3aebd; --t-on-acc:#fbf8f1; color-scheme: light; }
+/* Clases de jugada (?! ? ??): una familia de tono, de menos a más grave; contraste ≥ 3:1 sobre los paneles de los 4 temas */
+:root, [data-theme="pergamino"], [data-theme="salvia"], [data-theme="pizarra"] { --cls-inaccuracy:#c27c3a; --cls-mistake:#a14d26; --cls-blunder:#6f2113; }
+[data-theme="noche"] { --cls-inaccuracy:#b0643b; --cls-mistake:#de8a55; --cls-blunder:#f6bf94; }
 
 /* Acentos: valor claro por defecto; el tema oscuro usa la versión clara del color */
 :root { --t-acc: #6e1e2b; }
@@ -76,6 +79,8 @@ input:autofill { box-shadow: 0 0 0 1000px var(--t-panel) inset; -webkit-text-fil
 
 @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @utility animate-rise { animation: rise .8s var(--ease-out) both; }
+@keyframes slide { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
+@utility animate-slide { animation: slide 1.4s ease-in-out infinite; @media (prefers-reduced-motion: reduce) { animation: none; } }
 
 /* Paneles laterales con <dialog> nativo + transición CSS */
 .sheet {

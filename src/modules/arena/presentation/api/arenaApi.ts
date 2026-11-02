@@ -22,6 +22,13 @@ export interface ArenaApi {
 /** 202 = ofrecida (falta el rival) · 201 = aceptada, con la partida nueva. */
 export type Rematch = { state: 'offered' } | { state: 'accepted'; matchId: string };
 
+/** Lo que el mock de la IA necesita de la partida en memoria. */
+export interface ArenaMock extends ArenaApi {
+  position(id: string): { fen: string; ply: number; turn: Color };
+  setAi(id: string, ai: NonNullable<GameState['ai']>): void;
+  takeback(id: string, ply: number): Promise<void>;
+}
+
 const at = (id: string) => `/matches/${encodeURIComponent(id)}`;
 
 const http: ArenaApi = {
@@ -50,20 +57,20 @@ const http: ArenaApi = {
 };
 
 /** Mock en memoria (NEXT_PUBLIC_API_MOCK=1): juegas con blancas, 10 + 0, contra bob_gambito sobre localGame. Mismos códigos que la API. */
-export function createMock(): ArenaApi {
+export function createMock(): ArenaMock {
   const START = 10 * 60_000, PENDING_MS = 3 * 60_000;
   const player = (username: string, elo: number) => ({ id: username, username, displayName: null, avatarUrl: null, elo });
   const players = { white: player('alice', 1450), black: player('bob_gambito', 1478) };
   type Mock = {
     game: LocalGame; moves: MoveDTO[]; status: GameState['status']; version: number; ms: Record<Color, number>;
     turnStartedAt: number | null; drawOffer: Color | null; result: { winner: Color | null; reason: EndReason } | null;
-    createdAt: number; startedAt: number | null; endedAt: number | null; rematchId: string | null;
+    createdAt: number; startedAt: number | null; endedAt: number | null; rematchId: string | null; ai: GameState['ai'];
   };
   const games = new Map<string, Mock>();
   const get = (id: string) => {
     let g = games.get(id);
     if (!g) games.set(id, g = { game: new LocalGame(), moves: [], status: 'pending', version: 1, ms: { white: START, black: START },
-      turnStartedAt: null, drawOffer: null, result: null, createdAt: Date.now(), startedAt: null, endedAt: null, rematchId: null });
+      turnStartedAt: null, drawOffer: null, result: null, createdAt: Date.now(), startedAt: null, endedAt: null, rematchId: null, ai: null });
     return g;
   };
   const delay = () => new Promise(r => setTimeout(r, 150));
@@ -105,7 +112,7 @@ export function createMock(): ArenaApi {
       return { before, after: before + eloDelta(before, players[c === 'white' ? 'black' : 'white'].elo, score) };
     };
     return {
-      id, status: g.status, version: g.version, timeControl: '10+0', rated: true, ai: null, yourColor: 'white', ply: g.game.ply, turn, fen: g.game.fen,
+      id, status: g.status, version: g.version, timeControl: '10+0', rated: true, ai: g.ai, yourColor: 'white', ply: g.game.ply, turn, fen: g.game.fen,
       check: !!last && /[+#]$/.test(last.san),
       moves: g.moves.filter(m => m.ply > since || m === last),
       clock: { whiteMs: g.ms.white, blackMs: g.ms.black, incrementMs: 0, running: g.status === 'active' ? turn : null,
@@ -122,7 +129,7 @@ export function createMock(): ArenaApi {
     const s = toState(id, g, 0), r = s.result!;
     const outcome = r.winner === null ? 'draw' : r.winner === 'white' ? 'win' : 'loss';
     return { id, timeControl: s.timeControl, endedAt: s.endedAt!, yourColor: 'white', outcome, reason: r.reason,
-      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, rated: true, opponent: players.black };
+      eloDelta: r.elo.white.after - r.elo.white.before, plies: s.ply, rated: true, opponent: players.black, review: null };
   };
   const live = (g: Mock) => {
     flag(g);
@@ -211,7 +218,26 @@ export function createMock(): ArenaApi {
       if (g.status !== 'pending') throw new ApiError(409, 'MATCH_NOT_PENDING', 'La partida ya empezó');
       g.status = 'aborted'; g.version++;
     },
+    position(id) {
+      const { game } = get(id);
+      return { fen: game.fen, ply: game.ply, turn: game.turn };
+    },
+    setAi(id, ai) { get(id).ai = ai; },
+    async takeback(id, ply) {
+      await delay();
+      const g = get(id);
+      live(g);
+      if (ply !== g.game.ply) throw new ApiError(409, 'STALE_PLY', 'La posición cambió');
+      if (g.game.turn !== 'white') throw new ApiError(409, 'AI_THINKING', 'Espera a que la IA juegue');
+      if (!g.game.ply) throw new ApiError(409, 'NOTHING_TO_UNDO', 'No hay jugadas tuyas para deshacer');
+      g.game.undo(); g.game.undo();
+      g.moves.length = g.game.ply;
+      const last = g.moves.at(-1);
+      g.ms = { white: last?.whiteMs ?? START, black: last?.blackMs ?? START };
+      g.turnStartedAt = Date.now(); g.ai!.takebacks++; g.version++;
+    },
   };
 }
 
-export const arenaApi: ArenaApi = process.env.NEXT_PUBLIC_API_MOCK === '1' ? createMock() : http;
+export const arenaMock = createMock();
+export const arenaApi: ArenaApi = process.env.NEXT_PUBLIC_API_MOCK === '1' ? arenaMock : http;

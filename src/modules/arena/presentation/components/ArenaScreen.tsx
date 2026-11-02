@@ -62,7 +62,7 @@ export function ArenaScreen() {
   const fen = s?.fen;
   const legal = useMemo(() => (canMove && fen ? livePosition(fen, g.optimistic).moves({ verbose: true }) : []), [canMove, fen, g.optimistic]);
   const input = useBoardInput(legal, g.play);
-  const clock = useClock(s?.clock, g.offset, g.reload, { paused: !!g.optimistic, tick: s?.status === 'pending' });
+  const clock = useClock(s?.clock, g.offset, g.flag, { paused: !!g.optimistic, tick: s?.status === 'pending' });
 
   const finished = s?.status === 'finished';
   // modo enfoque: sin menú de módulos mientras se juega; vuelve al terminar
@@ -234,7 +234,7 @@ export function ArenaScreen() {
       overlay={input.promo ? <PromotionDialog color={you === 'white' ? 'w' : 'b'} onPick={input.promote} onCancel={input.cancelPromo} />
         : outcome && s.result && ready && <EndBand title={OUTCOME_TITLE[outcome]} reason={reason}
           eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : undefined}
-          link={ai ? { href: '/dashboard/ai', label: 'Elegir otro nivel' } : { href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
+          link={{ href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
           onAgain={() => void again()} />}
       actions={actions} />
     {playing && <ExitDialog open={exiting} text={exit.text} confirm={exit.confirm} busy={leaving} onConfirm={() => void leave()} onClose={() => setExiting(false)} />}

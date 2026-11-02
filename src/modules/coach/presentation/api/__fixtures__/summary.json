@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "status": "ready",
+    "version": 2,
+    "pollAfterMs": 0,
+    "stale": false,
+    "basedOn": 4,
+    "stats": {
+      "games": 4,
+      "accuracyAvg": 65,
+      "blundersPerGame": 0.8,
+      "errorsByPhase": {"opening": 5, "middlegame": 0, "endgame": 0},
+      "accuracyTrend": [
+        {"matchId": "00000000-0000-4000-8000-000000000001", "endedAt": "2026-11-20T10:00:00.000Z", "accuracy": 66},
+        {"matchId": "00000000-0000-4000-8000-000000000002", "endedAt": "2026-11-21T11:00:00.000Z", "accuracy": 50},
+        {"matchId": "00000000-0000-4000-8000-000000000003", "endedAt": "2026-11-22T12:00:00.000Z", "accuracy": 75},
+        {"matchId": "00000000-0000-4000-8000-000000000004", "endedAt": "2026-11-23T13:00:00.000Z", "accuracy": 68}
+      ],
+      "topMotifs": [
+        {"motif": "hanging_piece", "count": 1, "lastMatchId": "00000000-0000-4000-8000-000000000002"},
+        {"motif": "missed_capture", "count": 1, "lastMatchId": "00000000-0000-4000-8000-000000000004"},
+        {"motif": "allowed_mate", "count": 1, "lastMatchId": "00000000-0000-4000-8000-000000000001"},
+        {"motif": "early_queen", "count": 1, "lastMatchId": "00000000-0000-4000-8000-000000000002"}
+      ],
+      "openings": [
+        {"name": "Apertura de alfil", "color": "black", "games": 1, "wins": 0, "draws": 0, "losses": 1},
+        {"name": "Escandinava", "color": "black", "games": 1, "wins": 0, "draws": 1, "losses": 0},
+        {"name": "Escandinava", "color": "white", "games": 1, "wins": 0, "draws": 0, "losses": 1},
+        {"name": "Gambito de dama rehusado", "color": "black", "games": 1, "wins": 1, "draws": 0, "losses": 0}
+      ]
+    },
+    "plan": {
+      "headline": "Precisión media de 65 % en 4 partidas (mejorando).",
+      "focus": [
+        {
+          "title": "Revisa qué queda sin defensa",
+          "body": "Pierdes material por piezas que quedan sin defensa. Antes de cada jugada, mira qué deja de proteger. (Pasó 1 vez en tus últimas partidas.)",
+          "category": "tactics"
+        },
+        {
+          "title": "Busca las capturas que ganan",
+          "body": "Se te escapan capturas que ganan material. Después de cada jugada del rival, busca qué dejó sin proteger. (Pasó 1 vez en tus últimas partidas.)",
+          "category": "tactics"
+        },
+        {
+          "title": "Protege a tu rey antes de atacar",
+          "body": "Algunas partidas se pierden por mates que se podían ver. Antes de jugar, revisa los jaques del rival. (Pasó 1 vez en tus últimas partidas.)",
+          "category": "tactics"
+        }
+      ],
+      "drill": "Antes de cada jugada, repasa jaques, capturas y amenazas del rival (las tuyas y las suyas).",
+      "source": "template",
+      "model": null
+    },
+    "error": null,
+    "updatedAt": "2026-11-23T13:00:05.000Z"
+  }
+}

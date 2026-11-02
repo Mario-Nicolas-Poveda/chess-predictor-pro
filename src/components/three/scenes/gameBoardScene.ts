@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D } from 'three';
 import type { BoardPiece, Square } from '@/components/chess/types';
 import { createBoard, createPiece, geosAsync, pieceMaterials, squareToXZ, srgb } from '../kit';
@@ -44,7 +45,7 @@ const gravePos = (color: 'w' | 'b', n: number, layout: Layout) => {
 
 export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 34 });
-  const { THREE, scene, camera, tweens, quality } = stage;
+  const { scene, camera, tweens, quality } = stage;
   await geosAsync(quality, stage.step);
 
   const board = createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }, quality);

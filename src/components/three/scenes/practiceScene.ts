@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Group, Material, Mesh, Object3D } from 'three';
 import type { Arrow, BoardPiece, Square } from '@/components/chess/types';
 import { createBoard, createPiece, geosAsync, pieceMaterials, squareToXZ, srgb } from '../kit';
@@ -24,7 +25,7 @@ export interface PracticeScene {
 
 export const createPracticeScene: SceneFactory<PracticeScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 32, continuous: false });
-  const { THREE, scene, camera, tweens, quality } = stage;
+  const { scene, camera, tweens, quality } = stage;
   await geosAsync(quality, stage.step);
   const board = createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }, quality);
   scene.add(board.group);

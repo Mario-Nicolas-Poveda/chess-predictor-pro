@@ -96,7 +96,7 @@ export async function createStage(canvas: HTMLCanvasElement, o: StageOptions) {
   await step();
 
   return {
-    THREE, renderer, scene, camera, hemi, key, tweens, invalidate, quality, step, dispose,
+    renderer, scene, camera, hemi, key, tweens, invalidate, quality, step, dispose,
     setContinuous(on: boolean) { continuous = on && !o.reducedMotion; invalidate(); },
     onFrame(fn: FrameFn) { frames.add(fn); invalidate(); return () => { frames.delete(fn); }; },
     /** 5 · compila los shaders en su propia tarea; 6 · primer frame. Antes de esto el bucle no dibuja. */

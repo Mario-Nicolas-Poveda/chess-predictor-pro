@@ -3,6 +3,10 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-01
+### Corregido
+- Tablero 3D: tocar una casilla destino detrás de la pieza seleccionada juega esa casilla en lugar de deseleccionarla (#170)
+
 ## [0.4.2] - 2026-11-01
 ### Corregido
 - Al volver a una pantalla ya no quedan "Empezar partida" o "Jugar otra vez" cargando, ni el aviso falso de partida sin terminar, ni "Cerrando…" en la cabecera (#158)

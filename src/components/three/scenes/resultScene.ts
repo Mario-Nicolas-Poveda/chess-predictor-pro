@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Group, Mesh, MeshStandardMaterial } from 'three';
 import { createPiece, geosAsync, lux, pieceMaterials, srgb, surface } from '../kit';
 import { createStage } from '../stage';
@@ -17,7 +18,7 @@ const AUTO_SPIN = .004, TILE = .7, KING = 1.4, X = .7;
 /** Los dos reyes sobre un pedestal: el que pierde cae hacia atrás, el que gana salta y gira; en tablas se saludan. */
 export const createResultScene: SceneFactory<ResultScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 30 });
-  const { THREE, scene, camera, tweens, hemi, key, quality } = stage;
+  const { scene, camera, tweens, hemi, key, quality } = stage;
   const spins = quality === 'high' && !reducedMotion;   // calidad baja: quieto, gira solo al arrastrar
   await geosAsync(quality, stage.step);
   // más lejos que (0, 3.6, 8.6): las esquinas del pedestal 5×5 se cortaban al girar en un escenario cuadrado

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Group } from 'three';
 import { createBoard, createPiece, geosAsync, lux, pieceMaterials, squareToXZ, srgb, type PieceType } from '../kit';
 import { createStage } from '../stage';
@@ -25,7 +26,7 @@ const KNIGHT_JUMPS = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2,
 
 export const createPlayScene: SceneFactory<PlayScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 32 });
-  const { THREE, scene, camera, tweens, quality } = stage;
+  const { scene, camera, tweens, quality } = stage;
   await geosAsync(quality, stage.step);
   scene.add(createBoard({ light: '#efe4d3', dark: '#c9b08e', frame: '#4a2c24' }, quality).group);
   await stage.step();

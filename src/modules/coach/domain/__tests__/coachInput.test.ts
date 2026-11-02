@@ -3,14 +3,14 @@ import { analyseMatch } from '../analyseMatch';
 import { buildCoachInput, type GameMeta, type HistoryFacts } from '../coachInput';
 import { moveLabel, sanEs } from '../notation';
 import type { MatchAnalysis } from '../types';
-import { game, sanOf } from './games';
+import { exact, game, sanOf } from './games';
 
 const meta: GameMeta = { result: 'loss', reason: 'checkmate', opponent: 'human', opponentElo: 1200, timeControl: '10+0', yourElo: 1150 };
 const noHistory: HistoryFacts = { games: 0, accuracyAvg: null, blundersPerGame: null, topMotif: null, worstPhase: null, streak: null };
 
 let a: MatchAnalysis;
 beforeAll(async () => {
-  a = await analyseMatch(game(['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']), { sanOf });
+  a = await analyseMatch(game(['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']), exact);
 }, 20_000);
 
 describe('notation', () => {

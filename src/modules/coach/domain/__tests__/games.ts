@@ -15,6 +15,9 @@ export function game(sans: string[], msLeft: (ply: number) => number | null = ()
 export const sanOf = (fen: string, uci: string) =>
   new Chess(fen).move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] }).san;
 
+/** Para los tests que comparan cifras exactas: con la máquina cargada, el tope de 500 ms corta la búsqueda y las cambia. */
+export const exact = { sanOf, msPerMove: 60_000 };
+
 /** Partida del motor contra sí mismo, repetible: el azar de los niveles sale de una semilla fija. */
 export function engineGame(plies: number): PlayedMove[] {
   const g = new Chess(), moves: PlayedMove[] = [];

@@ -1,6 +1,7 @@
 import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D } from 'three';
 import type { BoardPiece, Square } from '@/components/chess/types';
 import { createBoard, createPiece, geosAsync, pieceMaterials, squareToXZ, srgb } from '../kit';
+import { pickSquare } from '../pickSquare';
 import { createStage } from '../stage';
 import { ease } from '../tween';
 import type { SceneFactory } from '../useThreeScene';
@@ -216,13 +217,12 @@ export const createGameBoardScene: SceneFactory<GameBoardScene> = async (canvas,
     ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const targets: Object3D[] = [...board.squares, ...[...placed.keys()].map(id => groups.get(id)!)];
-    for (const hit of ray.intersectObjects(targets, true)) {
+    const squares = ray.intersectObjects(targets, true).flatMap(hit => {
       const id = hit.object.userData.pieceId as string | undefined;
-      if (id) { const p = placed.get(id); if (p) return p.square; continue; }
-      const sq = hit.object.userData.square as Square | undefined;
-      if (sq) return sq;
-    }
-    return null;
+      const sq = id ? placed.get(id)?.square : hit.object.userData.square as Square | undefined;
+      return sq ? [sq] : [];
+    });
+    return pickSquare(squares, view?.selected ?? null, sq => !!view && (view.targets.includes(sq) || view.captures.includes(sq)));
   };
   const isPickable = (sq: Square | null) => !!sq && !!view?.interactive && (view.targets.includes(sq) || view.captures.includes(sq) || view.movable.includes(sq));
 

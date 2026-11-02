@@ -34,4 +34,11 @@ describe('calidad del contexto', () => {
     strongDevice();
     expect(contextQuality(fakeGl('ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11)'))).toBe('high');
   });
+
+  it('sin compilación de shaders en paralelo (Firefox) es baja', () => {
+    strongDevice();
+    const gl = fakeGl('ANGLE (Intel, Intel(R) HD Graphics Direct3D11)');
+    gl.getExtension = ((name: string) => (name === 'KHR_parallel_shader_compile' ? null : {})) as typeof gl.getExtension;
+    expect(contextQuality(gl)).toBe('low');
+  });
 });

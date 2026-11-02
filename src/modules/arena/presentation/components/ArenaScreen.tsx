@@ -234,7 +234,7 @@ export function ArenaScreen() {
       overlay={input.promo ? <PromotionDialog color={you === 'white' ? 'w' : 'b'} onPick={input.promote} onCancel={input.cancelPromo} />
         : outcome && s.result && ready && <EndBand title={OUTCOME_TITLE[outcome]} reason={reason}
           eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : undefined}
-          link={ai ? { href: '/dashboard/ai', label: 'Elegir otro nivel' } : { href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
+          link={{ href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
           onAgain={() => void again()} />}
       actions={actions} />
     {playing && <ExitDialog open={exiting} text={exit.text} confirm={exit.confirm} busy={leaving} onConfirm={() => void leave()} onClose={() => setExiting(false)} />}

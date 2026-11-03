@@ -25,6 +25,8 @@ echo "== prefs restablecer 204"; curl -s -o /dev/null -w '%{http_code}\n' -b $J 
 echo "== prefs de nuevo por defecto 200"; j -b $J $B/profile/preferences
 # ---
 echo "== logout 204";     curl -s -o /dev/null -w '%{http_code}\n' -b $J -c $J -X POST $B/auth/logout
+echo "== logout 204 otra vez"; curl -s -o /dev/null -w '%{http_code}\n' -b $J -X POST $B/auth/logout
+echo "== logout 204 sin sesión"; curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/auth/logout
 echo "== me 401";         j -b $J $B/auth/me
 echo "== login demo";     j -X POST $B/auth/login -d '{"email":"demo@chesspredictor.dev","password":"Demo1234"}'
 echo "== login 401";      j -X POST $B/auth/login -d '{"email":"demo@chesspredictor.dev","password":"mala1234"}'

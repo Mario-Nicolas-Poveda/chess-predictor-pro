@@ -222,6 +222,7 @@ describe('GetGameState', () => {
     const r = await get();
     expect(r.etag).toBe('"m-0"');
     expect(await get(0, r.etag)).toEqual({ etag: '"m-0"', aiToMove: false, notModified: true });
+    expect(await get(0, `W/${r.etag}`)).toMatchObject({ notModified: true });   // lo que manda Chrome detrás de Vercel
   });
 
   it('since=3 trae solo las jugadas 4 en adelante', async () => {
@@ -463,6 +464,7 @@ describe('Contra la IA', () => {
       expect(r.prediction.top[0]).toHaveProperty('san');
       const spy = vi.spyOn(engine, 'predict');
       expect(await prediction(r.etag)).toEqual({ etag: '"p-0-0"', notModified: true });
+      expect(await prediction(`W/${r.etag}`)).toEqual({ etag: '"p-0-0"', notModified: true });
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });

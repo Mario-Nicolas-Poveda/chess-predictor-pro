@@ -1,3 +1,4 @@
+import { etagMatches } from '@/core/shared/http/etag';
 import { NotFoundError } from '@/core/shared/errors/AppError';
 import type { CoachSummaryDTO } from '../infrastructure/dto/coachSchemas';
 import { leaseExpired, summaryEtag, toCoachSummaryDTO } from './coachDto';
@@ -15,7 +16,7 @@ export class GetSummary {
     const [s, info] = await Promise.all([this.repo.findSummary(userId), this.repo.readyInfo(userId)]);
     if (!s) throw new NotFoundError('SUMMARY_NOT_FOUND', 'Todavía no tienes un plan');
     const etag = summaryEtag(s, info), needsWork = leaseExpired(s, this.now());
-    if (ifNoneMatch === etag) return { notModified: true, etag, needsWork };
+    if (etagMatches(ifNoneMatch, etag)) return { notModified: true, etag, needsWork };
     return { notModified: false, etag, needsWork, summary: toCoachSummaryDTO(s, info) };
   }
 }

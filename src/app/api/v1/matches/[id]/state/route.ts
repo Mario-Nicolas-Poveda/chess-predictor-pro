@@ -1,3 +1,4 @@
+import { notModified } from '@/core/shared/http/etag';
 import { withAuth } from '@/core/shared/auth/withAuth';
 import { afterResponse } from '@/core/shared/http/background';
 import { parseParams, parseQuery } from '@/core/shared/http/params';
@@ -14,6 +15,6 @@ export const GET = withAuth<{ id: string }>(async (req, s, params) => {
   // red de seguridad: si la IA debía jugar y no lo hizo, juega ahora (ai_claim evita que piensen dos)
   if (r.aiToMove) afterResponse('ai-safety', () => playAiTurn.run(id));
   const headers = { ETag: r.etag, 'Cache-Control': 'no-store' };
-  if (r.notModified) return new Response(null, { status: 304, headers });
+  if (r.notModified) return notModified(headers);
   return ok({ state: r.state }, { headers });
 });

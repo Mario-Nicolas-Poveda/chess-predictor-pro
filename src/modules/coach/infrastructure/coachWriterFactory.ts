@@ -1,3 +1,4 @@
+import { numberFromEnv } from '@/core/shared/config/numberFromEnv';
 import type { CoachWriter } from '../application/ports/CoachWriter';
 import { FallbackCoachWriter, OpenAiCompatibleCoachWriter, type LlmConfig } from './OpenAiCompatibleCoachWriter';
 import { TemplateCoachWriter } from './TemplateCoachWriter';
@@ -15,9 +16,9 @@ export function llmConfig(env: Env = process.env): LlmConfig | null {
   return baseUrl && apiKey && model ? {
     baseUrl, apiKey, model,
     jsonMode: env.COACH_LLM_JSON_MODE === '1',
-    timeoutMs: Number(env.COACH_LLM_TIMEOUT_MS) || 15_000,
-    maxTokens: Number(env.COACH_LLM_MAX_TOKENS) || 1500,
-    temperature: env.COACH_LLM_TEMPERATURE === 'off' ? null : Number(env.COACH_LLM_TEMPERATURE) || 0.4,
+    timeoutMs: numberFromEnv('COACH_LLM_TIMEOUT_MS', env.COACH_LLM_TIMEOUT_MS, 15_000, { min: 1, max: 120_000 }),
+    maxTokens: numberFromEnv('COACH_LLM_MAX_TOKENS', env.COACH_LLM_MAX_TOKENS, 1500, { min: 1, max: 100_000 }),
+    temperature: env.COACH_LLM_TEMPERATURE === 'off' ? null : numberFromEnv('COACH_LLM_TEMPERATURE', env.COACH_LLM_TEMPERATURE, 0.4, { min: 0, max: 2 }),
     reasoningEffort: (EFFORTS as readonly string[]).includes(effort ?? '') ? (effort as LlmConfig['reasoningEffort']) : undefined,
   } : null;
 }

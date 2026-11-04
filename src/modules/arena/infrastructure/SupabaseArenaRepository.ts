@@ -14,13 +14,17 @@ type MatchRow = { id: string; white_id: string; black_id: string; time_control: 
   end_reason: EndReason | null; draw_offer_by: Color | null; draw_offered_at: string | null;
   rematch_offer_by: Color | null; rematch_offered_at: string | null;
   rematch_id: string | null; white_elo_before: number | null; black_elo_before: number | null;
-  white_elo_after: number | null; black_elo_after: number | null; rated: boolean; ai_prediction: boolean; takebacks: number };
+  white_elo_after: number | null; black_elo_after: number | null; rated: boolean; ai_prediction: boolean; takebacks: number;
+  // embebidos (MATCH_COLS). match_id es único en tournament_games: PostgREST manda tgame como objeto (1 a 1); se acepta también arreglo
+  tournament?: { id: string; name: string; noshow_s: number; bracket_size: 4 | 8 } | null; tgame?: { round: number } | { round: number }[] | null };
 type HistoryDbRow = { id: string; time_control: TimeControl | 'none'; ended_at: string; your_color: Color; outcome: Outcome3;
   end_reason: EndReason; elo_delta: number; plies: number; opponent_id: string; opponent_elo: number; rated: boolean };
 type MoveRow ={ ply: number; uci: string; san: string; white_ms: number; black_ms: number; created_at: string };
 
+const MATCH_COLS = '*, tournament:tournaments(id, name, noshow_s, bracket_size), tgame:tournament_games(round)';
 const MOVE_COLS = 'ply, uci, san, white_ms, black_ms, created_at';
 const date = (s: string | null) => (s ? new Date(s) : null);
+const roundOf = (g: MatchRow['tgame']) => (Array.isArray(g) ? g[0]?.round : g?.round);
 const mapMatch = (r: MatchRow): MatchRecord => ({ id: r.id, whiteId: r.white_id, blackId: r.black_id,
   timeControl: r.time_control, status: r.status, createdAt: new Date(r.created_at), version: r.version, ply: r.ply,
   fen: r.fen, whiteMs: r.white_ms, blackMs: r.black_ms, incrementMs: r.increment_ms,
@@ -29,7 +33,9 @@ const mapMatch = (r: MatchRow): MatchRecord => ({ id: r.id, whiteId: r.white_id,
   rematchOfferBy: r.rematch_offer_by,
   rematchOfferedAt: date(r.rematch_offered_at), rematchId: r.rematch_id, whiteEloBefore: r.white_elo_before,
   blackEloBefore: r.black_elo_before, whiteEloAfter: r.white_elo_after, blackEloAfter: r.black_elo_after,
-  rated: r.rated, aiPrediction: r.ai_prediction, takebacks: r.takebacks });
+  rated: r.rated, aiPrediction: r.ai_prediction, takebacks: r.takebacks,
+  tournament: r.tournament && roundOf(r.tgame) ? { id: r.tournament.id, name: r.tournament.name, noshowS: r.tournament.noshow_s,
+    bracketSize: r.tournament.bracket_size, round: roundOf(r.tgame)! } : null });
 const mapMove = (r: MoveRow): MoveRecord =>
   ({ ply: r.ply, uci: r.uci, san: r.san, whiteMs: r.white_ms, blackMs: r.black_ms, createdAt: new Date(r.created_at) });
 
@@ -65,7 +71,7 @@ export class SupabaseArenaRepository implements ArenaRepository {
   }
 
   async findMatch(id: string) {
-    const { data, error } = await supabaseAdmin.from('matches').select('*').eq('id', id).maybeSingle<MatchRow>();
+    const { data, error } = await supabaseAdmin.from('matches').select(MATCH_COLS).eq('id', id).maybeSingle<MatchRow>();
     if (error) throw error;
     return data ? mapMatch(data) : null;
   }

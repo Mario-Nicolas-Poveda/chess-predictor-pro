@@ -34,7 +34,7 @@ const record = (): MatchRecord => ({
   whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: null, startedAt: null, endedAt: null,
   result: null, endReason: null, drawOfferBy: null, drawOfferedAt: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
   whiteEloBefore: null, blackEloBefore: null, whiteEloAfter: null, blackEloAfter: null,
-  rated: true, aiPrediction: false, takebacks: 0,
+  rated: true, aiPrediction: false, takebacks: 0, tournament: null,
 });
 
 // Una sola partida (m1). Imita lo que hacen las funciones SQL de 0004 en lo que tocan estos casos de uso
@@ -234,6 +234,20 @@ describe('GetGameState', () => {
     await play('e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7');
     expect(await get(7)).toMatchObject({ state: { moves: [], check: true } });
   });
+
+  it('partida normal: sin torneo y los 3 min de siempre para la primera jugada', async () => {
+    const r = await get();
+    if (r.notModified) throw new Error('sin ETag nunca es 304');
+    expect(r.state.tournament).toBeNull();
+    expect(Date.parse(r.state.pendingExpiresAt!) - repo.m.createdAt.getTime()).toBe(180_000);
+  });
+
+  it('de torneo y pending: el plazo es el del W.O. (createdAt + noshow), también en pendingExpiresAt', async () => {
+    repo.m.tournament = { id: 't1', name: 'Copa', noshowS: 300, bracketSize: 8, round: 2 };
+    const deadline = new Date(repo.m.createdAt.getTime() + 300_000).toISOString();
+    expect(await get()).toMatchObject({ state: {
+      pendingExpiresAt: deadline, tournament: { id: 't1', name: 'Copa', deadline, stage: { round: 2, rounds: 3, name: 'Semifinal' } } } });
+  });
 });
 
 describe('Bot de desarrollo (BotTurn dentro de GetGameState)', () => {
@@ -339,6 +353,11 @@ describe('Revancha', () => {
   it('contra un bot se acepta sola', async () => {
     repo.bots = ['bob'];
     expect(await rematch().request('ana', 'm1')).toEqual({ state: 'accepted', matchId: 'm2' });
+  });
+
+  it('de torneo → 409 TOURNAMENT_MATCH', async () => {
+    repo.m.tournament = { id: 't1', name: 'Copa', noshowS: 300, bracketSize: 4, round: 1 };
+    await expect(rematch().request('ana', 'm1')).rejects.toMatchObject({ code: 'TOURNAMENT_MATCH', status: 409 });
   });
 
   it('en active → 409 MATCH_NOT_FINISHED', async () => {

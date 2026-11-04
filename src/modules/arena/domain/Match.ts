@@ -10,7 +10,10 @@ export interface MatchRecord {
   rematchOfferBy: Color | null; rematchOfferedAt: Date | null; rematchId: string | null;
   whiteEloBefore: number | null; blackEloBefore: number | null; whiteEloAfter: number | null; blackEloAfter: number | null;
   rated: boolean; aiPrediction: boolean; takebacks: number;   // rated = false: contra la IA
+  tournament: MatchTournament | null;   // null = no es de torneo
 }
+
+export interface MatchTournament { id: string; name: string; noshowS: number; bracketSize: 4 | 8; round: number }
 
 export interface MoveRecord { ply: number; uci: string; san: string; whiteMs: number; blackMs: number; createdAt: Date }
 

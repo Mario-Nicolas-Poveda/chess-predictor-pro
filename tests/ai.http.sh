@@ -37,5 +37,14 @@ for i in $(seq 1 31); do C=$(st -b $J -H 'content-type: application/json' -X POS
 curl -s -D - -o /dev/null -b $J -H 'content-type: application/json' -X POST $B/ai/move -d '{"fen":"8/8/8/8/8/8/8/K6k w - - 0 1","level":1}' | grep -i retry-after
 echo "== 200 rendirse contra la IA (sin ELO)";  j -b $J -X POST $B/matches/$M/resign | grep -o '"rated":false\|"reason":"resign"'
 echo "== 409 sin revancha contra la IA";        j -b $J -X POST $B/matches/$M/rematch | grep -o '"code":"[A-Z_]*"'
+# --- salir sin registrar (Sprint 6, 0009) ---
+N=$(j -b $J -X POST $B/ai/games -d '{"level":1,"color":"white"}' | sed -n 's/.*"state":{"id":"\([^"]*\)".*/\1/p')
+echo "== 204 salir sin registrar sin haber jugado"; st -b $J -X DELETE "$B/ai/games/$N"
+echo "== 409 salir otra vez";                   j -b $J -X DELETE "$B/ai/games/$N" | grep -o '"code":"[A-Z_]*"'
+echo "== 400 id que no es UUID";                st -b $J -X DELETE "$B/ai/games/abc"
+N=$(j -b $J -X POST $B/ai/games -d '{"level":1,"color":"white"}' | sed -n 's/.*"state":{"id":"\([^"]*\)".*/\1/p')
+st -b $J -H 'content-type: application/json' -X POST $B/matches/$N/moves -d '{"uci":"e2e4","ply":0}' >/dev/null
+echo "== 409 ya jugaste";                       j -b $J -X DELETE "$B/ai/games/$N" | grep -o '"code":"[A-Z_]*"'
+j -b $J -X POST $B/matches/$N/resign >/dev/null
 echo "== 401 sin sesión";                       j $B/ai/levels
 rm -f $J

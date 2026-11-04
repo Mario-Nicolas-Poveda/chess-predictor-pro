@@ -1,6 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from '@/core/shared/db/supabaseAdmin';
-import { ConflictError, NotFoundError, type AppError } from '@/core/shared/errors/AppError';
+import { ConflictError, ForbiddenError, NotFoundError, type AppError } from '@/core/shared/errors/AppError';
 import type { AiLevel, AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../domain/ArenaRepository';
@@ -48,6 +48,8 @@ const RPC_ERRORS: Record<string, () => AppError> = {
   AI_THINKING: () => new ConflictError('AI_THINKING', 'Espera a que la IA juegue'),
   NOTHING_TO_UNDO: () => new ConflictError('NOTHING_TO_UNDO', 'No hay jugadas tuyas para deshacer'),
   MATCH_FINISHED: () => matchFinished(),
+  FORBIDDEN: () => new ForbiddenError('No participas en esta partida'),
+  GAME_HAS_MOVES: () => new ConflictError('GAME_HAS_MOVES', 'Ya jugaste: para salir, ríndete'),
   AI_LEVEL_NOT_FOUND: () => new NotFoundError('AI_LEVEL_NOT_FOUND', 'Ese nivel no existe'),
 };
 // los errores con dato llegan como 'CODIGO:valor'
@@ -173,6 +175,11 @@ export class SupabaseArenaRepository implements ArenaRepository {
     const { data, error } = await supabaseAdmin.rpc('arena_takeback', { p_match: id, p_color: by, p_expected_ply: expectedPly });
     if (error) throw fromRpc(error);
     return data as number;
+  }
+
+  async abortAiGame(id: string, userId: string) {
+    const { error } = await supabaseAdmin.rpc('ai_abort_game', { p_match: id, p_user: userId });
+    if (error) throw fromRpc(error);
   }
 
   async claimAiTurn(id: string, ply: number, ms: number) {

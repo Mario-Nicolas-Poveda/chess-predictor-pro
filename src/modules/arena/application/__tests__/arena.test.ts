@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
-import { ConflictError, TooManyRequestsError } from '@/core/shared/errors/AppError';
+import { ConflictError, ForbiddenError, TooManyRequestsError } from '@/core/shared/errors/AppError';
 import { zodFields } from '@/core/shared/errors/zodFields';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../../domain/ArenaRepository';
 import { eloDelta } from '../../domain/elo';
@@ -12,6 +12,7 @@ import { ChessJsRules } from '../../infrastructure/ChessJsRules';
 import { HistoryQuerySchema, type Color, type EndReason } from '../../infrastructure/dto/arenaSchemas';
 import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
 import { AI_LEVELS, CreateAiGameSchema, type AiLevel, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+import { AbortAiGame } from '../AbortAiGame';
 import { AnswerDraw } from '../AnswerDraw';
 import { BotTurn } from '../BotTurn';
 import { CreateAiGame } from '../CreateAiGame';
@@ -146,6 +147,17 @@ class MemoryArenaRepo implements ArenaRepository {
     this.touch({ ply: target, fen, takebacks: m.takebacks + 1, turnStartedAt: new Date(), drawOfferBy: null, drawOfferedAt: null });
     this.lease = null;
     return target;
+  }
+  // las mismas reglas que ai_abort_game (0009)
+  async abortAiGame(id: string, userId: string) {
+    const m = this.get(id);
+    if (!m) throw matchNotFound();
+    if (userId !== m.whiteId && userId !== m.blackId) throw new ForbiddenError('No participas en esta partida');
+    if (m.rated) throw notAiMatch();
+    if (m.status === 'finished' || m.status === 'aborted') throw matchFinished();
+    if (m.ply > (userId === m.whiteId ? 0 : 1)) throw new ConflictError('GAME_HAS_MOVES', 'Ya jugaste: para salir, ríndete');
+    this.touch({ status: 'aborted', turnStartedAt: null });
+    this.lease = null;
   }
   lease: { ply: number; until: number } | null = null;
   async claimAiTurn(_id: string, ply: number, ms: number) {
@@ -426,6 +438,24 @@ describe('Contra la IA', () => {
       await create();
       const { state } = await move('ana', 'e2e4', 0);
       expect(state).toMatchObject({ status: 'active', clock: { running: null }, pollAfterMs: 700, ai: { level: 1, name: 'Peón' } });
+    });
+  });
+
+  describe('AbortAiGame', () => {
+    const abort = (user = 'ana') => new AbortAiGame(repo).execute(user, 'm1');
+
+    it('sin jugadas tuyas → sale sin registrar: abortada, sin resultado', async () => {
+      await create();
+      await expect(abort()).resolves.toBeUndefined();
+      expect(repo.m).toMatchObject({ status: 'aborted', result: null });
+      await expect(abort()).rejects.toMatchObject({ code: 'MATCH_FINISHED', status: 409 });
+    });
+
+    it('con una jugada tuya → 409 GAME_HAS_MOVES; otro usuario → 403', async () => {
+      await create();
+      await move('ana', 'e2e4', 0);
+      await expect(abort()).rejects.toMatchObject({ code: 'GAME_HAS_MOVES', status: 409 });
+      await expect(abort('eva')).rejects.toMatchObject({ status: 403 });
     });
   });
 

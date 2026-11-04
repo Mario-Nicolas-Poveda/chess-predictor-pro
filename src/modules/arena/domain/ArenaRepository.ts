@@ -30,6 +30,7 @@ export interface ArenaRepository {
   openAiGame(userId: string): Promise<MatchRecord | null>;             // la partida contra la IA sin terminar (sin settle)
   openRatedMatch(userId: string): Promise<MatchRecord | null>;         // la partida con ELO en juego (mm_open_match)
   takeback(id: string, by: Color, expectedPly: number): Promise<number>;   // el ply nuevo (arena_takeback)
+  abortAiGame(id: string, userId: string): Promise<void>;              // salir sin registrar (ai_abort_game, 0009)
   claimAiTurn(id: string, ply: number, ms: number): Promise<boolean>;  // true = este proceso piensa la jugada (ai_claim)
 }
 

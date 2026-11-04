@@ -2,6 +2,7 @@ import 'server-only';
 import { LIMITS, rateLimit } from '@/core/shared/http/rateLimit';
 import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
 import { SupabasePlayerDirectory } from '@/modules/matchmaking/infrastructure/SupabasePlayerDirectory';
+import { AbortAiGame } from '../../application/AbortAiGame';
 import { AnswerDraw } from '../../application/AnswerDraw';
 import { BotTurn } from '../../application/BotTurn';
 import { CreateAiGame } from '../../application/CreateAiGame';
@@ -44,3 +45,4 @@ export const createAiGame = new CreateAiGame(repo, players, ai, key => rateLimit
 export const suggestMove = new SuggestMove(repo, rules, engine, key => rateLimit(key, LIMITS.aiMove));
 export const getPrediction = new GetPrediction(repo, rules, engine, key => rateLimit(key, LIMITS.prediction));
 export const takeback = new Takeback(repo);
+export const abortAiGame = new AbortAiGame(repo);

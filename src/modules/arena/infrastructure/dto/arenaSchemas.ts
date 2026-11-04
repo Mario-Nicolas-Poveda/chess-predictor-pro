@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AiLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { ReviewBadge } from '@/modules/coach/infrastructure/dto/coachSchemas';
 import type { PlayerSummary, TimeControl } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
+import type { Stage } from '@/modules/tournaments/infrastructure/dto/tournamentSchemas';
 
 export const UciSchema = z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/, { error: 'Jugada en formato UCI, por ejemplo e2e4 o e7e8q' });
 export const MakeMoveSchema = z.object({ uci: UciSchema, ply: z.int().min(0) }).strict();
@@ -19,7 +20,7 @@ export const ProfileHistoryQuerySchema = z.object({ days: z.coerce.number().int(
 
 export type Color = 'white' | 'black';
 export type MatchStatus = 'pending' | 'active' | 'finished' | 'aborted';
-export type EndReason = 'checkmate' | 'resign' | 'timeout' | 'agreement' | 'stalemate' | 'insufficient' | 'threefold' | 'fifty';
+export type EndReason = 'checkmate' | 'resign' | 'timeout' | 'agreement' | 'stalemate' | 'insufficient' | 'threefold' | 'fifty' | 'noshow';   // noshow: W.O. de torneo
 
 export interface MoveDTO { ply: number; uci: string; san: string; whiteMs: number; blackMs: number; at: string }
 export interface EloChange { before: number; after: number }
@@ -47,6 +48,7 @@ export interface GameState {
   you: PlayerSummary;
   opponent: PlayerSummary;
   pollAfterMs: number;                     // 0 = no hace falta seguir consultando
+  tournament: { id: string; name: string; stage: Stage; deadline: string | null } | null;   // null = no es de torneo
 }
 
 export interface MatchListItem {

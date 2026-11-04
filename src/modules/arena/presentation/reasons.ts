@@ -17,6 +17,7 @@ export function reasonText(reason: EndReason, outcome: Outcome, rival: string, p
     case 'insufficient': return 'No queda material para dar mate.';
     case 'threefold': return 'La misma posición se repitió tres veces.';
     case 'fifty': return '50 jugadas sin capturas ni movimientos de peón.';
+    case 'noshow': return outcome === 'win' ? `W.O.: ${rival} no hizo su primera jugada a tiempo.` : 'W.O.: no hiciste tu primera jugada a tiempo.';
   }
 }
 
@@ -27,7 +28,7 @@ export const eloDelta = (you: number, rival: number, score: 0 | 0.5 | 1) =>
 /** Motivo corto para listas: "Victoria · jaque mate · 10 + 0". */
 export const REASON_SHORT: Record<EndReason, string> = {
   checkmate: 'jaque mate', resign: 'abandono', timeout: 'tiempo', agreement: 'acuerdo',
-  stalemate: 'rey ahogado', insufficient: 'material insuficiente', threefold: 'repetición', fifty: '50 jugadas',
+  stalemate: 'rey ahogado', insufficient: 'material insuficiente', threefold: 'repetición', fifty: '50 jugadas', noshow: 'W.O.',
 };
 
 const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });

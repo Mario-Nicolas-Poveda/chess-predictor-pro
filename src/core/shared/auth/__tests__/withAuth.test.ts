@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictError } from '../../errors/AppError';
 import { signToken } from '../jwt';
+import { notModified } from '../../http/etag';
 import { withAuth } from '../withAuth';
 
 const TIMING = /^app;dur=\d+\.\d$/;
@@ -18,6 +19,12 @@ describe('withAuth', () => {
     const res = await withAuth(async (_req, s) => NextResponse.json({ user: s.userId }))(await signedIn(), ctx);
     expect(await res.json()).toEqual({ user: 'u1' });
     expect(res.headers.get('server-timing')).toMatch(TIMING);
+  });
+
+  it('agrega su medición sin borrar la marca del 304', async () => {
+    const res = await withAuth(async () => notModified({ ETag: '"m-2"' }))(await signedIn(), ctx);
+    expect(res.status).toBe(304);
+    expect(res.headers.get('server-timing')).toMatch(/^etag;desc="304", app;dur=\d+\.\d$/);
   });
 
   it('sin sesión → 401, también con la medición, y no llama al handler', async () => {

@@ -174,6 +174,7 @@ describe('el trabajo', () => {
     await analysed('m1');
     const { etag } = await getReview.execute(ANA, 'm1', null);
     expect(await getReview.execute(ANA, 'm1', etag)).toMatchObject({ notModified: true, etag });
+    expect(await getReview.execute(ANA, 'm1', `W/${etag}`)).toMatchObject({ notModified: true, etag });
   });
 
   it('el ETag cambia mientras avanza el trabajo', async () => {
@@ -293,6 +294,7 @@ describe('el plan', () => {
     await ready();
     const { etag } = await getSummary.execute(ANA, null);
     expect(await getSummary.execute(ANA, etag)).toMatchObject({ notModified: true, etag });
+    expect(await getSummary.execute(ANA, `W/${etag}`)).toMatchObject({ notModified: true, etag });
   });
 
   it('una partida nueva cambia el ETag y lo marca viejo', async () => {

@@ -1,3 +1,4 @@
+import { etagMatches } from '@/core/shared/http/etag';
 import { ForbiddenError } from '@/core/shared/errors/AppError';
 import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { AiPlayers } from '../domain/AiPlayers';
@@ -45,7 +46,7 @@ export class GetGameState {
     const m = (await this.bots?.run(own.m)) ? ((await this.repo.findMatch(id)) ?? own.m) : own.m;
     const aiToMove = await this.aiToMove(m);
     const etag = `"m-${m.version}"`;   // version sube con cada cambio de la fila (trigger)
-    if (ifNoneMatch === etag) return { etag, aiToMove, notModified: true as const };
+    if (etagMatches(ifNoneMatch, etag)) return { etag, aiToMove, notModified: true as const };
     return { etag, aiToMove, notModified: false as const,
       state: await stateOf(this.repo, this.players, this.ai, m, own.color, since) };
   }

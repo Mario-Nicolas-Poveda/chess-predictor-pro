@@ -159,6 +159,7 @@ describe('fábrica', () => {
     expect(llmConfig({ ...env, COACH_LLM_JSON_MODE: '1', COACH_LLM_TIMEOUT_MS: '5000', COACH_LLM_MAX_TOKENS: '900', COACH_LLM_TEMPERATURE: 'off', COACH_LLM_REASONING_EFFORT: 'low' }))
       .toMatchObject({ jsonMode: true, timeoutMs: 5000, maxTokens: 900, temperature: null, reasoningEffort: 'low' });
     expect(llmConfig({ ...env, COACH_LLM_REASONING_EFFORT: 'turbo' })).toMatchObject({ jsonMode: false, timeoutMs: 15_000, maxTokens: 1500, temperature: 0.4, reasoningEffort: undefined });
+    expect(llmConfig({ ...env, COACH_LLM_TEMPERATURE: '0' })).toMatchObject({ temperature: 0 });
   });
 
   it('describe lo configurado sin mostrar la clave y sin caerse con una URL mala', () => {

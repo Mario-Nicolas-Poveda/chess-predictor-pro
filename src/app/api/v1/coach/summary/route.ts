@@ -1,3 +1,4 @@
+import { notModified } from '@/core/shared/http/etag';
 import { withAuth } from '@/core/shared/auth/withAuth';
 import { afterResponse } from '@/core/shared/http/background';
 import { accepted, ok } from '@/core/shared/http/responses';
@@ -15,6 +16,6 @@ export const GET = withAuth(async (req, s) => {
   const r = await getSummary.execute(s.userId, req.headers.get('if-none-match'));
   if (r.needsWork) afterResponse('coach-summary-safety', () => generateSummary.run(s.userId));
   const headers = { ETag: r.etag, 'Cache-Control': 'private, no-cache' };
-  if (r.notModified) return new Response(null, { status: 304, headers });
+  if (r.notModified) return notModified(headers);
   return ok({ summary: r.summary }, { headers });
 });

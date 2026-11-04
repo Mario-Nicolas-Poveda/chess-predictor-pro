@@ -1,3 +1,4 @@
+import { etagMatches } from '@/core/shared/http/etag';
 import { NotFoundError } from '@/core/shared/errors/AppError';
 import type { GameReviewDTO } from '../infrastructure/dto/coachSchemas';
 import { leaseExpired, reviewEtag, toGameReviewDTO } from './coachDto';
@@ -19,7 +20,7 @@ export class GetReview {
     const r = await this.repo.findReview(matchId, userId);
     if (!r) throw new NotFoundError('REVIEW_NOT_FOUND', 'Esta partida no tiene análisis todavía');
     const etag = reviewEtag(r), needsWork = leaseExpired(r, this.now());
-    if (ifNoneMatch === etag) return { notModified: true, etag, needsWork };
+    if (etagMatches(ifNoneMatch, etag)) return { notModified: true, etag, needsWork };
     const a = r.status === 'ready' ? await this.repo.findAnalysis(matchId) : null;
     return { notModified: false, etag, needsWork, review: toGameReviewDTO(r, a, you) };
   }

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 const TAGS = /(?:W\/)?"[^"]*"/g;
 const opaque = (tag: string) => tag.trim().replace(/^W\//, '');
 
@@ -10,6 +12,11 @@ export function etagMatches(ifNoneMatch: string | null | undefined, etag: string
   if (ifNoneMatch.trim() === '*') return true;
   const current = opaque(etag);
   return (ifNoneMatch.match(TAGS) ?? []).some(t => opaque(t) === current);
+}
+
+/** ETag a partir del contenido, para respuestas sin versión propia (ranking, torneos). */
+export function contentEtag(prefix: string, body: unknown): string {
+  return `"${prefix}-${createHash('sha1').update(JSON.stringify(body)).digest('base64url').slice(0, 16)}"`;
 }
 
 /** 304 sin cuerpo. `etag;desc="304"` en Server-Timing muestra que lo decidió la función, no Vercel. */

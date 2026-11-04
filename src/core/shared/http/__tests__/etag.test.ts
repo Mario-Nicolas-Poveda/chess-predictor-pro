@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { etagMatches, notModified } from '../etag';
+import { contentEtag, etagMatches, notModified } from '../etag';
 
 describe('etagMatches', () => {
   it('compara en forma débil', () => {
@@ -13,6 +13,14 @@ describe('etagMatches', () => {
   it('listas y *', () => {
     expect(etagMatches('"a", W/"m-2" , "b"', '"m-2"')).toBe(true);
     expect(etagMatches(' * ', '"m-2"')).toBe(true);
+  });
+});
+
+describe('contentEtag', () => {
+  it('estable con el mismo contenido y distinto si cambia', () => {
+    expect(contentEtag('rk', { a: 1 })).toBe(contentEtag('rk', { a: 1 }));
+    expect(contentEtag('rk', { a: 1 })).not.toBe(contentEtag('rk', { a: 2 }));
+    expect(contentEtag('rk', { a: 1 })).toMatch(/^"rk-[A-Za-z0-9_-]{16}"$/);
   });
 });
 

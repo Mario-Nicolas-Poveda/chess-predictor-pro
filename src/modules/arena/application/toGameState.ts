@@ -40,5 +40,6 @@ export function toGameState(m: MatchRecord, moves: MoveRecord[], since: number, 
       m.status === 'pending' ? POLL_MS.pending :
       m.status === 'active' ? (turn === you ? POLL_MS.yourTurn : POLL_MS.theirTurn) :
       rematchBy && !m.rematchId ? POLL_MS.pending : POLL_MS.finished,   // revancha ofrecida: mismo ritmo que pending
+    tournament: null,   // shortcut: siempre null hasta que #188 lo llene con la ronda y el plazo
   };
 }

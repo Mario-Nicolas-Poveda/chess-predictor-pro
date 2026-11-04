@@ -123,6 +123,7 @@ export function createMock(): ArenaMock {
       rematch: g.status === 'finished' ? { offeredBy: null, matchId: g.rematchId } : null,
       you: players.white, opponent: players.black,
       pollAfterMs: g.status === 'pending' ? POLL_MS.pending : g.status === 'active' ? (turn === 'white' ? POLL_MS.yourTurn : POLL_MS.theirTurn) : POLL_MS.finished,
+      tournament: null,
     };
   };
   const toItem = (id: string, g: Mock): MatchListItem => {

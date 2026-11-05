@@ -9,6 +9,8 @@ const FILES = 'abcdefgh';
 // rellenos para los dos colores (las blancas se pintan en papel con contorno); VS15 pide la versión de texto
 const FILLED: Record<PieceType, string> = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const FEMININE = new Set<PieceType>(['q', 'r']);
+// fijos, no del tema: con los tokens, el tema Noche (fondo oscuro, tinta clara) pintaba las negras claras y las blancas oscuras
+const PAPER = '#fbf8f1', INK = '#2a1417';
 
 /** "torre blanca", "rey negro": dama y torre son femeninas. */
 export const pieceLabel = (type: PieceType, color: 'w' | 'b') =>
@@ -57,7 +59,7 @@ export function Board2D({ view, onSquare, children }: { view: BoardView; onSquar
   };
 
   return (
-    <div className="relative aspect-square w-full rounded-[14px] p-[14px]" style={{ backgroundColor: frame }}>
+    <div data-board="2d" className="relative aspect-square w-full rounded-[14px] p-[14px]" style={{ backgroundColor: frame }}>
       <div role="group" aria-label={`Tablero 2D, vista desde las ${white ? 'blancas' : 'negras'}. Usa las flechas para moverte.`}
         className="relative grid size-full grid-cols-8 grid-rows-8 overflow-hidden rounded-[4px]">
         {squares.map((sq, i) => {
@@ -93,8 +95,8 @@ export function Board2D({ view, onSquare, children }: { view: BoardView; onSquar
             <span key={p.id} data-piece={p.id}
               className="absolute left-0 top-0 flex size-[12.5%] items-center justify-center font-chess text-[9.6cqw] leading-none transition-[transform,opacity] duration-[340ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none"
               style={{ transform: `translate(${c * 100}%, ${r * 100}%)${lifted ? ' scale(1.12)' : alive ? '' : ' scale(.6)'}`,
-                opacity: alive ? 1 : 0, zIndex: lifted ? 3 : 1, color: w ? 'var(--t-bg)' : 'var(--t-ink)',
-                WebkitTextStroke: w ? '1.4px var(--t-ink)' : '.6px var(--t-ink)', textShadow: '0 2px 3px rgb(42 20 23 / .28)' }}>
+                opacity: alive ? 1 : 0, zIndex: lifted ? 3 : 1, color: w ? PAPER : INK,
+                WebkitTextStroke: w ? `1.4px ${INK}` : `.6px ${INK}`, textShadow: '0 2px 3px rgb(42 20 23 / .28)' }}>
               {FILLED[p.type]}︎
             </span>
           );

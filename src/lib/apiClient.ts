@@ -1,3 +1,5 @@
+import { onUnauthorized } from '@/modules/auth/presentation/logout';
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string,
               public fields?: Record<string, string[]>, public meta?: Record<string, unknown>) { super(message); }
@@ -10,6 +12,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers: { 'content-type': 'application/json', ...init.headers },
   });
   if (res.status === 204) return undefined as T;
+  // sesión vencida en una página con sesión: una sola salida completa (el login y las páginas públicas no)
+  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) onUnauthorized();
   if (!res.ok) throw await toApiError(res);
   return res.json() as Promise<T>;
 }

@@ -1,4 +1,5 @@
 import { AI_LEVELS, type AiLevel } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+import { deadlineOf, roundName, roundsFor } from '@/modules/tournaments/domain/bracket';
 import type { PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { other, turnOf, type MatchRecord, type MoveRecord } from '../domain/Match';
 import { POLL_MS, type Color, type GameState, type MoveDTO } from '../infrastructure/dto/arenaSchemas';
@@ -15,6 +16,9 @@ export function toGameState(m: MatchRecord, moves: MoveRecord[], since: number, 
   players: Record<Color, PlayerSummary>, aiLevel: AiLevel | null = null, now = new Date()): GameState {
   const turn = turnOf(m.ply);
   const last = moves.at(-1);
+  const t = m.tournament;
+  // en torneo, el plazo de 'pending' es el del W.O. (noshow_s), no los 3 minutos
+  const deadline = t && m.status === 'pending' ? deadlineOf(m.createdAt.toISOString(), t.noshowS) : null;
   const rematchBy = m.rematchOfferedAt && now.getTime() - m.rematchOfferedAt.getTime() < REMATCH_MS ? m.rematchOfferBy : null;
   return {
     id: m.id, status: m.status, version: m.version, timeControl: m.timeControl, rated: m.rated, yourColor: you,
@@ -25,7 +29,7 @@ export function toGameState(m: MatchRecord, moves: MoveRecord[], since: number, 
     clock: { whiteMs: m.whiteMs, blackMs: m.blackMs, incrementMs: m.incrementMs, running: m.status === 'active' && m.timeControl !== 'none' ? turn : null,
       turnStartedAt: m.turnStartedAt?.toISOString() ?? null, serverNow: now.toISOString() },
     drawOffer: m.drawOfferBy,
-    pendingExpiresAt: m.status === 'pending' ? new Date(m.createdAt.getTime() + PENDING_MS).toISOString() : null,
+    pendingExpiresAt: t ? deadline : m.status === 'pending' ? new Date(m.createdAt.getTime() + PENDING_MS).toISOString() : null,
     startedAt: m.startedAt?.toISOString() ?? null,
     endedAt: m.endedAt?.toISOString() ?? null,
     // arena_finish siempre deja los ELO: el ?? 0 solo calma a TypeScript
@@ -40,6 +44,7 @@ export function toGameState(m: MatchRecord, moves: MoveRecord[], since: number, 
       m.status === 'pending' ? POLL_MS.pending :
       m.status === 'active' ? (turn === you ? POLL_MS.yourTurn : POLL_MS.theirTurn) :
       rematchBy && !m.rematchId ? POLL_MS.pending : POLL_MS.finished,   // revancha ofrecida: mismo ritmo que pending
-    tournament: null,   // shortcut: siempre null hasta que #188 lo llene con la ronda y el plazo
+    tournament: t ? { id: t.id, name: t.name, deadline,
+      stage: { round: t.round, rounds: roundsFor(t.bracketSize), name: roundName(t.round, roundsFor(t.bracketSize)) } } : null,
   };
 }

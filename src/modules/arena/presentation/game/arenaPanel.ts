@@ -27,8 +27,13 @@ export function useArenaPanel(status: GameState['status'] | undefined) {
   return { open, toggle };
 }
 
+/** Contra la IA y sin jugadas tuyas (con negras la IA abre): se puede salir sin registrar la partida. */
+export const canAbort = (s: Pick<GameState, 'status' | 'ai' | 'ply' | 'yourColor'>) =>
+  !!s.ai && (s.status === 'pending' || s.status === 'active') && s.ply <= (s.yourColor === 'white' ? 0 : 1);
+
 /** Qué dice y qué hace "Salir" según el estado de la partida. */
-export function exitCopy(s: Pick<GameState, 'status' | 'ai' | 'you' | 'opponent'>) {
+export function exitCopy(s: Pick<GameState, 'status' | 'ai' | 'you' | 'opponent' | 'ply' | 'yourColor'>) {
+  if (canAbort(s)) return { text: 'Aún no has jugado. Si sales, la partida no se registra: no cuenta como derrota.', confirm: 'Salir sin registrar', action: 'abort' as const };
   if (s.status === 'pending') return { text: 'Aún no empieza. Si sales, la partida se cancela.', confirm: 'Salir y cancelar', action: 'cancel' as const };
   if (s.ai) return { text: 'La partida queda como derrota en tu historial. No cambia tu ELO.', confirm: 'Salir y rendirme', action: 'resign' as const };
   const n = -eloDelta(s.you.elo, s.opponent.elo, 0);

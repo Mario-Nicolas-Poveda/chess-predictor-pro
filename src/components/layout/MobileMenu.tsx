@@ -39,7 +39,7 @@ export function MobileMenu({ className = '' }: { className?: string }) {
                     {it.ready ? (
                       <Link href={it.href} onClick={close} aria-current={active ? 'page' : undefined}
                         className={active ? 'text-accent' : 'text-ink hover:text-accent'}>
-                        {it.label}
+                        {it.label}{it.isNew && <span className="ml-2 align-middle font-sans text-xs font-semibold text-accent">Nuevo</span>}
                       </Link>
                     ) : (
                       <span aria-disabled="true" className="text-muted">

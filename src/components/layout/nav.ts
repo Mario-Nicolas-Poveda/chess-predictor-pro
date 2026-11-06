@@ -7,7 +7,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/ai',          label: 'Contra la IA', ready: true,  sprint: 4 },
   { href: '/dashboard/coach',       label: 'Entrenador',   ready: true,  sprint: 5, isNew: true },
   { href: '/dashboard/tournaments', label: 'Torneos',      ready: false, sprint: 6 },
-  { href: '/dashboard/ranking',     label: 'Ranking',      ready: false, sprint: 6 },
+  { href: '/dashboard/ranking',     label: 'Ranking',      ready: true,  sprint: 6 },
 ];
 
 // La página de la partida cuenta como parte de Jugar.

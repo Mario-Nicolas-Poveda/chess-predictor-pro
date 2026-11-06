@@ -1,13 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { PanelRightClose, PanelRightOpen, RefreshCw } from 'lucide-react';
 import { BoardModeToggle } from './BoardModeToggle';
 
 const icon = 'grid size-11 place-items-center rounded-full text-ink hover:bg-band aria-pressed:bg-band';
 
 /** Cabecera en modo enfoque: marca sin enlace, qué partida es y las herramientas (girar, panel, salir). */
-export function ArenaHeader({ label, pill, pillAccent, flipped, onFlip, panelOpen, onTogglePanel, onExit }: {
-  label: string; pill: string | null; pillAccent: boolean; flipped: boolean; onFlip: () => void;
+export function ArenaHeader({ label, labelHref, pill, pillAccent, flipped, onFlip, panelOpen, onTogglePanel, onExit }: {
+  label: string; labelHref?: string; pill: string | null; pillAccent: boolean; flipped: boolean; onFlip: () => void;
   panelOpen: boolean; onTogglePanel: () => void; onExit: () => void;
 }) {
   return (
@@ -19,7 +20,7 @@ export function ArenaHeader({ label, pill, pillAccent, flipped, onFlip, panelOpe
         <div className="flex min-w-0 grow basis-full items-center gap-3 max-[359px]:hidden sm:basis-0 sm:justify-center">
           <p className="flex min-w-0 items-center gap-2.5 text-caption text-ink-soft">
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ok" />
-            <span className="truncate">{label}</span>
+            {labelHref ? <Link href={labelHref} className="truncate underline underline-offset-4 hover:text-ink">{label}</Link> : <span className="truncate">{label}</span>}
           </p>
           {pill && <span className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-medium ${pillAccent ? 'bg-accent text-on-accent' : 'bg-band text-ink'}`}>{pill}</span>}
         </div>

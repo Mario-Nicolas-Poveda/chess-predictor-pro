@@ -13,6 +13,7 @@ import type { BoardView } from '@/components/three/scenes/gameBoardScene';
 import { Button } from '@/components/ui/Button';
 import { AI_LEVELS, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
+import { afterDeadline } from '@/modules/tournaments/presentation/lib/deadline';
 import { usePreferences } from '@/modules/dashboard/presentation/preferences/PreferencesProvider';
 import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/themes';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
@@ -71,6 +72,15 @@ export function ArenaScreen() {
   const panel = useArenaPanel(s?.status);
   const pred = usePrediction(matchId, s, !!s?.ai?.prediction);
   useEffect(() => { if (finished) router.prefetch(`/dashboard/arena/${matchId}/resultado`); }, [finished, router, matchId]);
+  // torneo: al vencer el plazo de la primera jugada, el servidor da el W.O. cuando alguien consulta
+  const tDeadline = s?.status === 'pending' ? s.tournament?.deadline ?? null : null;
+  const { flag, offset } = g;
+  useEffect(() => {
+    if (!tDeadline) return;
+    let stopFlag = () => {};
+    const stop = afterDeadline({ at: tDeadline, skewMs: offset, refresh: async () => { stopFlag = flag(); return true; } });
+    return () => { stop(); stopFlag(); };
+  }, [tDeadline, offset, flag]);
 
   if (g.error) return (
     <div className="mx-auto flex max-w-[1240px] flex-col gap-5 px-5 py-16 lg:px-10">
@@ -95,6 +105,7 @@ export function ArenaScreen() {
   const lastSan = sans.at(-1) ?? null, lastByYou = sans.length > 0 && sans.length % 2 === (you === 'white' ? 1 : 0);
   const outcome = s.result ? outcomeOf(s.result.winner, you) : null;
   const reason = s.result && outcome ? reasonText(s.result.reason, outcome, rival, s.ply, lastSan) : '';
+  const tour = s.tournament;
   const pendingLeft = s.pendingExpiresAt ? Date.parse(s.pendingExpiresAt) - clock.serverNow : 0;
   const theirOffer = s.drawOffer === rivalColor, yourOffer = s.drawOffer === you;
   const playing = s.status === 'active' || s.status === 'pending';
@@ -104,6 +115,8 @@ export function ArenaScreen() {
     : s.status === 'pending' && s.turn !== you ? `Esperando a ${rival}…`
     : yourTurn ? (frame.check ? '¡Jaque!' : 'Tu turno.') : `${rival} piensa…`;
   const sub = outcome ? reason
+    : s.status === 'pending' && !g.optimistic && tour ? (pendingLeft <= 0 ? 'Revisando el plazo…' : you === 'white'
+      ? `Haz tu primera jugada antes de ${mmss(pendingLeft)} o pierdes por W.O.` : `Si ${rival} no hace su primera jugada en ${mmss(pendingLeft)}, ganas por W.O.`)
     : s.status === 'pending' && !g.optimistic && hasClock ? (s.turn === you ? `Tienes ${mmss(pendingLeft)} para la primera jugada. El reloj arranca cuando muevas.` : `Las blancas tienen ${mmss(pendingLeft)} para empezar.`)
     : yourTurn ? (frame.check ? 'Protege a tu rey.' : lastSan ? `${rival} jugó ${sanEs(lastSan)}.` : ai ? `Juegas con ${you === 'white' ? 'blancas' : 'negras'}.` : '')
     : g.optimistic ? 'Enviando tu jugada…'
@@ -168,6 +181,7 @@ export function ArenaScreen() {
   const leave = async () => {
     setLeaving(true);
     if (exit.action === 'abort') { if (await g.abort()) return; }   // 204 → a Contra la IA, con "Saliendo…" hasta irse
+    else if (exit.action === 'leave') { router.push(`/dashboard/tournaments/${tour!.id}`); return; }
     else if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
     else await g.resign();                            // 200 → se ve el final
     setLeaving(false); setExiting(false);
@@ -212,7 +226,7 @@ export function ArenaScreen() {
             {!ai.prediction && <Button variant="ghost" className={small} disabled={!yourTurn} onClick={() => void askHint()}>Pista</Button>}
             {s.status === 'pending' && <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>}
           </> : s.status === 'pending' ? (
-            <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>
+            !tour && <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>
           ) : yourOffer ? <>
             <Button variant="ghost" className={small} disabled>Tablas ofrecidas…</Button>
             <Button variant="ghost" className={small} onClick={() => void g.declineDraw()}>Retirar</Button>
@@ -226,12 +240,13 @@ export function ArenaScreen() {
 
   return (<>
     {playing && (
-      <ArenaHeader label={s.ai ? `Contra la IA · ${s.ai.name} · nivel ${s.ai.level}` : `Partida en vivo · ${t.label} ${t.kind}`}
+      <ArenaHeader label={s.ai ? `Contra la IA · ${s.ai.name} · nivel ${s.ai.level}` : tour ? `${tour.name} · ${tour.stage.name}` : `Partida en vivo · ${t.label} ${t.kind}`}
+        labelHref={tour ? `/dashboard/tournaments/${tour.id}` : undefined}
         pill={pill} pillAccent={pill === '¡Jaque!'} flipped={orientation !== you} onFlip={() => setFlipped(f => !f)}
         panelOpen={panel.open} onTogglePanel={panel.toggle} onExit={() => setExiting(true)} />
     )}
     <ArenaLayout panelOpen={panel.open}
-      eyebrow={ai ? `Contra la IA · ${ai.name} · ${t.label.toLowerCase()}` : `Partida · ${t.label} ${t.kind} · #${s.id.slice(0, 4)}`}
+      eyebrow={ai ? `Contra la IA · ${ai.name} · ${t.label.toLowerCase()}` : tour ? `Torneo · ${tour.name} · ${tour.stage.name}` : `Partida · ${t.label} ${t.kind} · #${s.id.slice(0, 4)}`}
       title={title} titleAccent={!!frame.check && yourTurn && !outcome} sub={sub}
       evalBar={ai?.prediction && <EvalBar white={pred.latest?.white ?? .5} fromBottom={orientation === 'white'} />}
       prediction={ai?.prediction && playing && !pred.failed && (
@@ -244,7 +259,8 @@ export function ArenaScreen() {
       sans={sans} legal={legal} canType={canMove && !input.promo} onPlay={input.play}
       overlay={input.promo ? <PromotionDialog color={you === 'white' ? 'w' : 'b'} onPick={input.promote} onCancel={input.cancelPromo} />
         : outcome && s.result && ready && <EndBand title={OUTCOME_TITLE[outcome]} reason={reason}
-          eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : undefined}
+          eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : s.result.reason === 'noshow' ? 'sin cambios de ELO' : undefined}
+          back={tour ? { href: `/dashboard/tournaments/${tour.id}`, label: 'Volver al torneo' } : undefined}
           link={{ href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
           onAgain={() => void again()} />}
       actions={actions} />

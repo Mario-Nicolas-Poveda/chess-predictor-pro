@@ -32,7 +32,11 @@ export const canAbort = (s: Pick<GameState, 'status' | 'ai' | 'ply' | 'yourColor
   !!s.ai && (s.status === 'pending' || s.status === 'active') && s.ply <= (s.yourColor === 'white' ? 0 : 1);
 
 /** Qué dice y qué hace "Salir" según el estado de la partida. */
-export function exitCopy(s: Pick<GameState, 'status' | 'ai' | 'you' | 'opponent' | 'ply' | 'yourColor'>) {
+export function exitCopy(s: Pick<GameState, 'status' | 'ai' | 'you' | 'opponent' | 'ply' | 'yourColor' | 'tournament'>) {
+  // de torneo, una 'pending' no se cancela: salir solo deja la página (el plazo sigue corriendo)
+  if (s.tournament && s.status === 'pending') return s.yourColor === 'white'
+    ? { text: 'Si no vuelves y haces tu primera jugada antes del plazo, pierdes por W.O.', confirm: 'Salir a las llaves', action: 'leave' as const }
+    : { text: `Si ${s.opponent.username} no hace su primera jugada a tiempo, ganas por W.O. Puedes esperar en las llaves.`, confirm: 'Salir a las llaves', action: 'leave' as const };
   if (canAbort(s)) return { text: 'Aún no has jugado. Si sales, la partida no se registra: no cuenta como derrota.', confirm: 'Salir sin registrar', action: 'abort' as const };
   if (s.status === 'pending') return { text: 'Aún no empieza. Si sales, la partida se cancela.', confirm: 'Salir y cancelar', action: 'cancel' as const };
   if (s.ai) return { text: 'La partida queda como derrota en tu historial. No cambia tu ELO.', confirm: 'Salir y rendirme', action: 'resign' as const };

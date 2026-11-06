@@ -1,4 +1,4 @@
-import { apiFetch, toApiError } from '@/lib/apiClient';
+import { ApiError, apiFetch, toApiError } from '@/lib/apiClient';
 import { AI_LEVELS, recommendedLevel, type AiLevelsResponse, type CreateAiGameInput, type Prediction } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import type { GameState } from '@/modules/arena/infrastructure/dto/arenaSchemas';
 import { arenaMock, type ArenaMock } from '@/modules/arena/presentation/api/arenaApi';
@@ -21,7 +21,12 @@ export const aiHttp = {
   },
   takeback: (matchId: string, ply: number) =>
     apiFetch<void>(`/matches/${matchId}/moves/last?ply=${ply}`, { method: 'DELETE' }),                            // 204
+  /** Salir sin registrar mientras no hayas jugado: 204 · 409 GAME_HAS_MOVES / MATCH_FINISHED. */
+  abort: (matchId: string) => apiFetch<void>(`/ai/games/${matchId}`, { method: 'DELETE' }),
 };
+
+// localStorage 'cpp:mock-ai' = 'has-moves' → el DELETE responde 409 (la IA jugó justo antes)
+const mockAi = () => { try { return localStorage.getItem('cpp:mock-ai'); } catch { return null; } };
 
 /** Mock con los mismos códigos que la API, sobre la partida en memoria del mock de la arena (siempre con blancas). */
 export function createAiMock(arena: ArenaMock): typeof aiHttp {
@@ -44,6 +49,11 @@ export function createAiMock(arena: ArenaMock): typeof aiHttp {
       return { prediction: { ply, white, top: moves, depth }, etag: tag };
     },
     takeback: (matchId, ply) => arena.takeback(matchId, ply),
+    async abort(matchId) {
+      await new Promise(r => setTimeout(r, 500));
+      if (mockAi() === 'has-moves') throw new ApiError(409, 'GAME_HAS_MOVES', 'Ya jugaste en esta partida');
+      return arena.abortAi(matchId);
+    },
   };
 }
 

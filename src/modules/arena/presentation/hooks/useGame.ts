@@ -99,7 +99,10 @@ export function useGame(matchId: string) {
     const refresher = coalesce(load);
     kick.current = (f = false) => { full ||= f; return refresher.trigger(); };
     void kick.current(true);
-    return () => { ctrl.abort(); clearTimeout(timer); refresher.stop(); };
+    // pestaña oculta: load no consulta (Active CPU de Vercel); al volver, una consulta enseguida y no al siguiente segundo
+    const onVis = () => { if (!document.hidden) void kick.current(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { ctrl.abort(); clearTimeout(timer); refresher.stop(); document.removeEventListener('visibilitychange', onVis); };
   }, [matchId, commit, toLogin]);
 
   // se cayó el canal: no esperar los 10 s del respaldo
@@ -175,6 +178,9 @@ export function useGame(matchId: string) {
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),
     // rechazar o retirar: 204, y en 404 la oferta ya no estaba; en los dos casos se quita la banda
     declineDraw: () => { withdrew.current = true; return arenaApi.declineDraw(matchId).catch(e => fail(e, { NO_DRAW_OFFER: '' })).finally(refresh); },
+    /** Salir sin registrar (contra la IA, sin jugadas tuyas). 409: la IA jugó o terminó → se recarga y el aviso se va solo. */
+    abort: () => aiApi.abort(matchId).then(() => { router.replace('/dashboard/ai'); return true; },
+      e => { if (e instanceof ApiError) fail(e); else notice('Sin conexión. Reintenta en un momento.'); return false; }),
     cancel: () => arenaApi.cancel(matchId).then(() => router.push(live.current.server?.ai ? '/dashboard/ai' : '/dashboard/play'),
       e => fail(e, { MATCH_NOT_PENDING: 'La partida ya empezó: puedes rendirte.' })),
   };

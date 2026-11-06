@@ -27,6 +27,7 @@ export interface ArenaMock extends ArenaApi {
   position(id: string): { fen: string; ply: number; turn: Color };
   setAi(id: string, ai: NonNullable<GameState['ai']>): void;
   takeback(id: string, ply: number): Promise<void>;
+  abortAi(id: string): Promise<void>;
 }
 
 const at = (id: string) => `/matches/${encodeURIComponent(id)}`;
@@ -236,6 +237,13 @@ export function createMock(): ArenaMock {
       const last = g.moves.at(-1);
       g.ms = { white: last?.whiteMs ?? START, black: last?.blackMs ?? START };
       g.turnStartedAt = Date.now(); g.ai!.takebacks++; g.version++;
+    },
+    async abortAi(id) {   // como ai_abort_game: el mock juega siempre con blancas
+      await delay();
+      const g = get(id);
+      if (g.status === 'finished' || g.status === 'aborted') throw new ApiError(409, 'MATCH_FINISHED', 'La partida ya terminó');
+      if (g.game.ply > 0) throw new ApiError(409, 'GAME_HAS_MOVES', 'Ya jugaste en esta partida');
+      g.status = 'aborted'; g.version++;
     },
   };
 }

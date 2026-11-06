@@ -21,7 +21,7 @@ import { useClock } from '../hooks/useClock';
 import { useGame } from '../hooks/useGame';
 import { usePrediction } from '../hooks/usePrediction';
 import { useRevealed } from '../hooks/useRevealed';
-import { exitCopy, useArenaPanel } from '../game/arenaPanel';
+import { canAbort, exitCopy, useArenaPanel } from '../game/arenaPanel';
 import { livePosition } from '../game/livePosition';
 import { OUTCOME_TITLE, eloDelta, outcomeOf, reasonText } from '../reasons';
 import { ArenaHeader } from './ArenaHeader';
@@ -45,6 +45,7 @@ export function ArenaScreen() {
   const [confirming, setConfirming] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [kept, setKept] = useState<number | null>(null);   // "Seguir" en esta versión del estado: al deshacer otra vez, vuelve el aviso
   const [say, setSay] = useState('');                                                // avisos para el lector (pista, deshacer)
   const [hover, setHover] = useState<string | null>(null);                           // candidata bajo el cursor o con foco
   const [pinned, setPinned] = useState<{ ply: number; uci: string } | null>(null);   // candidata fija (tocar)
@@ -166,7 +167,8 @@ export function ArenaScreen() {
   const exit = exitCopy(s);
   const leave = async () => {
     setLeaving(true);
-    if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
+    if (exit.action === 'abort') { if (await g.abort()) return; }   // 204 → a Contra la IA, con "Saliendo…" hasta irse
+    else if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
     else await g.resign();                            // 200 → se ve el final
     setLeaving(false); setExiting(false);
   };
@@ -177,8 +179,17 @@ export function ArenaScreen() {
       <RefreshCw size={18} aria-hidden="true" /> Girar tablero
     </button>
   );
+  const discard = async () => { setLeaving(true); if (!(await g.abort())) setLeaving(false); };
   const actions = !playing ? <div className="flex flex-wrap gap-2.5">{flip}</div>
-    : confirming ? (
+    : canAbort(s) && kept !== s.version && !g.optimistic ? (
+      <section aria-labelledby="abort-q" className="flex flex-col gap-3 rounded-2xl px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--t-ink)] animate-rise">
+        <p id="abort-q" className="text-[15px]">Volviste al inicio. Puedes salir sin registrar la partida: no cuenta como derrota.</p>
+        <div className="flex gap-2.5">
+          <Button variant="ghost" className={`${small} flex-1`} disabled={leaving} onClick={() => setKept(s.version)}>Seguir</Button>
+          <Button className={`${small} flex-[1.4]`} disabled={leaving} onClick={() => void discard()}>{leaving ? 'Saliendo…' : 'Salir sin registrar'}</Button>
+        </div>
+      </section>
+    ) : confirming ? (
       <div role="alertdialog" aria-labelledby="resign-q" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 animate-rise">
         <p id="resign-q" className="basis-full text-[15px]">{ai ? '¿Rendirte? La partida queda como derrota en tu historial.' : `¿Rendirte? Perderías ${-eloDelta(s.you.elo, s.opponent.elo, 0)} puntos de ELO.`}</p>
         <Button className={small} onClick={() => { setConfirming(false); void g.resign(); }}>Sí, rendirme</Button>

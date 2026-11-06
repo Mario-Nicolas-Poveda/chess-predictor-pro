@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useSyncExternalStore } from 'react';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
 import type { PollProblem } from '@/lib/etagPoller';
@@ -9,32 +8,18 @@ import type { NextTournamentGame, TournamentListResponse, TournamentSummary } fr
 import { useTournamentList, type CardUi } from '../hooks/useTournamentList';
 import { nextGameText } from '../lib/bracketText';
 import { fmtCountdown } from '../lib/deadline';
+import { bracketHref, day, sameDay, tc, time } from '../lib/format';
+import { useNow } from '../hooks/useNow';
 
 const EYEBROW = 'font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft';
 const OUTLINE = 'inline-flex min-h-11 items-center rounded-full px-[18px] text-[15px] font-semibold text-ink shadow-[inset_0_0_0_1px_var(--t-ink)] hover:bg-band';
 const LINK = 'min-h-11 px-1.5 text-sm font-medium underline underline-offset-4';
 
-const tc = (t: TournamentSummary['timeControl']) => t.replace('+', ' + ');
-const strip = (s: string) => s.replace('.', '');
-const day = (iso: string) => {
-  const d = new Date(iso);
-  return `${strip(d.toLocaleDateString('es-CO', { weekday: 'short' }))} ${d.getDate()} ${strip(d.toLocaleDateString('es-CO', { month: 'short' }))}`;
-};
-const time = (iso: string) => new Date(iso).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
-const sameDay = (iso: string, nowMs: number) => new Date(iso).toDateString() === new Date(nowMs).toDateString();
-export const bracketHref = (id: string) => `/dashboard/tournaments/${id}`;
-
-/** Un reloj que avanza cada segundo, ya corregido con la hora del servidor. En el prerender vale 0 (sin datos no se usa). */
-const tick = (cb: () => void) => { const iv = setInterval(cb, 1000); return () => clearInterval(iv); };
-const second = () => Math.floor(Date.now() / 1000) * 1000;
-function useNow(skewMs: number) {
-  return useSyncExternalStore(tick, second, () => 0) + skewMs;
-}
 
 /** /dashboard/tournaments: la lista y la inscripción; el servidor decide cupos, estados y plazos. */
 export function TournamentsPage() {
   const l = useTournamentList();
-  const nowMs = useNow(l.skew);
+  const nowMs = useNow(l.skew, true);
   return <TournamentsView data={l.view.data} problem={l.view.problem} ui={l.ui} nowMs={nowMs}
     onJoin={l.join} onLeave={l.leave} onAsk={l.ask} onRetry={l.retry} />;
 }

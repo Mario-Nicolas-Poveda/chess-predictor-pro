@@ -77,13 +77,14 @@ export function ResultScreen() {
     <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-16 gap-y-10 px-5 pb-16 pt-8 lg:px-10">
       <section aria-labelledby="result-title" className="flex min-w-0 flex-[1_1_460px] flex-col gap-7 animate-rise">
         <div className="flex flex-col gap-4">
-          <p className="eyebrow">Partida terminada · {ai ? `contra la IA · ${ai.name}` : `${t.label} ${t.kind}`} · {s.endedAt ? ago(s.endedAt, now) : ''}</p>
+          <p className="eyebrow">Partida terminada · {ai ? `contra la IA · ${ai.name}` : s.tournament ? `${s.tournament.name} · ${s.tournament.stage.name}` : `${t.label} ${t.kind}`} · {s.endedAt ? ago(s.endedAt, now) : ''}</p>
           <h1 id="result-title" className="font-display text-[clamp(88px,10vw,148px)] font-semibold leading-[.9] tracking-[-.025em]">{OUTCOME_TITLE[outcome]}</h1>
           <p className="font-display text-[28px] italic leading-tight">{reasonText(s.result.reason, outcome, rival, s.ply, lastSan)}</p>
           <p className="text-ink-soft">{s.you.username} con {COLOR[you]} contra {ai ? `la IA · ${ai.name}` : rival} con {COLOR[rivalColor]}.</p>
         </div>
 
-        {ai ? <p className="text-lg text-ink-soft">Contra la IA no cambia tu ELO.</p> : <div className="flex max-w-[520px] flex-col gap-4">
+        {ai ? <p className="text-lg text-ink-soft">Contra la IA no cambia tu ELO.</p>
+          : s.result.reason === 'noshow' ? <p className="text-lg text-ink-soft">Sin cambios de ELO: la partida no se jugó.</p> : <div className="flex max-w-[520px] flex-col gap-4">
           <p className="eyebrow">Tu ELO</p>
           <div className="flex items-end gap-5">
             <CountUp from={mine.before} to={mine.after} duration={1.3} delay={.5}
@@ -111,6 +112,11 @@ export function ResultScreen() {
           <div className="flex flex-wrap items-center gap-3">
             <Button loading={starting} onClick={() => void again()}>Jugar otra vez</Button>
             <Link href="/dashboard/ai" className={buttonClass('ghost')}>Elegir otro nivel</Link>
+            <Link href={`/dashboard/partidas/${s.id}`} className="inline-flex h-12 items-center px-2 font-medium text-accent underline-offset-4 hover:underline">Ver la partida ›</Link>
+          </div>
+        ) : s.tournament ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={`/dashboard/tournaments/${s.tournament.id}`} className={buttonClass('primary')}>Volver al torneo</Link>
             <Link href={`/dashboard/partidas/${s.id}`} className="inline-flex h-12 items-center px-2 font-medium text-accent underline-offset-4 hover:underline">Ver la partida ›</Link>
           </div>
         ) : <RematchPanel view={r.view} rival={rival} nextColor={COLOR[rivalColor]} busy={r.busy} matchId={s.id} onRequest={r.request} onCancel={r.cancel} />}

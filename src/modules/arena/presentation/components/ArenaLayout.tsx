@@ -50,7 +50,7 @@ export function ArenaLayout({ panelOpen = true, ...p }: ArenaLayoutProps) {
         <aside id="arena-panel" aria-labelledby="status-title" className="flex flex-col gap-[18px] pt-1 animate-rise [animation-delay:.1s] lg:w-[380px]">
           <div className="flex flex-col gap-2">
             <p className="eyebrow">{p.eyebrow}</p>
-            <h1 id="status-title" className={`font-display text-[clamp(48px,5vw,68px)] font-semibold leading-none tracking-[-.02em] ${p.titleAccent ? 'text-accent' : ''}`}>{p.title}</h1>
+            <h1 id="status-title" className={`font-display text-[clamp(48px,5vw,68px)] font-semibold leading-none tracking-[-.02em] [overflow-wrap:anywhere] ${p.titleAccent ? 'text-accent' : ''}`}>{p.title}</h1>
             <p className="mt-1 min-h-[25px] text-ink-soft">{p.sub}</p>
             {p.notice && <p className="text-[15px] text-accent animate-rise">{p.notice}</p>}
           </div>

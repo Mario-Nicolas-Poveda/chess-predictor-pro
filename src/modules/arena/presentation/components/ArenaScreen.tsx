@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { RefreshCw, Undo2 } from 'lucide-react';
 import { glyph } from '@/components/chess/glyphs';
 import type { Square } from '@/components/chess/types';
@@ -19,7 +19,7 @@ import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/them
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { useBoardInput } from '../hooks/useBoardInput';
 import { useClock } from '../hooks/useClock';
-import { useGame } from '../hooks/useGame';
+import { useGame, type InitialGame } from '../hooks/useGame';
 import { usePrediction } from '../hooks/usePrediction';
 import { useRevealed } from '../hooks/useRevealed';
 import { canAbort, exitCopy, useArenaPanel } from '../game/arenaPanel';
@@ -37,10 +37,9 @@ const mmss = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); retu
 const small = 'h-11! px-[18px]! text-sm';
 
 /** /dashboard/arena/[matchId]: la partida en vivo contra la API (o el mock con NEXT_PUBLIC_API_MOCK=1). */
-export function ArenaScreen() {
-  const { matchId } = useParams<{ matchId: string }>();
+export function ArenaScreen({ matchId, initial }: { matchId: string; initial?: InitialGame }) {
   const router = useRouter();
-  const g = useGame(matchId);
+  const g = useGame(matchId, initial);
   const { prefs } = usePreferences();
   const [flipped, setFlipped] = useState<boolean | null>(null);   // null = tu color
   const [confirming, setConfirming] = useState(false);

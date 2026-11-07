@@ -46,7 +46,7 @@ describe('CoachCard', () => {
     [{ kind: 'loading' }, 'Tu entrenador está revisando la partida…'],
     [{ kind: 'failed', data: waiting }, 'Reintentar'],
     [{ kind: 'unavailable', code: 'GAME_TOO_SHORT', message: 'x' }, 'La partida fue muy corta para analizarla.'],
-    [{ kind: 'limited', retryAfterS: 60, last: null }, 'Llegaste al límite de análisis de hoy.'],
+    [{ kind: 'limited', retryAfterS: 85_072, last: null }, 'Llegaste al límite de análisis de hoy. Vuelve en 24 h.'],
     [{ kind: 'offline', last: null }, 'Sin conexión. Reintentando…'],
   ])('estado %#', (view, text) => {
     expect(html(view)).toContain(text);

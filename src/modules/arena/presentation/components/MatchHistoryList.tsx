@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Avatar } from '@/components/ui/Avatar';
@@ -14,6 +14,7 @@ import { OUTCOME_TITLE, REASON_SHORT, dayLabel } from '../reasons';
 const FILTERS = [{ id: undefined, label: 'Todas' }, { id: 'win', label: 'Victorias' }, { id: 'loss', label: 'Derrotas' }, { id: 'draw', label: 'Tablas' }] as const;
 const asFilter = (v: string | null): ResultFilter => (v === 'win' || v === 'loss' || v === 'draw' ? v : undefined);
 const MARK = { win: 'bg-accent', loss: 'bg-loss', draw: 'bg-ink-faint' } as const;
+const noSubscribe = () => () => {};
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '±0');
 
 /** Cabecera de /dashboard/partidas: resumen de profile.stats y filtro (?result=). */
@@ -21,7 +22,9 @@ export function HistoryHeader() {
   const { profile } = useProfile();
   const router = useRouter(), pathname = usePathname(), params = useSearchParams();
   const result = asFilter(params.get('result'));
-  const st = profile?.stats;
+  // el perfil llega en el cliente: si llega antes de hidratar este bloque, el texto no cuadraría con el HTML (#418)
+  const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
+  const st = mounted ? profile?.stats : undefined;
   const pick = (id: ResultFilter) => router.replace(id ? `${pathname}?result=${id}` : pathname, { scroll: false });
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">

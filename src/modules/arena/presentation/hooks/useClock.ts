@@ -8,7 +8,8 @@ import type { GameState } from '@/modules/arena/infrastructure/dto/arenaSchemas'
  * `paused`: con una jugada en vuelo los relojes se quedan quietos. `tick`: sigue contando sin reloj corriendo (cuenta atrás de pending).
  */
 export function useClock(clock: GameState['clock'] | undefined, offset: number, onFlag: () => () => void, { paused = false, tick = false } = {}) {
-  const [now, setNow] = useState(() => Date.now());
+  // null hasta el primer tic: el primer render usa la hora del estado (igual en el servidor y al hidratar)
+  const [now, setNow] = useState<number | null>(null);
   const running = !!clock?.running || tick;
   useEffect(() => {
     if (!running || paused) return;
@@ -16,7 +17,7 @@ export function useClock(clock: GameState['clock'] | undefined, offset: number, 
     return () => clearInterval(id);
   }, [running, paused, clock?.turnStartedAt]);
 
-  const serverNow = now + offset;
+  const serverNow = now === null ? (clock ? Date.parse(clock.serverNow) : 0) : now + offset;
   const spent = clock?.running && clock.turnStartedAt ? Math.max(0, serverNow - Date.parse(clock.turnStartedAt)) : 0;
   const white = clock ? Math.max(0, clock.whiteMs - (clock.running === 'white' ? spent : 0)) : 0;
   const black = clock ? Math.max(0, clock.blackMs - (clock.running === 'black' ? spent : 0)) : 0;

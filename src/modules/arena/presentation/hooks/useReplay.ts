@@ -9,15 +9,19 @@ import { arenaApi } from '../api/arenaApi';
 
 const STEP_MS = 950;
 
-/** Repetición: carga la partida entera y recorre sus fotos. `ply` empieza al final; reproducir avanza cada 950 ms. */
-export function useReplay(matchId: string) {
+/**
+ * Repetición: carga la partida entera y recorre sus fotos. `ply` empieza al final; reproducir avanza cada 950 ms.
+ * `initial`: el estado que llegó en el HTML (#171); entonces no se consulta (una partida terminada no cambia).
+ */
+export function useReplay(matchId: string, initial?: GameState) {
   const router = useRouter();
-  const [state, setState] = useState<GameState | null>(null);
+  const [state, setState] = useState<GameState | null>(initial ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [ply, setPly] = useState(0);
+  const [ply, setPly] = useState(initial?.moves.length ?? 0);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
+    if (initial) return;
     const ctrl = new AbortController();
     arenaApi.state(matchId, 0, null, ctrl.signal).then(r => {
       if (r === 'not-modified') return;
@@ -28,7 +32,7 @@ export function useReplay(matchId: string) {
       setError(e instanceof ApiError && e.status === 403 ? 'No participas en esta partida.' : e instanceof ApiError && e.status < 500 ? 'Esta partida no existe.' : 'No pudimos cargar la partida.');
     });
     return () => ctrl.abort();
-  }, [matchId, router]);
+  }, [matchId, router, initial]);
 
   const frames = useMemo(() => framesOf(state ? state.moves.map(m => m.uci) : []), [state]);
   const last = frames.length - 1;

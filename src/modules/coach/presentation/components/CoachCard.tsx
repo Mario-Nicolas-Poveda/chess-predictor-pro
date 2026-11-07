@@ -65,7 +65,7 @@ function Body({ matchId, view, onRetry }: ViewProps) {
       </>
     );
     case 'unavailable': return <p className="text-[15px] text-ink-soft">{view.code === 'GAME_TOO_SHORT' ? 'La partida fue muy corta para analizarla.' : view.message}</p>;
-    case 'limited': return <p className="text-[15px] text-ink-soft">Llegaste al límite de análisis de hoy.</p>;
+    case 'limited': return <p className="text-[15px] text-ink-soft">Llegaste al límite de análisis de hoy. Vuelve en {Math.ceil(view.retryAfterS / 3600)} h.</p>;
     case 'offline': return <p className="text-[15px] text-ink-soft">Sin conexión. Reintentando…</p>;
   }
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import { MotionProvider } from '@/components/motion/MotionProvider';
 import { cormorant, manrope, jetbrains, chessSymbols } from '@/lib/fonts';
@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Chess Predictor Pro',
   description: 'Juega, analiza y predice partidas de ajedrez.',
 };
+
+// Sin esto, el oscurecido forzado del navegador invierte el tablero 2D (piezas negras blancas). El tema Noche declara dark en su CSS
+export const viewport: Viewport = { colorScheme: 'only light' };
 
 // Aplica el último tema conocido antes de pintar (solo caché; la verdad está en la API).
 const themeCache = "try{if(location.pathname.indexOf('/dashboard')===0){var p=JSON.parse(localStorage.getItem('cpp:prefs')||'null');if(p){var d=document.documentElement;d.dataset.theme=p.theme;d.dataset.accent=p.accent}}}catch(e){}";

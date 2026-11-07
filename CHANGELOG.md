@@ -3,6 +3,11 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-05
+### Corregido
+- En 2D, con el modo oscuro forzado del navegador (Brave, Chrome Android), las piezas negras ya no se ven blancas (#183)
+- Cerrar sesión ya no congela la app: tope de 5 s y navegación completa a /login; un 401 sale una sola vez (#184)
+
 ## [0.5.0] - 2026-11-02
 Sprint 5 · AI Coach.
 

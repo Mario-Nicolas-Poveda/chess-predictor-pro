@@ -24,6 +24,8 @@ echo "== 409 convertir otra vez";            j -b "$D/g" -X POST "$B/auth/guest/
 echo "== 200 su partida sigue (misma cuenta)"; st -b "$D/g" "$B/matches/$M/state"
 echo "== ya no es 403 (jugador)";            j -b "$D/g" "$B/coach/summary" | code; echo "(sin ACCOUNT_REQUIRED arriba = bien)"
 curl -s -o /dev/null -c "$D/h" -X POST "$B/auth/guest"; cp "$D/h" "$D/h2"
+M2=$(j -b "$D/h" -X POST "$B/ai/games" -d '{"level":1,"color":"white"}' | grep -o '"id":"[^"]*"' | head -1 | cut -d\" -f4)
+echo "== 204 cancelar su partida contra la IA"; st -b "$D/h" -X DELETE "$B/matches/$M2"
 echo "== 204 cerrar sesión de invitado";     st -b "$D/h" -X POST "$B/auth/logout"
 sleep 1
 echo "== 401 SESSION_EXPIRED con su token";  j -b "$D/h2" "$B/auth/me" | code

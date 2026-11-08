@@ -25,12 +25,12 @@ Funciones (`FEATURES` en `src/core/shared/auth/roles.ts`) · ✅ = invitado entr
 | POST | `/matches/:id/moves` | ✅ | playAi | Ídem |
 | DELETE | `/matches/:id/moves/last` | ✅ | playAi | Deshacer contra la IA |
 | POST | `/matches/:id/resign` | ✅ | playAi | Rendirse |
+| DELETE | `/matches/:id` | ✅ | playAi | "Cancelar partida" mientras está `pending` (la arena la usa también contra la IA; un invitado no tiene partidas en línea) |
 | GET | `/matches/:id/prediction` | ✅ | prediction | La barra de probabilidad |
 | GET | `/matches` | ✅ | history | Sus partidas |
 | GET | `/matches/:id` | ✅ | history | Repetición |
 | GET | `/matches/:id/moves/:ply` | ✅ | history | Repetición |
 | GET | `/profile/history` | ✅ | history | Su gráfica del panel |
-| DELETE | `/matches/:id` | 🔒 | playOnline | Cancelar una partida entre personas |
 | POST, DELETE | `/matches/:id/draw-offer` | 🔒 | playOnline | Tablas entre personas |
 | POST | `/matches/:id/draw-offer/accept` | 🔒 | playOnline | Ídem |
 | POST, DELETE | `/matches/:id/rematch` | 🔒 | playOnline | Revancha con ELO |

@@ -10,6 +10,8 @@ import { nextGameText } from '../lib/bracketText';
 import { fmtCountdown } from '../lib/deadline';
 import { bracketHref, day, sameDay, tc, time } from '../lib/format';
 import { useNow } from '../hooks/useNow';
+import { Locked } from '@/modules/auth/presentation/components/Locked';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 
 const EYEBROW = 'font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft';
 const OUTLINE = 'inline-flex min-h-11 items-center rounded-full px-[18px] text-[15px] font-semibold text-ink shadow-[inset_0_0_0_1px_var(--t-ink)] hover:bg-band';
@@ -141,6 +143,7 @@ function OpenCard({ t, ui, nowMs, onJoin, onLeave, onAsk }: {
   t: TournamentSummary; ui: CardUi; nowMs: number;
   onJoin: (id: string) => void; onLeave: (id: string) => void; onAsk: (id: string, on: boolean) => void;
 }) {
+  const role = useRole();
   const closed = !!ui.closed || t.status !== 'open';
   const full = !t.joined && !closed && t.players >= t.size;
   const chip = closed ? 'Cerrado' : full ? 'Lleno' : 'Abierto';
@@ -164,10 +167,12 @@ function OpenCard({ t, ui, nowMs, onJoin, onLeave, onAsk }: {
       </div>
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
         {!t.joined && !closed && !full && (
-          <button type="button" aria-disabled={ui.busy === 'join' || undefined} onClick={() => { if (!ui.busy) onJoin(t.id); }}
-            className={`${buttonClass('primary')} text-base font-semibold aria-disabled:opacity-70`}>
-            {ui.busy === 'join' ? 'Inscribiendo…' : 'Inscribirme'}<span className="sr-only"> en {t.name}</span>
-          </button>
+          <Locked role={role} feature="tournamentsJoin" label="Inscribirme" className={`${buttonClass('ghost')} text-base font-semibold`}>
+            <button type="button" aria-disabled={ui.busy === 'join' || undefined} onClick={() => { if (!ui.busy) onJoin(t.id); }}
+              className={`${buttonClass('primary')} text-base font-semibold aria-disabled:opacity-70`}>
+              {ui.busy === 'join' ? 'Inscribiendo…' : 'Inscribirme'}<span className="sr-only"> en {t.name}</span>
+            </button>
+          </Locked>
         )}
         {t.joined && !closed && (
           <>

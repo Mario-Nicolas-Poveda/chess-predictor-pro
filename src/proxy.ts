@@ -7,7 +7,8 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname.startsWith('/dashboard') && !s)
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(pathname)}`, req.url));
-  if ((pathname === '/login' || pathname === '/register') && s)
+  // un invitado sí ve el login y el registro (con el aviso de que entrar con otra cuenta lo borra)
+  if ((pathname === '/login' || pathname === '/register') && s?.role === 'player')
     return NextResponse.redirect(new URL('/dashboard/profile', req.url));
   return NextResponse.next();
 }

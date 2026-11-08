@@ -57,7 +57,7 @@ export function ProfileContent({ profile, history, results, achievements, onEdit
           <div className="flex min-w-0 flex-[1_1_380px] flex-wrap items-center gap-x-10 gap-y-6 animate-rise" style={{ order: order.name }}>
             <HeroPhoto profile={profile} onPhoto={onPhoto} />
             <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-              <p className="eyebrow">Perfil · {profile.email}</p>
+              <p className="eyebrow">{profile.email ? `Perfil · ${profile.email}` : 'Perfil de invitado'}</p>
               <h1 id="who" className={`break-words pb-[.12em] font-display font-semibold leading-[.82] tracking-[-.03em] ${nameSize(profile.username)}`}>{profile.username}</h1>
               <p className="mt-2 text-ink-soft">{[profile.displayName, country, `Miembro desde ${monthYear.format(new Date(profile.createdAt))}`].filter(Boolean).join(' · ')}</p>
               {achievements.length > 0 && (

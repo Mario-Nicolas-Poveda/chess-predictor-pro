@@ -37,8 +37,10 @@ export function LoginForm() {
 
   const alert = errors.root?.message ?? (searchParams.get('error') === 'oauth' ? OAUTH_ERROR : undefined);
 
+  const info = searchParams.get('expired') === 'guest' ? 'Tu sesión de invitado terminó.' : undefined;
+
   return (
-    <FormShell title="Entrar." lead="Tu ELO, tus partidas y el coach te esperan." alert={alert}
+    <FormShell title="Entrar." lead="Tu ELO, tus partidas y el coach te esperan." alert={alert} info={info}
       aside={{ text: '¿Sin cuenta?', href: '/register', cta: 'Crear una' }}>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <Field label="Correo" error={errors.email?.message}>

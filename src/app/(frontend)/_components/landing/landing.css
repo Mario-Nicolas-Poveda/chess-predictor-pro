@@ -48,7 +48,11 @@
 .landing .chapter h1 em,.landing .chapter h2 em{color:var(--brass)}
 .landing .chapter p{color:var(--mist);margin:0 0 18px;max-width:27rem}
 .landing .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
-.landing .actions .pill{margin-left:0}
+.landing .actions .pill{margin-left:0;min-height:48px;padding:0 20px}
+.landing .actions .pill[aria-disabled]{opacity:.7;cursor:progress}
+.landing .guest-status{flex-basis:100%;color:var(--brass);font-size:14px}
+.landing .guest-status:empty{display:none}
+.landing .chapter p.guest-note{margin:10px 0 0;font-size:13px;color:var(--mist)}
 .landing .hint{display:flex;align-items:center;gap:12px;margin-top:26px;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 .landing .hint i{display:block;width:44px;height:1px;background:var(--line);position:relative;overflow:hidden}
 .landing .hint i::after{content:"";position:absolute;inset:0;width:40%;background:var(--brass);animation:landing-sweep 2.2s ease-in-out infinite}

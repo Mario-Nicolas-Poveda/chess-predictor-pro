@@ -4,19 +4,20 @@ import type { CoachSummaryDTO, GameReviewDTO } from '@/modules/coach/infrastruct
 import { coachApi } from '../api/coachApi';
 import { JobController, type JobApi, type JobView } from '../lib/jobController';
 
-function useJob<T extends GameReviewDTO | CoachSummaryDTO>(ctl: JobController<T>) {
+function useJob<T extends GameReviewDTO | CoachSummaryDTO>(ctl: JobController<T>, enabled = true) {
   useEffect(() => {
+    if (!enabled) return;   // invitado: el entrenador es solo para cuentas, ni se pregunta (el 403 abriría el diálogo solo)
     ctl.start();
     const onVis = () => { if (!document.hidden) ctl.onVisible(); };
     document.addEventListener('visibilitychange', onVis);
     return () => { document.removeEventListener('visibilitychange', onVis); ctl.stop(); };
-  }, [ctl]);
+  }, [ctl, enabled]);
   const view = useSyncExternalStore(ctl.subscribe, ctl.getSnapshot, ctl.getSnapshot);
   return { view, request: ctl.request, reanalyze: ctl.reanalyze };
 }
 
-/** Análisis de una partida. `auto`: lo pide si no existe (pantalla de resultado). En la repetición, con botón. */
-export function useReview(matchId: string, { auto = false } = {}): {
+/** Análisis de una partida. `auto`: lo pide si no existe (pantalla de resultado). En la repetición, con botón. `enabled: false`: no consulta. */
+export function useReview(matchId: string, { auto = false, enabled = true } = {}): {
   view: JobView<GameReviewDTO>; request: () => Promise<void>; reanalyze: () => Promise<void>;
 } {
   const ctl = useMemo(() => {
@@ -27,7 +28,7 @@ export function useReview(matchId: string, { auto = false } = {}): {
     };
     return new JobController(api, { notFoundCode: 'REVIEW_NOT_FOUND', auto });
   }, [matchId, auto]);
-  return useJob(ctl);
+  return useJob(ctl, enabled);
 }
 
 /** Plan del entrenador: lo pide si no existe y lo rehace si quedó viejo (mientras tanto se ve el anterior). */

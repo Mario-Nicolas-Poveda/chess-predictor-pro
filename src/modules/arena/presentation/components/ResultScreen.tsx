@@ -19,7 +19,7 @@ import { useRematch } from '../hooks/useRematch';
 import { OUTCOME_TITLE, ago, outcomeOf, reasonText } from '../reasons';
 import { EloRail } from './EloRail';
 import { RematchPanel } from './RematchPanel';
-import { askAccount } from '@/modules/auth/presentation/lib/accountRequired';
+import { CoachLocked } from '@/modules/auth/presentation/components/Locked';
 import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 
 const loadScene = () => import('@/components/three/scenes/resultScene').then(mod => mod.createResultScene);
@@ -40,7 +40,7 @@ export function ResultScreen() {
   const s = r.state;
   const [now] = useState(() => Date.now());
   const frames = useMemo(() => framesOf(s ? s.moves.map(m => m.uci) : []), [s]);
-  const guest = useRole() === 'guest';
+  const role = useRole();
 
   if (r.error) return (
     <div className="mx-auto flex max-w-[1240px] flex-col gap-5 px-5 py-16 lg:px-10">
@@ -109,13 +109,8 @@ export function ResultScreen() {
           ))}
         </dl>
 
-        {guest ? (
-          <p className="max-w-[620px] text-ink-soft">
-            ¿Quieres saber dónde fallaste?{' '}
-            <button type="button" onClick={() => askAccount('coach')} className="inline-flex min-h-11 items-center font-semibold text-ink underline underline-offset-4">Crea tu cuenta</button>
-            {' '}y el entrenador analiza tus partidas.
-          </p>
-        ) : <CoachCard matchId={s.id} ply={s.ply} />}
+        {/* el entrenador espera al rol: el de un invitado pediría el análisis solo y el 403 abriría el diálogo */}
+        {role === 'guest' ? <CoachLocked /> : role === 'player' && <CoachCard matchId={s.id} ply={s.ply} />}
 
         {ai ? (
           <div className="flex flex-wrap items-center gap-3">

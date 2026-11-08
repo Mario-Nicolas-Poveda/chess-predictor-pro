@@ -60,3 +60,14 @@ export function PlayersOnly({ role, feature, children }: { role: Role | null; fe
   if (!role) return null;   // sin esto la página de un invitado pediría a la API y abriría el diálogo con un 403
   return canUse(role, feature) ? <>{children}</> : <LockedPanel feature={feature} />;
 }
+
+/** En lugar del entrenador (resultado y repetición), para el invitado. */
+export function CoachLocked() {
+  return (
+    <p className="max-w-[620px] text-ink-soft">
+      ¿Quieres saber dónde fallaste?{' '}
+      <button type="button" onClick={() => askAccount('coach')} className="inline-flex min-h-11 items-center font-semibold text-ink underline underline-offset-4">Crea tu cuenta</button>
+      {' '}y el entrenador analiza tus partidas.
+    </p>
+  );
+}

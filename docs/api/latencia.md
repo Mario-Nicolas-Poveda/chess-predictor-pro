@@ -40,6 +40,16 @@ Antes de cambiar código por lentitud, mira **https://status.supabase.com**. El 
 | Vercel, `iad1` (v0.5.0) | `/profile` | 573 | 1510 | 37 | 62 |
 | Vercel, `iad1` (v0.5.0) | `/matches?limit=10` | 691 | 1245 | 71 | 118 |
 
+7 de noviembre de 2026, `v1.0.0` en Vercel (`iad1`), desde Colombia, 30 consultas por ruta, Supabase en estado operativo:
+
+| Dónde corre la app | Ruta | TTFB p50 | TTFB p95 | `app` p50 | `app` p95 |
+|---|---|---:|---:|---:|---:|
+| Vercel, `iad1` (v1.0.0) | `/profile` | 2339* | 2796* | 31 | 54 |
+| Vercel, `iad1` (v1.0.0) | `/matches?limit=10` | 2344* | 2962* | 68 | 103 |
+| Vercel, `iad1` (v1.0.0) | `/ranking?limit=10` | 1715* | 3383* | 34 | 48 |
+
+\* Esa noche la red de la máquina que midió estaba lenta: `google.com` tardó de 1,7 a 9,8 s y el TLS hacia Vercel ~1,7 s por consulta. El TTFB no se compara con el de `v0.5.0`; `app` sí (lo mide el servidor) y quedó igual: de 31 a 103 ms. `/ranking` es nueva en `v1.0.0` y tarda como `/profile`, aunque agrega todo el historial con ELO en una sola función SQL.
+
 - **Local:** `app` es casi igual al TTFB, así que el tiempo se va en el viaje entre esta máquina y Supabase, y crece con cada consulta. Un 401, que no toca la BD, tardó 1,8 ms.
 - **Vercel:** `v0.4.1` todavía no traía la cabecera, así que no se puede separar red de servidor. Una respuesta que casi no toca la BD ya tarda de 330 a 400 ms desde aquí, porque `curl` abre una conexión nueva en cada consulta. Con `v0.5.0` (tabla de arriba) se separa: la función tarda de 37 a 118 ms, así que la BD queda cerca de `iad1`, y el resto del TTFB (más de 500 ms) es la red desde Colombia y la conexión nueva de cada `curl`, no el servidor ni Supabase.
 - La cuenta de prueba no tiene partidas: `/matches` con historial hace más consultas (rivales e insignias del coach).

@@ -2,11 +2,25 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { parseRole, type Role } from '@/core/shared/auth/roles';
 import { ApiError } from '@/lib/apiClient';
+import { authApi } from '@/modules/auth/presentation/api/authApi';
 import type { Profile } from '@/modules/dashboard/infrastructure/dto/profileSchemas';
 import { profileApi } from '../api/profileApi';
 
-type Session = { profile: Profile | null; setProfile: (p: Profile) => void; error: string | null; retry: () => void };
+/** role: null mientras llega /auth/me. Solo para la interfaz (candados): el servidor decide igual. */
+type Session = {
+  profile: Profile | null; setProfile: (p: Profile) => void; error: string | null; retry: () => void;
+  role: Role | null; guestExpiresAt: string | null;
+};
+type Me = { role: Role; guestExpiresAt: string | null };
+
+// shortcut: con NEXT_PUBLIC_API_MOCK=1 el rol sale de localStorage 'cpp:mock-role' ('guest'); quitar al probar con la API real
+const mockGuest = (): Me | null => {
+  if (process.env.NEXT_PUBLIC_API_MOCK !== '1') return null;
+  try { return localStorage.getItem('cpp:mock-role') === 'guest' ? { role: 'guest', guestExpiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString() } : null; }
+  catch { return null; }
+};
 
 const SessionContext = createContext<Session | null>(null);
 
@@ -15,7 +29,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
   const load = useCallback(() => {
+    // en paralelo con el perfil; un token viejo sin role (o /auth/me de antes) es de un jugador
+    authApi.me().then(r => setMe(mockGuest() ?? { role: parseRole(r.user.role), guestExpiresAt: r.user.guestExpiresAt ?? null }))
+      .catch(() => {});   // el 401 ya lo maneja el perfil
     profileApi.get().then(r => setProfile(r.profile)).catch(e => {
       if (e instanceof ApiError && e.status === 401) router.replace(`/login?next=${encodeURIComponent(location.pathname)}`);
       else setError('No pudimos cargar tu perfil.');
@@ -23,7 +41,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [router]);
   useEffect(load, [load]);
   const retry = () => { setError(null); load(); };
-  return <SessionContext value={{ profile, setProfile, error, retry }}>{children}</SessionContext>;
+  return (
+    <SessionContext value={{ profile, setProfile, error, retry, role: me?.role ?? null, guestExpiresAt: me?.guestExpiresAt ?? null }}>
+      {children}
+    </SessionContext>
+  );
 }
 
 /** Sesión o null fuera del dashboard (p. ej. la página de muestra). */
@@ -34,3 +56,6 @@ export function useProfile() {
   if (!s) throw new Error('useProfile necesita <SessionProvider>');
   return s;
 }
+
+/** El rol de la sesión (null mientras carga o fuera del dashboard). */
+export const useRole = () => useContext(SessionContext)?.role ?? null;

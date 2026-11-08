@@ -36,7 +36,20 @@ describe('logout', () => {
 
   it('onUnauthorized dos veces → una navegación con next', () => {
     const nav = vi.fn();
-    onUnauthorized(nav); onUnauthorized(nav);
+    onUnauthorized(undefined, nav); onUnauthorized(undefined, nav);
     expect(nav).toHaveBeenCalledExactlyOnceWith('/login?next=%2Fdashboard%2Farena%2Fm1');
+  });
+
+  it('invitado vencido (401 SESSION_EXPIRED) → /login?expired=guest, sin next', () => {
+    const nav = vi.fn();
+    onUnauthorized('SESSION_EXPIRED', nav);
+    expect(nav).toHaveBeenCalledExactlyOnceWith('/login?expired=guest');
+  });
+
+  it('el invitado sale a la landing', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 204 })));
+    const nav = vi.fn();
+    await logout(nav, '/');
+    expect(nav).toHaveBeenCalledWith('/');
   });
 });

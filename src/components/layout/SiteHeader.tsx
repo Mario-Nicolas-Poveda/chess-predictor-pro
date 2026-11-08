@@ -6,6 +6,9 @@ import { usePathname } from 'next/navigation';
 import { useMotionValueEvent, useScroll } from 'motion/react';
 import * as m from 'motion/react-m';
 import { SPRING } from '@/lib/motion';
+import type { Role } from '@/core/shared/auth/roles';
+import { Locked } from '@/modules/auth/presentation/components/Locked';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 import { NAV, isActive, type NavItem } from './nav';
 import { UserBlock } from './UserBlock';
 import { MobileMenu } from './MobileMenu';
@@ -20,6 +23,7 @@ export function Logo() {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const role = useRole();
   const listRef = useRef<HTMLUListElement>(null);
   const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +52,7 @@ export function SiteHeader() {
         {/* barra completa solo desde 1024 px: con 6 secciones no cabe antes */}
         <nav aria-label="Principal" className="hidden flex-1 justify-center lg:flex">
           <ul ref={listRef} className="relative flex gap-x-7 text-caption">
-            {NAV.map(it => <NavLink key={it.href} item={it} active={isActive(it, pathname)} />)}
+            {NAV.map(it => <NavLink key={it.href} item={it} active={isActive(it, pathname)} role={role} />)}
             {bar && (
               <m.span aria-hidden="true" className="absolute bottom-0 left-0 h-0.5 w-px bg-accent"
                 style={{ originX: 0 }} initial={false} animate={{ x: bar.x, scaleX: bar.w }} transition={SPRING} />
@@ -62,16 +66,15 @@ export function SiteHeader() {
   );
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({ item, active, role }: { item: NavItem; active: boolean; role: Role | null }) {
   if (!item.ready) return (
     <li><span aria-disabled="true" title="Próximamente" className="inline-block cursor-default py-5 text-muted">{item.label}</span></li>
   );
-  return (
-    <li>
-      <Link href={item.href} aria-current={active ? 'page' : undefined}
-        className={`inline-block py-5 transition-colors ${active ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}>
-        {item.label}
-      </Link>
-    </li>
+  const link = (
+    <Link href={item.href} aria-current={active ? 'page' : undefined}
+      className={`inline-block py-5 transition-colors ${active ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}>
+      {item.label}
+    </Link>
   );
+  return <li>{item.feature ? <Locked role={role} feature={item.feature} label={item.label} className="py-5">{link}</Locked> : link}</li>;
 }

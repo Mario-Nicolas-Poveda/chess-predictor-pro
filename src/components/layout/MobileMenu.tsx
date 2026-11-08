@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { useLightDismiss } from '@/components/ui/useLightDismiss';
+import { Locked } from '@/modules/auth/presentation/components/Locked';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 import { NAV, isActive } from './nav';
 import { UserBlock } from './UserBlock';
 
 export function MobileMenu({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
+  const role = useRole();
   const close = () => ref.current?.close();
   useLightDismiss(ref, close);
 
@@ -34,13 +37,17 @@ export function MobileMenu({ className = '' }: { className?: string }) {
             <ul className="space-y-4">
               {NAV.map(it => {
                 const active = isActive(it, pathname);
+                const link = (
+                  <Link href={it.href} onClick={close} aria-current={active ? 'page' : undefined}
+                    className={active ? 'text-accent' : 'text-ink hover:text-accent'}>
+                    {it.label}
+                  </Link>
+                );
                 return (
                   <li key={it.href} className="font-display text-3xl">
                     {it.ready ? (
-                      <Link href={it.href} onClick={close} aria-current={active ? 'page' : undefined}
-                        className={active ? 'text-accent' : 'text-ink hover:text-accent'}>
-                        {it.label}
-                      </Link>
+                      // el candado abre el diálogo encima del menú (el último showModal queda arriba)
+                      it.feature ? <Locked role={role} feature={it.feature} label={it.label}>{link}</Locked> : link
                     ) : (
                       <span aria-disabled="true" className="text-muted">
                         {it.label} <span className="eyebrow align-middle">Sprint {it.sprint}</span>

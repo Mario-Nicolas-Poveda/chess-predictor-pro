@@ -4,6 +4,9 @@ import { useRef, useState } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
+import { askAccount } from '@/modules/auth/presentation/lib/accountRequired';
+import { guestExpiryText } from '@/modules/auth/presentation/api/guestApi';
+import { LockIcon } from '@/modules/auth/presentation/components/Locked';
 import { AvatarDialog } from '../avatar/AvatarDialog';
 import { RemoveAvatar } from '../avatar/RemoveAvatar';
 import { useProfile } from '../hooks/useProfile';
@@ -14,7 +17,7 @@ import { ProfileContent } from './ProfileContent';
 
 
 export function ProfileView() {
-  const { profile, setProfile, error, retry } = useProfile();
+  const { profile, setProfile, error, retry, role, guestExpiresAt } = useProfile();
   const { history, results } = useProfileHistory();
   const sheetRef = useRef<HTMLDialogElement>(null);
   const customizeRef = useRef<HTMLDialogElement>(null);
@@ -30,14 +33,31 @@ export function ProfileView() {
   if (!profile) return <ProfileSkeleton />;
 
   const btn = 'h-11! px-5! text-[15px]';
+  const customize = (
+    <Button className={btn} onClick={() => customizeRef.current?.showModal()}>
+      <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
+    </Button>
+  );
+
+  // invitado: el tablero se personaliza; nombre, bio, país y foto, no (el servidor responde 403 igual)
+  if (role === 'guest') return (
+    <>
+      <ProfileContent profile={profile} history={history} results={results} achievements={[]} actions={<>
+        {customize}
+        <Button variant="ghost" className={btn} onClick={() => askAccount('profileEdit')} aria-label="Crear cuenta para editar tu perfil y tu foto">
+          <LockIcon /> Crear cuenta
+        </Button>
+        {guestExpiresAt && <p className="basis-full text-caption text-ink-soft">{guestExpiryText(guestExpiresAt)}.</p>}
+      </>} />
+      <CustomizeSheet ref={customizeRef} />
+    </>
+  );
 
   return (
     <>
       <ProfileContent profile={profile} history={history} results={results} achievements={[]}
         onEdit={() => sheetRef.current?.showModal()} onPhoto={() => setPhotoOpen(true)} actions={<>
-          <Button className={btn} onClick={() => customizeRef.current?.showModal()}>
-            <SlidersHorizontal size={16} aria-hidden="true" /> Personalizar
-          </Button>
+          {customize}
           <Button variant="ghost" className={btn} onClick={() => setPhotoOpen(true)}>{profile.avatarUrl ? 'Cambiar foto' : 'Subir foto'}</Button>
           <RemoveAvatar className={btn} />
         </>} />

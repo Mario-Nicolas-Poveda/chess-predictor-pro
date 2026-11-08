@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Section';
 import type { GameOutcome, RankingPage as Page, RankingRow } from '@/modules/ranking/infrastructure/dto/rankingSchemas';
 import { useRanking, type Busy, type Problem, type Sort } from '../hooks/useRanking';
+import { LOCKED_TEXT, askAccount } from '@/modules/auth/presentation/lib/accountRequired';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 
 const EYEBROW = 'font-mono text-[11px] font-medium uppercase tracking-[.12em] text-ink-soft';
 const TH = 'px-2 py-3 font-mono text-xs font-medium';
@@ -197,10 +199,17 @@ export function RankingView({ sort, onSort, q, onQ, data, busy, problem, onMore,
 
 function YourCard({ data }: { data: Page }) {
   const { row, games, needed } = data.you;
+  const guest = useRole() === 'guest';
   return (
     <section aria-labelledby="tu-pos" className="flex min-w-[260px] flex-[0_1_340px] flex-col gap-2 rounded-[14px] border border-rule bg-vellum px-[18px] py-4 max-sm:flex-1">
       <h2 id="tu-pos" className={EYEBROW}>Tu posición</h2>
-      {row ? (
+      {guest ? (
+        <>
+          <p className="text-[15px]">Los invitados no aparecen en el ranking. {LOCKED_TEXT.ranking}</p>
+          <button type="button" onClick={() => askAccount('ranking')}
+            className="inline-flex min-h-11 items-center self-start font-semibold underline-offset-[5px] hover:underline">Crear cuenta ›</button>
+        </>
+      ) : row ? (
         <>
           <p className="flex items-baseline gap-3">
             <span className="font-display text-5xl font-semibold leading-none">{ord(row.rank)}</span>

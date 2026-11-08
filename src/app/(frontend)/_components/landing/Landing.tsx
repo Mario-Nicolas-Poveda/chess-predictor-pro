@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from 'motion/react';
 import * as m from 'motion/react-m';
 import { useThreeScene } from '@/components/three/useThreeScene';
+import { GuestStart } from '@/modules/auth/presentation/components/GuestStart';
 import './landing.css';
 
 const loadLanding = () => import('./landingScene').then(mod => mod.createLandingScene);
@@ -80,8 +81,10 @@ export function Landing() {
           <p>Juega contra personas o contra el motor, consulta qué jugada es más probable en cada posición y recibe el análisis de tus partidas.</p>
           <div className="actions">
             <Link className="pill" href="/register">Crear cuenta</Link>
+            <GuestStart className="pill ghost" statusClassName="guest-status" />
             <a className="pill ghost" href="#arena" onClick={goto(.19)}>Ver el recorrido</a>
           </div>
+          <p className="guest-note">Juega contra la IA sin registrarte. Tus partidas duran 7 días.</p>
           <div className="hint"><i />Desliza para recorrer el tablero</div>
         </Chapter>
 

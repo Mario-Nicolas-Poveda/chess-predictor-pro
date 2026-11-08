@@ -1,4 +1,4 @@
-export type NavItem = { href: string; label: string; ready: boolean; sprint: number; isNew?: boolean; also?: string };
+export type NavItem = { href: string; label: string; ready: boolean; sprint: number; also?: string };
 
 export const NAV: NavItem[] = [
   { href: '/dashboard/profile',     label: 'Perfil',       ready: true,  sprint: 1 },
@@ -6,7 +6,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/partidas',    label: 'Partidas',     ready: true,  sprint: 3 },
   { href: '/dashboard/ai',          label: 'Contra la IA', ready: true,  sprint: 4 },
   { href: '/dashboard/coach',       label: 'Entrenador',   ready: true,  sprint: 5 },
-  { href: '/dashboard/tournaments', label: 'Torneos',      ready: true,  sprint: 6, isNew: true },
+  { href: '/dashboard/tournaments', label: 'Torneos',      ready: true,  sprint: 6 },
   { href: '/dashboard/ranking',     label: 'Ranking',      ready: true,  sprint: 6 },
 ];
 

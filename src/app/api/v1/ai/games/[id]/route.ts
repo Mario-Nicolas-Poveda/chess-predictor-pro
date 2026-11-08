@@ -9,4 +9,4 @@ export const DELETE = withAuth<{ id: string }>(async (_req, s, params) => {
   const { id } = parseParams(MatchParamsSchema, params);
   await abortAiGame.execute(s.userId, id);
   return noContent();
-});
+}, { allow: 'any' });

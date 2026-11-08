@@ -14,4 +14,4 @@ export const POST = withAuth<{ id: string }>(async (req, s, params) => {
   afterResponse('ai-reply', () => playAiTurn.run(id));
   // state.moves trae solo la jugada nueva (since = ply - 1)
   return created({ move: state.moves.at(-1), state }, `/api/v1/matches/${id}/moves/${ply}`);
-});
+}, { allow: 'any' });

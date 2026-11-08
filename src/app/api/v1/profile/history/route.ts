@@ -5,4 +5,4 @@ import { ProfileHistoryQuerySchema } from '@/modules/arena/infrastructure/dto/ar
 import { getProfileHistory } from '@/modules/arena/presentation/controllers/container';
 
 export const GET = withAuth(async (req, s) =>
-  ok(await getProfileHistory.execute(s.userId, parseQuery(ProfileHistoryQuerySchema, req).days)));
+  ok(await getProfileHistory.execute(s.userId, parseQuery(ProfileHistoryQuerySchema, req).days)), { allow: 'any' });

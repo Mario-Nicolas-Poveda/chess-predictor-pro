@@ -10,4 +10,4 @@ export const GET = withAuth(async (req, s) => {
   const headers = { ETag: r.etag, 'Cache-Control': 'private, no-cache' };
   if (r.notModified) return notModified(headers);
   return ok({ ranking: r.ranking }, { headers });
-});
+}, { allow: 'any' });

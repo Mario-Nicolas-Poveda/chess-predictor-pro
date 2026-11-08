@@ -3,6 +3,10 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-07
+### Cambiado
+- Se quita la etiqueta "Nuevo" de Torneos en el menú (#195)
+
 ## [1.0.0] - 2026-11-07
 Sprint 6 · Torneos y ranking.
 

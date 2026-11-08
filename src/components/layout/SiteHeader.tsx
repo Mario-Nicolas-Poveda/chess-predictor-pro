@@ -70,7 +70,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     <li>
       <Link href={item.href} aria-current={active ? 'page' : undefined}
         className={`inline-block py-5 transition-colors ${active ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}>
-        {item.label}{item.isNew && <span className="ml-1.5 text-[11px] font-semibold text-accent">Nuevo</span>}
+        {item.label}
       </Link>
     </li>
   );

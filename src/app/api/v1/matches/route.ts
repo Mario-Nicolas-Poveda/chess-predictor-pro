@@ -9,4 +9,4 @@ export const GET = withAuth(async (req, s) => {
   const page = await getMatchHistory.execute(s.userId, parseQuery(HistoryQuerySchema, req));
   const badges = await reviewBadges.execute(s.userId, page.items.map(i => i.id));
   return ok({ ...page, items: page.items.map(i => ({ ...i, review: badges.get(i.id) ?? null })) });
-});
+}, { allow: 'any' });

@@ -17,4 +17,4 @@ export const GET = withAuth<{ id: string }>(async (req, s, params) => {
   const headers = { ETag: r.etag, 'Cache-Control': 'no-store' };
   if (r.notModified) return notModified(headers);
   return ok({ state: r.state }, { headers });
-});
+}, { allow: 'any' });

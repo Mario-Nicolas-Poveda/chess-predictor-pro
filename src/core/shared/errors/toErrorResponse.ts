@@ -1,7 +1,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { AppError, ForbiddenError, TooManyRequestsError } from './AppError';
+import { AppError, ForbiddenError, ServiceUnavailableError, TooManyRequestsError } from './AppError';
 import { zodFields } from './zodFields';
 
 export function toErrorResponse(e: unknown) {
@@ -10,9 +10,11 @@ export function toErrorResponse(e: unknown) {
   if (e instanceof ZodError)
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos',
       fields: zodFields(e) } }, { status: 400 });
-  if (e instanceof AppError)
+  if (e instanceof AppError) {
+    const retry = e instanceof TooManyRequestsError || e instanceof ServiceUnavailableError ? e.retryAfterS : undefined;
     return NextResponse.json({ error: { code: e.code, message: e.message, fields: e.fields, meta: e.meta } },
-      { status: e.status, headers: e instanceof TooManyRequestsError ? { 'Retry-After': String(e.retryAfterS) } : undefined });
+      { status: e.status, headers: retry === undefined ? undefined : { 'Retry-After': String(retry) } });
+  }
   // segunda capa (0010): un disparador de la BD rechazó a un invitado, venga del adaptador que venga
   if ((e as { message?: unknown } | null)?.message === 'ACCOUNT_REQUIRED')
     return toErrorResponse(new ForbiddenError('ACCOUNT_REQUIRED', 'Crea tu cuenta para usar esto'));

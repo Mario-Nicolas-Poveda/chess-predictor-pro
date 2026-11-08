@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { ConflictError, ForbiddenError, NotFoundError, PayloadTooLargeError, TooManyRequestsError } from '../AppError';
+import { ConflictError, ForbiddenError, NotFoundError, PayloadTooLargeError, ServiceUnavailableError, TooManyRequestsError } from '../AppError';
 import { toErrorResponse } from '../toErrorResponse';
 
 const errorOf = async (res: Response) => (await res.json()).error;
@@ -16,6 +16,14 @@ describe('toErrorResponse', () => {
     const res = toErrorResponse({ code: 'P0001', message: 'ACCOUNT_REQUIRED', details: null, hint: null });
     expect(res.status).toBe(403);
     expect(await errorOf(res)).toMatchObject({ code: 'ACCOUNT_REQUIRED' });
+  });
+
+  it('503 con retryAfterS → Retry-After y meta; sin él, sin cabecera', async () => {
+    const res = toErrorResponse(new ServiceUnavailableError('Sin cupo', 'GUEST_CAPACITY', 600));
+    expect(res.status).toBe(503);
+    expect(res.headers.get('retry-after')).toBe('600');
+    expect(await errorOf(res)).toMatchObject({ code: 'GUEST_CAPACITY', meta: { retryAfterS: 600 } });
+    expect(toErrorResponse(new ServiceUnavailableError()).headers.get('retry-after')).toBeNull();
   });
 
   it('NotFoundError → 404 con su code', async () => {

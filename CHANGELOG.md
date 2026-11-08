@@ -3,6 +3,19 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-08
+Anexo del Sprint 6 · Roles: jugador e invitado.
+
+### Añadido
+- Jugar sin cuenta: un botón crea un invitado que juega contra la IA, con la predicción, su historial y la repetición; vive 7 días (#215, #216, #217)
+- Candados con "Crea tu cuenta" en jugar en línea, torneos, entrenador y editar perfil; al crearla, el invitado pasa a jugador en la misma cuenta y conserva sus partidas, incluso a mitad de una partida contra la IA (#216, #217)
+- Rutas cerradas por defecto: una ruta nueva es solo para jugadores hasta marcarla; la BD también rechaza a invitados en partidas con ELO, cola, torneos y entrenador (#215, #216)
+- `docs/api/roles.md` (acceso por ruta) y `tests/roles.http.sh` (#216)
+
+### Cambiado
+- `GET /auth/me` devuelve el usuario completo con `role` y `guestExpiresAt` (#216)
+- Cerrar sesión como invitado lo borra con sus partidas; entrar con otra cuenta encima de un invitado también (#216)
+
 ## [1.0.1] - 2026-11-07
 ### Cambiado
 - Se quita la etiqueta "Nuevo" de Torneos en el menú (#195)

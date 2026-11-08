@@ -12,6 +12,12 @@ describe('toErrorResponse', () => {
     expect(await errorOf(res)).toMatchObject({ code: 'VALIDATION_ERROR', fields: { email: [expect.any(String)] } });
   });
 
+  it('el disparador de la BD (ACCOUNT_REQUIRED, error de PostgREST) → 403 con el mismo código', async () => {
+    const res = toErrorResponse({ code: 'P0001', message: 'ACCOUNT_REQUIRED', details: null, hint: null });
+    expect(res.status).toBe(403);
+    expect(await errorOf(res)).toMatchObject({ code: 'ACCOUNT_REQUIRED' });
+  });
+
   it('NotFoundError → 404 con su code', async () => {
     const res = toErrorResponse(new NotFoundError('NOT_IN_QUEUE', 'No estás en la cola'));
     expect(res.status).toBe(404);

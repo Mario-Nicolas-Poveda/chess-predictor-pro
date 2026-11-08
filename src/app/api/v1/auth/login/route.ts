@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await loginUser.execute(await readJson(req, LoginSchema), clientIp(req));
     const res = NextResponse.json({ user }, { status: 200 });
-    setSessionCookie(res, await signToken({ userId: user.id, username: user.username }));
+    setSessionCookie(res, await signToken({ userId: user.id, username: user.username, role: 'player' }));
     return res;
   } catch (e) { return toErrorResponse(e); }
 }

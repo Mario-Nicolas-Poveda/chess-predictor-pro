@@ -1,21 +1,27 @@
 import type { NextRequest } from 'next/server';
 import { verifyToken, type Session } from './jwt';
 import { readToken } from './session';
-import { UnauthorizedError } from '../errors/AppError';
+import { authorize } from './authorize';
+import type { RouteAccess } from './roles';
 import { toErrorResponse } from '../errors/toErrorResponse';
 
 type Ctx<P> = { params: Promise<P> };
 
-// en Next 15+ los params de ruta llegan como Promise
+// import diferido: solo un token de invitado consulta la BD (y así cargar withAuth no exige el env de Supabase)
+const guestAlive = (id: string) => import('./guestAlive').then(m => m.guestAlive(id));
+
+// en Next 15+ los params de ruta llegan como Promise.
+// Cerrado por defecto: solo jugadores. Una ruta que sirve a invitados lo dice con { allow: 'any' }.
 export function withAuth<P = Record<string, never>>(
   handler: (req: NextRequest, session: Session, params: P) => Promise<Response>,
+  opts: { allow?: RouteAccess } = {},
 ) {
+  const allow = opts.allow ?? 'player';
   return async (req: NextRequest, ctx: Ctx<P>) => {
     const t0 = performance.now();
     let res: Response;
     try {
-      const session = await verifyToken(readToken(req));
-      if (!session) throw new UnauthorizedError();
+      const session = await authorize(await verifyToken(readToken(req)), allow, guestAlive);
       const params = ctx?.params ? await ctx.params : ({} as P);
       res = await handler(req, session, params);
     } catch (e) { res = toErrorResponse(e); }

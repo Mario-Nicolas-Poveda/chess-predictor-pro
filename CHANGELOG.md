@@ -3,6 +3,34 @@ Formato: Keep a Changelog. Versiones: una por sprint.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-07
+Sprint 6 · Torneos y ranking.
+
+### Añadido
+- Ranking global: solo personas y partidas con ELO entre personas; orden por ELO o victorias, búsqueda y tu puesto (#186, #187, #191)
+- Torneos de eliminación directa (4 u 8): inscripción, llave sembrada por ELO, una partida por ronda, W.O. y la llave en vivo (#186, #188, #192, #193)
+- Contra la IA: salir sin registrar mientras no hayas jugado (#189, #190)
+- La arena y la repetición llegan con el tablero en el primer HTML: el estado sale del servidor y la primera consulta da 304 (#171, #189, #207)
+- Fuente de las piezas recortada a 2,8 KB y entrada de las páginas del panel en CSS: se ven sin esperar al JS (#207)
+- Códigos: 201 al inscribirse (con `Location`), 200 si ya estabas, 204 al salir, 409 de torneo lleno o cerrado y sin revancha en torneo (#188)
+- `scripts/tournament.ts` para crear los torneos reales (#188)
+
+### Corregido
+- ETag débil (`W/"…"`) en Vercel: el 304 lo decide la aplicación, con `etag;desc="304"` en `Server-Timing` (#185)
+- Piezas negras que se veían blancas con el modo oscuro forzado del navegador (v0.5.1, #183)
+- La app se congelaba al cerrar sesión; el logout responde 204 sin caché (v0.5.1, #184)
+- `COACH_LLM_TEMPERATURE=0` se respeta (#185)
+- Arena a 320 px sin desborde (#190)
+- El título de la arena con un nombre largo baja de línea a 320 px (#208)
+- La tarjeta del entrenador dice cuándo volver tras el 429 (#209)
+
+### Cambiado
+- En el celular el tablero arranca en 2D si nunca elegiste 3D en ese dispositivo: no descarga three y el TBT baja de ~2,9 s a ~1,0 s (#207)
+
+### Limitaciones conocidas
+- Lighthouse móvil (5 vueltas, mediana / peor): arena 66 / 64 (meta 75) y repetición 70 / 67 (meta 80). Lo que falta es la hidratación de React; cargar Realtime en reposo se descartó (+3–5, no llega a la meta). Detalle en #171
+- Entrar con Google solo funciona para las cuentas de prueba registradas en Google Cloud (la app está en modo "Prueba")
+
 ## [0.5.1] - 2026-11-05
 ### Corregido
 - En 2D, con el modo oscuro forzado del navegador (Brave, Chrome Android), las piezas negras ya no se ven blancas (#183)

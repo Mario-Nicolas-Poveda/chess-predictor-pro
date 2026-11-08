@@ -6,6 +6,7 @@ Proyecto de Programación Web 2026-2 · Universidad Popular del Cesar · **https
 
 ## Qué hace
 - **Cuentas:** registro e inicio de sesión con JWT en cookie `httpOnly`, o con Google (OAuth 2.0). Perfil con foto y preferencias.
+- **Jugar sin cuenta:** un invitado entra con un botón y juega contra la IA (7 días). Lo demás lo ve con candado; al crear su cuenta conserva sus partidas. Acceso por ruta: [`docs/api/roles.md`](docs/api/roles.md).
 - **Arena:** emparejamiento por ritmo (3+2, 5+0, 10+0), reloj del servidor, tablas, rendición, revancha y aviso en tiempo real (Supabase Realtime). Tablero 3D y 2D, y el estado llega en el primer HTML.
 - **Contra la IA:** 6 niveles con un motor propio; predicción de ventaja, deshacer y salir sin registrar mientras no hayas jugado.
 - **AI Coach:** precisión, errores (?!, ?, ??), momentos clave y consejos de un modelo de lenguaje configurable, con plantillas de respaldo. Plan con tus últimas partidas.
@@ -37,7 +38,7 @@ REST bajo `/api/v1`, con un cuerpo de error fijo `{ error: { code, message, fiel
 npm ci
 cp .env.example .env.local   # PowerShell: Copy-Item .env.example .env.local · llena los valores
 ```
-1. En un proyecto de Supabase, aplica en orden `supabase/migrations/0001_users.sql` … `0009_ranking_torneos.sql` (SQL Editor).
+1. En un proyecto de Supabase, aplica en orden `supabase/migrations/0001_users.sql` … `0010_roles_invitado.sql` (SQL Editor).
 2. Producción local:
    ```bash
    npm run build && npm start   # http://localhost:3000
@@ -56,6 +57,7 @@ Después de clonar, activa el hook de commits una vez: `git config core.hooksPat
 | `tests/coach.http.sh` | análisis en cola (202), polling con ETag, plan (`FULL=1`) |
 | `tests/avatar.http.sh` | foto de perfil (413, 415) |
 | `tests/tournament.http.sh` | ranking y un torneo de 4 completo (≈ 45 s) |
+| `tests/roles.http.sh` | invitado: entrar, contra la IA, 403 `ACCOUNT_REQUIRED`, pasar a jugador, salir (401 `SESSION_EXPIRED`) |
 
 `bots.http.sh` y `tournament.http.sh` necesitan `ENABLE_DEV_ROUTES=true` en `.env.local`. En Vercel no se define.
 
@@ -70,6 +72,8 @@ Los scripts `tests/*.http.sh` crean usuarios (`@t.dev`, `@test.dev`) y torneos. 
 1. Selecciona el bloque 1 (vista previa) y pulsa Run. `partidas_con_cuentas_reales` debe ser 0.
 2. Corre el archivo completo y elige **Run without RLS**: el aviso "table without RLS" es por `test_users`, una tabla temporal que la API no puede ver. Si alguna prueba jugó contra una cuenta real, no borra nada.
 3. Si la vista previa lista fotos, bórralas en Storage → `avatars`.
+
+Los invitados no hace falta borrarlos: se borran al cerrar sesión o a los 7 días.
 
 ## Git Flow
 Ramas, versiones, commits y PRs: [docs/git-flow.md](docs/git-flow.md). Historial: [CHANGELOG.md](CHANGELOG.md).

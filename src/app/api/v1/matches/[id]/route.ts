@@ -11,4 +11,4 @@ export const GET = withAuth<{ id: string }>(async (_req, s, params) =>
 export const DELETE = withAuth<{ id: string }>(async (_req, s, params) => {
   await abortMatch.execute(s.userId, parseParams(MatchParamsSchema, params).id);
   return noContent();
-});
+}, { allow: 'any' });

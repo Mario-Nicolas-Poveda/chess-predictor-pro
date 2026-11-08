@@ -16,6 +16,6 @@ export const PATCH = withAuth(async (req, s) => {
   const p = await updateUserProfile.execute(s.userId, await readJson(req, UpdateProfileSchema));
   const res = NextResponse.json({ profile: toDto(p) });
   if (p.username !== s.username)   // el username va dentro del JWT → reemitir
-    setSessionCookie(res, await signToken({ userId: p.id, username: p.username }));
+    setSessionCookie(res, await signToken({ userId: p.id, username: p.username, role: s.role }));
   return res;
 });

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!g.email_verified) return fail;
     const user = await loginWithGoogle.execute(g);
     const res = NextResponse.redirect(new URL('/dashboard/profile', req.url));
-    setSessionCookie(res, await signToken({ userId: user.id, username: user.username }));
+    setSessionCookie(res, await signToken({ userId: user.id, username: user.username, role: 'player' }));
     res.cookies.set('oauth_state', '', { path: '/', maxAge: 0 });
     return res;
   } catch (e) { console.error(e); return fail; }

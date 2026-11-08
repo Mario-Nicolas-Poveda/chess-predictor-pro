@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await registerUser.execute(await readJson(req, RegisterSchema), clientIp(req));
     const res = created({ user }, '/api/v1/auth/me');
-    setSessionCookie(res, await signToken({ userId: user.id, username: user.username }));
+    setSessionCookie(res, await signToken({ userId: user.id, username: user.username, role: 'player' }));
     return res;
   } catch (e) { return toErrorResponse(e); }
 }

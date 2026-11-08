@@ -1,7 +1,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { AppError, TooManyRequestsError } from './AppError';
+import { AppError, ForbiddenError, TooManyRequestsError } from './AppError';
 import { zodFields } from './zodFields';
 
 export function toErrorResponse(e: unknown) {
@@ -13,6 +13,9 @@ export function toErrorResponse(e: unknown) {
   if (e instanceof AppError)
     return NextResponse.json({ error: { code: e.code, message: e.message, fields: e.fields, meta: e.meta } },
       { status: e.status, headers: e instanceof TooManyRequestsError ? { 'Retry-After': String(e.retryAfterS) } : undefined });
+  // segunda capa (0010): un disparador de la BD rechazó a un invitado, venga del adaptador que venga
+  if ((e as { message?: unknown } | null)?.message === 'ACCOUNT_REQUIRED')
+    return toErrorResponse(new ForbiddenError('ACCOUNT_REQUIRED', 'Crea tu cuenta para usar esto'));
   console.error('[api] error no controlado', e);
   return NextResponse.json({ error: { code: 'INTERNAL', message: 'Error interno' } }, { status: 500 });
 }

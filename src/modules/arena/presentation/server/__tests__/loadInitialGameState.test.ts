@@ -22,7 +22,7 @@ const ID = '7f3a1c2e-1b2c-4d5e-8f90-123456789abc';
 
 beforeEach(async () => {
   vi.stubEnv('JWT_SECRET', 'secreto-de-prueba-con-mas-de-32-caracteres');
-  h.token = await signToken({ userId: 'u1', username: 'ana' });
+  h.token = await signToken({ userId: 'u1', username: 'ana', role: 'player' });
   h.execute.mockReset(); h.after.mockReset();
 });
 

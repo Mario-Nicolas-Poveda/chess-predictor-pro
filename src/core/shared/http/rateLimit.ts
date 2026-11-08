@@ -16,6 +16,7 @@ export const LIMITS = {
   avatar:     { limit: 10, windowS: 3600 },      // PUT /profile/avatar
   coachReview:  { limit: 30, windowS: 86_400 },  // análisis nuevos por usuario y día
   coachSummary: { limit: 10, windowS: 86_400 },  // planes nuevos por usuario y día
+  tourJoin:     { limit: 30, windowS: 3_600 },   // inscripciones a torneos por usuario y hora
 } as const satisfies Record<string, Limit>;
 
 // ventana fija por clave en la BD (rate_hit): sirve aunque Vercel use varias instancias. 429 si pasó el límite

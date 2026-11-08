@@ -8,9 +8,10 @@ import { EASE_OUT } from '@/lib/motion';
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '±0');
 
 /** Banda abajo en el escenario al terminar; entra a los 500 ms. */
-export function EndBand({ title, reason, eloDelta, note, link, onAgain }: {
+export function EndBand({ title, reason, eloDelta, note, link, onAgain, back }: {
   title: string; reason: string; eloDelta: number | null; note?: string;   // note: en vez del ELO (contra la IA)
   link?: { href: string; label: string }; onAgain: () => void;
+  back?: { href: string; label: string };   // de torneo: en vez de "Jugar otra vez"
 }) {
   return (
     <m.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, delay: .5, ease: EASE_OUT }}
@@ -23,7 +24,8 @@ export function EndBand({ title, reason, eloDelta, note, link, onAgain }: {
         <p className="mt-1 text-[15px] text-ink-soft">{reason}</p>
       </div>
       <div className="flex flex-wrap gap-2.5">
-        <button type="button" onClick={onAgain} className={buttonClass('ghost')}>Jugar otra vez</button>
+        {back ? <Link href={back.href} className={buttonClass('ghost')}>{back.label}</Link>
+          : <button type="button" onClick={onAgain} className={buttonClass('ghost')}>Jugar otra vez</button>}
         {link && <Link href={link.href} className={buttonClass('primary')}>{link.label}</Link>}
       </div>
     </m.div>

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Color, Group, Material } from 'three';
 import { createPiece, geosAsync, lux, pieceMaterials, srgb, surface, type PieceType } from '../kit';
 import { createStage } from '../stage';
@@ -18,7 +19,7 @@ const TILE = .66;
 
 export const createPieceScene: SceneFactory<PieceScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 30 });
-  const { THREE, scene, camera, tweens, hemi, key, quality } = stage;
+  const { scene, camera, tweens, hemi, key, quality } = stage;
   // calidad baja: la pieza queda quieta (gira solo al arrastrar); así no hay frames continuos
   const spins = quality === 'high' && !reducedMotion;
   await geosAsync(quality, stage.step);

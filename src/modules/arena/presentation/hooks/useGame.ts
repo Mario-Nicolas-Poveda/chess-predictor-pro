@@ -16,7 +16,7 @@ type S = { server: GameState | null; moves: MoveDTO[]; etag: string | null; offs
 type A =
   | { type: 'STATE'; state: GameState; moves: MoveDTO[]; etag: string | null; offset: number; notice?: string }
   | { type: 'OPTIMISTIC'; uci: string } | { type: 'ROLLBACK' }
-  | { type: 'NOTICE'; notice: string } | { type: 'OFFLINE'; offline: boolean } | { type: 'ERROR'; error: string };
+  | { type: 'NOTICE'; notice: string } | { type: 'OFFLINE'; offline: boolean } | { type: 'ERROR'; error: string } | { type: 'OFFSET'; offset: number };
 
 const INITIAL: S = { server: null, moves: [], etag: null, offset: 0, optimistic: null, notice: '', offline: false, error: null };
 export const PROMO_HINT = 'Falta la pieza de la coronación: escribe g8=D, =T, =A o =C.';
@@ -31,6 +31,7 @@ export function reducer(s: S, a: A): S {
     case 'NOTICE': return { ...s, notice: a.notice };
     case 'OFFLINE': return s.offline === a.offline ? s : { ...s, offline: a.offline };
     case 'ERROR': return { ...s, error: a.error };
+    case 'OFFSET': return { ...s, offset: a.offset };
   }
 }
 
@@ -41,12 +42,19 @@ export const mergeMoves = (prev: MoveDTO[], state: GameState, extra: MoveDTO[] =
   return [...byPly.values()].filter(m => m.ply <= state.ply).sort((a, b) => a.ply - b.ply);
 };
 
+/** El estado que llegó en el HTML (#171): la arena arranca con él, sin esqueleto. */
+export type InitialGame = { state: GameState; etag: string };
+
+export const fromInitial = (init?: InitialGame): S =>
+  init ? { ...INITIAL, server: init.state, moves: mergeMoves([], init.state), etag: init.etag } : INITIAL;
+
 /** Estado de la partida: polling encadenado con ETag, jugada optimista y acciones (tablas, rendirse, cancelar). */
-export function useGame(matchId: string) {
+export function useGame(matchId: string, init?: InitialGame) {
   const router = useRouter();
-  const [s, dispatch] = useReducer(reducer, INITIAL);
+  const [s, dispatch] = useReducer(reducer, init, fromInitial);
   // copia síncrona de lo último confirmado: el polling y las acciones la leen sin esperar al render
-  const live = useRef<{ server: GameState | null; moves: MoveDTO[]; etag: string | null }>({ server: null, moves: [], etag: null });
+  const live = useRef<{ server: GameState | null; moves: MoveDTO[]; etag: string | null }>({ server: s.server, moves: s.moves, etag: s.etag });
+  const hydrated = useRef(!!init);   // con estado del HTML, la primera consulta va con su ETag (304 si nada cambió)
   const kick = useRef<(full?: boolean) => Promise<void>>(async () => {});
   // timbre del servidor: al oírlo se consulta el estado (con ETag) como siempre
   const onAir = useMatchDoorbell(matchId, () => void kick.current());
@@ -72,7 +80,10 @@ export function useGame(matchId: string) {
 
   useEffect(() => {
     const ctrl = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined, fails = 0, full = true;
+    let timer: ReturnType<typeof setTimeout> | undefined, fails = 0, full = !hydrated.current;
+    // shortcut: el desfase se mide al hidratar (no al generar el HTML): los relojes van atrasados lo que tardó en llegar la página, hasta el próximo 200
+    if (hydrated.current && live.current.server) dispatch({ type: 'OFFSET', offset: Date.parse(live.current.server.clock.serverNow) - Date.now() });
+    hydrated.current = false;
     const load = async () => {
       clearTimeout(timer);
       if (document.hidden) { timer = setTimeout(() => void refresher.trigger(), 1000); return; }   // pestaña oculta: en pausa
@@ -98,8 +109,11 @@ export function useGame(matchId: string) {
     // nunca dos consultas a la vez: lo pedido en vuelo (commit o el timbre) se repite al terminar
     const refresher = coalesce(load);
     kick.current = (f = false) => { full ||= f; return refresher.trigger(); };
-    void kick.current(true);
-    return () => { ctrl.abort(); clearTimeout(timer); refresher.stop(); };
+    void kick.current(full);
+    // pestaña oculta: load no consulta (Active CPU de Vercel); al volver, una consulta enseguida y no al siguiente segundo
+    const onVis = () => { if (!document.hidden) void kick.current(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { ctrl.abort(); clearTimeout(timer); refresher.stop(); document.removeEventListener('visibilitychange', onVis); };
   }, [matchId, commit, toLogin]);
 
   // se cayó el canal: no esperar los 10 s del respaldo
@@ -175,6 +189,9 @@ export function useGame(matchId: string) {
     acceptDraw: () => withState(arenaApi.acceptDraw(matchId), { NO_DRAW_OFFER: 'La oferta ya no está.' }),
     // rechazar o retirar: 204, y en 404 la oferta ya no estaba; en los dos casos se quita la banda
     declineDraw: () => { withdrew.current = true; return arenaApi.declineDraw(matchId).catch(e => fail(e, { NO_DRAW_OFFER: '' })).finally(refresh); },
+    /** Salir sin registrar (contra la IA, sin jugadas tuyas). 409: la IA jugó o terminó → se recarga y el aviso se va solo. */
+    abort: () => aiApi.abort(matchId).then(() => { router.replace('/dashboard/ai'); return true; },
+      e => { if (e instanceof ApiError) fail(e); else notice('Sin conexión. Reintenta en un momento.'); return false; }),
     cancel: () => arenaApi.cancel(matchId).then(() => router.push(live.current.server?.ai ? '/dashboard/ai' : '/dashboard/play'),
       e => fail(e, { MATCH_NOT_PENDING: 'La partida ya empezó: puedes rendirte.' })),
   };

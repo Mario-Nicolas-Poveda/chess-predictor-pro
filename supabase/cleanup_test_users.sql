@@ -43,6 +43,14 @@ begin
   end if;
 end $$;
 
+-- Torneos (0009) donde jugó un usuario de prueba: se borran enteros (llaves y partidas no tienen cascada a users).
+-- Si hubo cuentas reales en esas partidas, el bloque de arriba ya detuvo todo.
+create temp table test_tournaments on commit drop as
+  select distinct tournament_id as id from public.tournament_games
+  where white_id in (select id from test_users) or black_id in (select id from test_users);
+update public.matches set tournament_id = null where tournament_id in (select id from test_tournaments);
+delete from public.tournaments where id in (select id from test_tournaments);
+
 delete from public.users where id in (select id from test_users);
 
 commit;

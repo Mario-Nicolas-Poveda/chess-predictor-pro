@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlayerDirectory } from '@/modules/matchmaking/domain/PlayerDirectory';
 import type { PlayerSummary } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
-import { ConflictError, TooManyRequestsError } from '@/core/shared/errors/AppError';
+import { ConflictError, ForbiddenError, TooManyRequestsError } from '@/core/shared/errors/AppError';
 import { zodFields } from '@/core/shared/errors/zodFields';
 import type { ArenaRepository, CommitMove, HistoryRow, Outcome3 } from '../../domain/ArenaRepository';
 import { eloDelta } from '../../domain/elo';
@@ -12,6 +12,7 @@ import { ChessJsRules } from '../../infrastructure/ChessJsRules';
 import { HistoryQuerySchema, type Color, type EndReason } from '../../infrastructure/dto/arenaSchemas';
 import { EngineMovePicker } from '@/modules/ai-engine/infrastructure/EngineMovePicker';
 import { AI_LEVELS, CreateAiGameSchema, type AiLevel, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
+import { AbortAiGame } from '../AbortAiGame';
 import { AnswerDraw } from '../AnswerDraw';
 import { BotTurn } from '../BotTurn';
 import { CreateAiGame } from '../CreateAiGame';
@@ -34,7 +35,7 @@ const record = (): MatchRecord => ({
   whiteMs: 600_000, blackMs: 600_000, incrementMs: 0, turnStartedAt: null, startedAt: null, endedAt: null,
   result: null, endReason: null, drawOfferBy: null, drawOfferedAt: null, rematchOfferBy: null, rematchOfferedAt: null, rematchId: null,
   whiteEloBefore: null, blackEloBefore: null, whiteEloAfter: null, blackEloAfter: null,
-  rated: true, aiPrediction: false, takebacks: 0,
+  rated: true, aiPrediction: false, takebacks: 0, tournament: null,
 });
 
 // Una sola partida (m1). Imita lo que hacen las funciones SQL de 0004 en lo que tocan estos casos de uso
@@ -147,6 +148,17 @@ class MemoryArenaRepo implements ArenaRepository {
     this.lease = null;
     return target;
   }
+  // las mismas reglas que ai_abort_game (0009)
+  async abortAiGame(id: string, userId: string) {
+    const m = this.get(id);
+    if (!m) throw matchNotFound();
+    if (userId !== m.whiteId && userId !== m.blackId) throw new ForbiddenError('No participas en esta partida');
+    if (m.rated) throw notAiMatch();
+    if (m.status === 'finished' || m.status === 'aborted') throw matchFinished();
+    if (m.ply > (userId === m.whiteId ? 0 : 1)) throw new ConflictError('GAME_HAS_MOVES', 'Ya jugaste: para salir, ríndete');
+    this.touch({ status: 'aborted', turnStartedAt: null });
+    this.lease = null;
+  }
   lease: { ply: number; until: number } | null = null;
   async claimAiTurn(_id: string, ply: number, ms: number) {
     if (this.lease && this.lease.ply === ply && this.lease.until > Date.now()) return false;
@@ -222,6 +234,7 @@ describe('GetGameState', () => {
     const r = await get();
     expect(r.etag).toBe('"m-0"');
     expect(await get(0, r.etag)).toEqual({ etag: '"m-0"', aiToMove: false, notModified: true });
+    expect(await get(0, `W/${r.etag}`)).toMatchObject({ notModified: true });   // lo que manda Chrome detrás de Vercel
   });
 
   it('since=3 trae solo las jugadas 4 en adelante', async () => {
@@ -232,6 +245,20 @@ describe('GetGameState', () => {
   it('since al día: sin jugadas, pero sabe si hay jaque', async () => {
     await play('e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7');
     expect(await get(7)).toMatchObject({ state: { moves: [], check: true } });
+  });
+
+  it('partida normal: sin torneo y los 3 min de siempre para la primera jugada', async () => {
+    const r = await get();
+    if (r.notModified) throw new Error('sin ETag nunca es 304');
+    expect(r.state.tournament).toBeNull();
+    expect(Date.parse(r.state.pendingExpiresAt!) - repo.m.createdAt.getTime()).toBe(180_000);
+  });
+
+  it('de torneo y pending: el plazo es el del W.O. (createdAt + noshow), también en pendingExpiresAt', async () => {
+    repo.m.tournament = { id: 't1', name: 'Copa', noshowS: 300, bracketSize: 8, round: 2 };
+    const deadline = new Date(repo.m.createdAt.getTime() + 300_000).toISOString();
+    expect(await get()).toMatchObject({ state: {
+      pendingExpiresAt: deadline, tournament: { id: 't1', name: 'Copa', deadline, stage: { round: 2, rounds: 3, name: 'Semifinal' } } } });
   });
 });
 
@@ -340,6 +367,11 @@ describe('Revancha', () => {
     expect(await rematch().request('ana', 'm1')).toEqual({ state: 'accepted', matchId: 'm2' });
   });
 
+  it('de torneo → 409 TOURNAMENT_MATCH', async () => {
+    repo.m.tournament = { id: 't1', name: 'Copa', noshowS: 300, bracketSize: 4, round: 1 };
+    await expect(rematch().request('ana', 'm1')).rejects.toMatchObject({ code: 'TOURNAMENT_MATCH', status: 409 });
+  });
+
   it('en active → 409 MATCH_NOT_FINISHED', async () => {
     repo.m.status = 'active';
     await expect(rematch().request('ana', 'm1')).rejects.toMatchObject({ code: 'MATCH_NOT_FINISHED', status: 409 });
@@ -429,6 +461,24 @@ describe('Contra la IA', () => {
     });
   });
 
+  describe('AbortAiGame', () => {
+    const abort = (user = 'ana') => new AbortAiGame(repo).execute(user, 'm1');
+
+    it('sin jugadas tuyas → sale sin registrar: abortada, sin resultado', async () => {
+      await create();
+      await expect(abort()).resolves.toBeUndefined();
+      expect(repo.m).toMatchObject({ status: 'aborted', result: null });
+      await expect(abort()).rejects.toMatchObject({ code: 'MATCH_FINISHED', status: 409 });
+    });
+
+    it('con una jugada tuya → 409 GAME_HAS_MOVES; otro usuario → 403', async () => {
+      await create();
+      await move('ana', 'e2e4', 0);
+      await expect(abort()).rejects.toMatchObject({ code: 'GAME_HAS_MOVES', status: 409 });
+      await expect(abort('eva')).rejects.toMatchObject({ status: 403 });
+    });
+  });
+
   describe('Takeback', () => {
     beforeEach(async () => { await create(); await move('ana', 'e2e4', 0); await aiTurn(); });   // ply 2, tu turno
 
@@ -463,6 +513,7 @@ describe('Contra la IA', () => {
       expect(r.prediction.top[0]).toHaveProperty('san');
       const spy = vi.spyOn(engine, 'predict');
       expect(await prediction(r.etag)).toEqual({ etag: '"p-0-0"', notModified: true });
+      expect(await prediction(`W/${r.etag}`)).toEqual({ etag: '"p-0-0"', notModified: true });
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });

@@ -56,4 +56,13 @@ describe('mock de la IA', () => {
     expect(s.state.moves.map(m => m.ply).at(-1)).toBe(2);
     expect(s.state.ai?.takebacks).toBe(1);
   }, 10_000);
+
+  it('salir sin registrar: 204 en la jugada 0; 409 GAME_HAS_MOVES después de jugar', async () => {
+    const a = await start();
+    expect(await code(a.ai.abort(a.id))).toBe('ok');
+    expect(await code(a.ai.abort(a.id))).toBe('409 MATCH_FINISHED');
+    const b = await start();
+    await round(b.arena, b.id, 'e2e4');
+    expect(await code(b.ai.abort(b.id))).toBe('409 GAME_HAS_MOVES');
+  });
 });

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { sanEs } from '@/components/chess/san';
 import type { BoardView } from '@/components/three/scenes/gameBoardScene';
@@ -32,13 +32,13 @@ type Tab = (typeof TABS)[number][0];
 
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '±0');
 const noop = () => {};
+const noSubscribe = () => noop;
 const moveLabel = (ply: number, san: string | undefined) =>
   !san ? 'Inicio' : `${Math.ceil(ply / 2)}${ply % 2 ? '.' : '…'} ${sanEs(san)}`;
 
 /** /dashboard/partidas/[id]: la partida jugada a jugada (las piezas en la columna izquierda del layout van bajo la lista). */
-export function ReplayPlayer() {
-  const { matchId } = useParams<{ matchId: string }>();
-  const r = useReplay(matchId);
+export function ReplayPlayer({ matchId, initial }: { matchId: string; initial?: GameState }) {
+  const r = useReplay(matchId, initial);
   const s = r.state;
 
   if (r.error) return <p role="alert" className="text-ink-soft lg:col-start-2 lg:row-start-1">{r.error}</p>;
@@ -56,6 +56,8 @@ function FinishedReplay({ r, s, result }: { r: ReturnType<typeof useReplay>; s: 
   const router = useRouter();
   const { prefs } = usePreferences();
   const [now] = useState(() => Date.now());
+  // "Hoy"/"Ayer" dependen de la zona del navegador: fuera del HTML del servidor (sin desajuste al hidratar)
+  const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
   const review = useReview(s.id);
   const analysis = review.view.kind === 'ready' ? review.view.data.analysis : null;
   const [moment, setMoment] = useState<number | null>(null);        // la jugada de la que se ven las flechas
@@ -120,7 +122,7 @@ function FinishedReplay({ r, s, result }: { r: ReturnType<typeof useReplay>; s: 
       <section ref={board} aria-labelledby="replay-title" className="flex min-w-0 scroll-mt-4 flex-col gap-3 lg:sticky lg:top-[-8px] lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h2 id="replay-title" className="font-display text-[clamp(32px,3.4vw,44px)] font-semibold leading-tight">{s.you.username} contra {s.opponent.username}</h2>
-          <p className="font-mono text-xs text-ink-faint">{t.label} · {s.endedAt ? dayLabel(s.endedAt, now) : ''} · {OUTCOME_TITLE[outcome].slice(0, -1).toLowerCase()}</p>
+          <p className="font-mono text-xs text-ink-faint">{t.label} · {mounted && s.endedAt ? dayLabel(s.endedAt, now) : ''} · {OUTCOME_TITLE[outcome].slice(0, -1).toLowerCase()}</p>
         </div>
         {/* la jugada actual va en su fila, no encima del tablero (en el celular tapaba las piezas) */}
         <div className="flex min-h-11 items-center justify-between gap-3">

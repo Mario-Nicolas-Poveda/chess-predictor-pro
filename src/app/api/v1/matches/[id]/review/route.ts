@@ -1,3 +1,4 @@
+import { notModified } from '@/core/shared/http/etag';
 import { withAuth } from '@/core/shared/auth/withAuth';
 import { afterResponse } from '@/core/shared/http/background';
 import { parseParams } from '@/core/shared/http/params';
@@ -22,7 +23,7 @@ export const GET = withAuth<{ id: string }>(async (req, s, params) => {
   // red de seguridad: si sigue en cola sin dueño, lo relanza (coach_claim_review evita que lo hagan dos)
   if (r.needsWork) afterResponse('coach-review-safety', () => generateReview.run(id, s.userId));
   const headers = { ETag: r.etag, 'Cache-Control': 'private, no-cache' };
-  if (r.notModified) return new Response(null, { status: 304, headers });
+  if (r.notModified) return notModified(headers);
   return ok({ review: r.review }, { headers });
 });
 

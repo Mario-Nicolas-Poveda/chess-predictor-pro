@@ -70,6 +70,7 @@ export function useRematch(matchId: string) {
     if (e instanceof ApiError && e.status === 401) return toLogin();
     if (e instanceof ApiError && e.code === 'ACTIVE_MATCH_EXISTS') return setView({ kind: 'none', notice: 'Uno de los dos ya está en otra partida o buscando.' });
     if (e instanceof ApiError && e.code === 'NO_REMATCH_OFFER') return setView({ kind: 'none' });
+    if (e instanceof ApiError && e.code === 'TOURNAMENT_MATCH') return setView({ kind: 'none', notice: 'Las partidas de torneo no tienen revancha.' });
     setView({ kind: 'none', notice: e instanceof ApiError ? e.message : 'No se pudo conectar. Reintenta.' });
   };
   const act = async (fn: () => Promise<void>) => { setBusy(true); try { await fn(); } catch (e) { fail(e); } finally { setBusy(false); setPoke(n => n + 1); } };

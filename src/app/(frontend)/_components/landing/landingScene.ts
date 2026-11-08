@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Group, MeshBasicMaterial } from 'three';
 import { createPiece, geosAsync, lux, squareToXZ, surface, type PieceType } from '@/components/three/kit';
 import { createStage } from '@/components/three/stage';
@@ -17,7 +18,7 @@ const ease = (t: number) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3
 /** Mesa de noche con lámpara: tablero de madera procedural y la apertura Italiana jugada con el scroll. */
 export const createLandingScene: SceneFactory<LandingScene> = async (canvas, { quality: pre, reducedMotion, signal }) => {
   const stage = await createStage(canvas, { quality: pre, reducedMotion, signal, fov: 36, lights: false });
-  const { THREE, renderer, scene, camera, quality } = stage;
+  const { renderer, scene, camera, quality } = stage;
   const dustOn = quality === 'high' && !reducedMotion;   // el polvo (y el leve vaivén de cámara) piden frames continuos
   await geosAsync(quality, stage.step);
   const finish = (o: Parameters<typeof surface>[1]) => surface(quality, o);   // Physical en alta; Standard en baja

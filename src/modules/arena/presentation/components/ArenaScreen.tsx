@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { RefreshCw, Undo2 } from 'lucide-react';
 import { glyph } from '@/components/chess/glyphs';
 import type { Square } from '@/components/chess/types';
@@ -13,15 +13,16 @@ import type { BoardView } from '@/components/three/scenes/gameBoardScene';
 import { Button } from '@/components/ui/Button';
 import { AI_LEVELS, type AiTimeControl } from '@/modules/ai-engine/infrastructure/dto/aiSchemas';
 import { aiApi } from '@/modules/ai-engine/presentation/api/aiApi';
+import { afterDeadline } from '@/modules/tournaments/presentation/lib/deadline';
 import { usePreferences } from '@/modules/dashboard/presentation/preferences/PreferencesProvider';
 import { THEME_3D, accentHex } from '@/modules/dashboard/presentation/theme/themes';
 import { TIME_CONTROL_LABEL } from '@/modules/matchmaking/infrastructure/dto/matchmakingSchemas';
 import { useBoardInput } from '../hooks/useBoardInput';
 import { useClock } from '../hooks/useClock';
-import { useGame } from '../hooks/useGame';
+import { useGame, type InitialGame } from '../hooks/useGame';
 import { usePrediction } from '../hooks/usePrediction';
 import { useRevealed } from '../hooks/useRevealed';
-import { exitCopy, useArenaPanel } from '../game/arenaPanel';
+import { canAbort, exitCopy, useArenaPanel } from '../game/arenaPanel';
 import { livePosition } from '../game/livePosition';
 import { OUTCOME_TITLE, eloDelta, outcomeOf, reasonText } from '../reasons';
 import { ArenaHeader } from './ArenaHeader';
@@ -36,15 +37,15 @@ const mmss = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); retu
 const small = 'h-11! px-[18px]! text-sm';
 
 /** /dashboard/arena/[matchId]: la partida en vivo contra la API (o el mock con NEXT_PUBLIC_API_MOCK=1). */
-export function ArenaScreen() {
-  const { matchId } = useParams<{ matchId: string }>();
+export function ArenaScreen({ matchId, initial }: { matchId: string; initial?: InitialGame }) {
   const router = useRouter();
-  const g = useGame(matchId);
+  const g = useGame(matchId, initial);
   const { prefs } = usePreferences();
   const [flipped, setFlipped] = useState<boolean | null>(null);   // null = tu color
   const [confirming, setConfirming] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [kept, setKept] = useState<number | null>(null);   // "Seguir" en esta versión del estado: al deshacer otra vez, vuelve el aviso
   const [say, setSay] = useState('');                                                // avisos para el lector (pista, deshacer)
   const [hover, setHover] = useState<string | null>(null);                           // candidata bajo el cursor o con foco
   const [pinned, setPinned] = useState<{ ply: number; uci: string } | null>(null);   // candidata fija (tocar)
@@ -70,6 +71,15 @@ export function ArenaScreen() {
   const panel = useArenaPanel(s?.status);
   const pred = usePrediction(matchId, s, !!s?.ai?.prediction);
   useEffect(() => { if (finished) router.prefetch(`/dashboard/arena/${matchId}/resultado`); }, [finished, router, matchId]);
+  // torneo: al vencer el plazo de la primera jugada, el servidor da el W.O. cuando alguien consulta
+  const tDeadline = s?.status === 'pending' ? s.tournament?.deadline ?? null : null;
+  const { flag, offset } = g;
+  useEffect(() => {
+    if (!tDeadline) return;
+    let stopFlag = () => {};
+    const stop = afterDeadline({ at: tDeadline, skewMs: offset, refresh: async () => { stopFlag = flag(); return true; } });
+    return () => { stop(); stopFlag(); };
+  }, [tDeadline, offset, flag]);
 
   if (g.error) return (
     <div className="mx-auto flex max-w-[1240px] flex-col gap-5 px-5 py-16 lg:px-10">
@@ -94,6 +104,7 @@ export function ArenaScreen() {
   const lastSan = sans.at(-1) ?? null, lastByYou = sans.length > 0 && sans.length % 2 === (you === 'white' ? 1 : 0);
   const outcome = s.result ? outcomeOf(s.result.winner, you) : null;
   const reason = s.result && outcome ? reasonText(s.result.reason, outcome, rival, s.ply, lastSan) : '';
+  const tour = s.tournament;
   const pendingLeft = s.pendingExpiresAt ? Date.parse(s.pendingExpiresAt) - clock.serverNow : 0;
   const theirOffer = s.drawOffer === rivalColor, yourOffer = s.drawOffer === you;
   const playing = s.status === 'active' || s.status === 'pending';
@@ -103,6 +114,8 @@ export function ArenaScreen() {
     : s.status === 'pending' && s.turn !== you ? `Esperando a ${rival}…`
     : yourTurn ? (frame.check ? '¡Jaque!' : 'Tu turno.') : `${rival} piensa…`;
   const sub = outcome ? reason
+    : s.status === 'pending' && !g.optimistic && tour ? (pendingLeft <= 0 ? 'Revisando el plazo…' : you === 'white'
+      ? `Haz tu primera jugada antes de ${mmss(pendingLeft)} o pierdes por W.O.` : `Si ${rival} no hace su primera jugada en ${mmss(pendingLeft)}, ganas por W.O.`)
     : s.status === 'pending' && !g.optimistic && hasClock ? (s.turn === you ? `Tienes ${mmss(pendingLeft)} para la primera jugada. El reloj arranca cuando muevas.` : `Las blancas tienen ${mmss(pendingLeft)} para empezar.`)
     : yourTurn ? (frame.check ? 'Protege a tu rey.' : lastSan ? `${rival} jugó ${sanEs(lastSan)}.` : ai ? `Juegas con ${you === 'white' ? 'blancas' : 'negras'}.` : '')
     : g.optimistic ? 'Enviando tu jugada…'
@@ -166,7 +179,9 @@ export function ArenaScreen() {
   const exit = exitCopy(s);
   const leave = async () => {
     setLeaving(true);
-    if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
+    if (exit.action === 'abort') { if (await g.abort()) return; }   // 204 → a Contra la IA, con "Saliendo…" hasta irse
+    else if (exit.action === 'leave') { router.push(`/dashboard/tournaments/${tour!.id}`); return; }
+    else if (exit.action === 'cancel') await g.cancel();   // 204 → a Jugar (o a Contra la IA)
     else await g.resign();                            // 200 → se ve el final
     setLeaving(false); setExiting(false);
   };
@@ -177,8 +192,17 @@ export function ArenaScreen() {
       <RefreshCw size={18} aria-hidden="true" /> Girar tablero
     </button>
   );
+  const discard = async () => { setLeaving(true); if (!(await g.abort())) setLeaving(false); };
   const actions = !playing ? <div className="flex flex-wrap gap-2.5">{flip}</div>
-    : confirming ? (
+    : canAbort(s) && kept !== s.version && !g.optimistic ? (
+      <section aria-labelledby="abort-q" className="flex flex-col gap-3 rounded-2xl px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--t-ink)] animate-rise">
+        <p id="abort-q" className="text-[15px]">Volviste al inicio. Puedes salir sin registrar la partida: no cuenta como derrota.</p>
+        <div className="flex gap-2.5">
+          <Button variant="ghost" className={`${small} flex-1`} disabled={leaving} onClick={() => setKept(s.version)}>Seguir</Button>
+          <Button className={`${small} flex-[1.4]`} disabled={leaving} onClick={() => void discard()}>{leaving ? 'Saliendo…' : 'Salir sin registrar'}</Button>
+        </div>
+      </section>
+    ) : confirming ? (
       <div role="alertdialog" aria-labelledby="resign-q" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 animate-rise">
         <p id="resign-q" className="basis-full text-[15px]">{ai ? '¿Rendirte? La partida queda como derrota en tu historial.' : `¿Rendirte? Perderías ${-eloDelta(s.you.elo, s.opponent.elo, 0)} puntos de ELO.`}</p>
         <Button className={small} onClick={() => { setConfirming(false); void g.resign(); }}>Sí, rendirme</Button>
@@ -201,7 +225,7 @@ export function ArenaScreen() {
             {!ai.prediction && <Button variant="ghost" className={small} disabled={!yourTurn} onClick={() => void askHint()}>Pista</Button>}
             {s.status === 'pending' && <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>}
           </> : s.status === 'pending' ? (
-            <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>
+            !tour && <Button variant="ghost" className={small} onClick={() => void g.cancel()}>Cancelar partida</Button>
           ) : yourOffer ? <>
             <Button variant="ghost" className={small} disabled>Tablas ofrecidas…</Button>
             <Button variant="ghost" className={small} onClick={() => void g.declineDraw()}>Retirar</Button>
@@ -215,12 +239,13 @@ export function ArenaScreen() {
 
   return (<>
     {playing && (
-      <ArenaHeader label={s.ai ? `Contra la IA · ${s.ai.name} · nivel ${s.ai.level}` : `Partida en vivo · ${t.label} ${t.kind}`}
+      <ArenaHeader label={s.ai ? `Contra la IA · ${s.ai.name} · nivel ${s.ai.level}` : tour ? `${tour.name} · ${tour.stage.name}` : `Partida en vivo · ${t.label} ${t.kind}`}
+        labelHref={tour ? `/dashboard/tournaments/${tour.id}` : undefined}
         pill={pill} pillAccent={pill === '¡Jaque!'} flipped={orientation !== you} onFlip={() => setFlipped(f => !f)}
         panelOpen={panel.open} onTogglePanel={panel.toggle} onExit={() => setExiting(true)} />
     )}
     <ArenaLayout panelOpen={panel.open}
-      eyebrow={ai ? `Contra la IA · ${ai.name} · ${t.label.toLowerCase()}` : `Partida · ${t.label} ${t.kind} · #${s.id.slice(0, 4)}`}
+      eyebrow={ai ? `Contra la IA · ${ai.name} · ${t.label.toLowerCase()}` : tour ? `Torneo · ${tour.name} · ${tour.stage.name}` : `Partida · ${t.label} ${t.kind} · #${s.id.slice(0, 4)}`}
       title={title} titleAccent={!!frame.check && yourTurn && !outcome} sub={sub}
       evalBar={ai?.prediction && <EvalBar white={pred.latest?.white ?? .5} fromBottom={orientation === 'white'} />}
       prediction={ai?.prediction && playing && !pred.failed && (
@@ -233,7 +258,8 @@ export function ArenaScreen() {
       sans={sans} legal={legal} canType={canMove && !input.promo} onPlay={input.play}
       overlay={input.promo ? <PromotionDialog color={you === 'white' ? 'w' : 'b'} onPick={input.promote} onCancel={input.cancelPromo} />
         : outcome && s.result && ready && <EndBand title={OUTCOME_TITLE[outcome]} reason={reason}
-          eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : undefined}
+          eloDelta={s.result.elo[you].after - s.result.elo[you].before} note={ai ? 'contra la IA no cambia tu ELO' : s.result.reason === 'noshow' ? 'sin cambios de ELO' : undefined}
+          back={tour ? { href: `/dashboard/tournaments/${tour.id}`, label: 'Volver al torneo' } : undefined}
           link={{ href: `/dashboard/arena/${s.id}/resultado`, label: 'Ver resultado ›' }}
           onAgain={() => void again()} />}
       actions={actions} />

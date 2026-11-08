@@ -20,7 +20,7 @@ export function withAuth<P = Record<string, never>>(
       res = await handler(req, session, params);
     } catch (e) { res = toErrorResponse(e); }
     // solo un número: lo que tardó el servidor (DevTools → Network → Timing y scripts/latency.sh)
-    try { res.headers.set('Server-Timing', `app;dur=${(performance.now() - t0).toFixed(1)}`); }
+    try { res.headers.append('Server-Timing', `app;dur=${(performance.now() - t0).toFixed(1)}`); }
     catch { /* medir no debe romper la respuesta: un redirect tiene las cabeceras inmutables */ }
     return res;
   };

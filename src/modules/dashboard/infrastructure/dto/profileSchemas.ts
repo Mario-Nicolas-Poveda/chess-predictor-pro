@@ -19,7 +19,7 @@ export const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export type ProfileStats = { gamesPlayed: number; wins: number; losses: number; draws: number;
   winRate: number; currentStreak: number; bestElo: number };
 export type Profile = {
-  id: string; email: string; username: string; displayName: string | null; avatarUrl: string | null;
+  id: string; email: string | null; username: string; displayName: string | null; avatarUrl: string | null;
   country: string | null; bio: string | null; eloRating: number; authProvider: 'local' | 'google';
   createdAt: string; stats: ProfileStats; preferences: ProfilePreferences;
 };

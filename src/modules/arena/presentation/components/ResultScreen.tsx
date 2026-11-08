@@ -19,6 +19,8 @@ import { useRematch } from '../hooks/useRematch';
 import { OUTCOME_TITLE, ago, outcomeOf, reasonText } from '../reasons';
 import { EloRail } from './EloRail';
 import { RematchPanel } from './RematchPanel';
+import { CoachLocked } from '@/modules/auth/presentation/components/Locked';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 
 const loadScene = () => import('@/components/three/scenes/resultScene').then(mod => mod.createResultScene);
 const COLOR = { white: 'blancas', black: 'negras' } as const;
@@ -38,6 +40,7 @@ export function ResultScreen() {
   const s = r.state;
   const [now] = useState(() => Date.now());
   const frames = useMemo(() => framesOf(s ? s.moves.map(m => m.uci) : []), [s]);
+  const role = useRole();
 
   if (r.error) return (
     <div className="mx-auto flex max-w-[1240px] flex-col gap-5 px-5 py-16 lg:px-10">
@@ -106,7 +109,8 @@ export function ResultScreen() {
           ))}
         </dl>
 
-        <CoachCard matchId={s.id} ply={s.ply} />
+        {/* el entrenador espera al rol: el de un invitado pediría el análisis solo y el 403 abriría el diálogo */}
+        {role === 'guest' ? <CoachLocked /> : role === 'player' && <CoachCard matchId={s.id} ply={s.ply} />}
 
         {ai ? (
           <div className="flex flex-wrap items-center gap-3">

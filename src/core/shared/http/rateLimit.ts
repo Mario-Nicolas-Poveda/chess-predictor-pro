@@ -17,6 +17,8 @@ export const LIMITS = {
   coachReview:  { limit: 30, windowS: 86_400 },  // análisis nuevos por usuario y día
   coachSummary: { limit: 10, windowS: 86_400 },  // planes nuevos por usuario y día
   tourJoin:     { limit: 30, windowS: 3_600 },   // inscripciones a torneos por usuario y hora
+  guestCreate:  { limit: 10, windowS: 3_600 },   // POST /auth/guest por IP: crear invitados es gratis
+  guestAiGames: { limit: 20, windowS: 3_600 },   // POST /ai/games de invitados por IP (cada invitado nuevo tendría su propio límite)
 } as const satisfies Record<string, Limit>;
 
 // ventana fija por clave en la BD (rate_hit): sirve aunque Vercel use varias instancias. 429 si pasó el límite

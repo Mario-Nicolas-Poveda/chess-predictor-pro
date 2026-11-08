@@ -8,4 +8,4 @@ import { getMove } from '@/modules/arena/presentation/controllers/container';
 export const GET = withAuth<{ id: string; ply: string }>(async (_req, s, params) => {
   const { id, ply } = parseParams(MoveParamsSchema, params);
   return ok({ move: await getMove.execute(s.userId, id, ply) });
-});
+}, { allow: 'any' });

@@ -23,6 +23,8 @@ import { BoardModeToggle } from './BoardModeToggle';
 import { BoardStage } from './BoardStage';
 import { MoveList } from './MoveList';
 import { PlayerStrip, materialOf } from './PlayerStrip';
+import { CoachLocked } from '@/modules/auth/presentation/components/Locked';
+import { useRole } from '@/modules/dashboard/presentation/hooks/useProfile';
 
 // se carga al abrir la pestaña: la repetición no sube de peso (#85)
 const ReviewPanel = dynamic(() => import('@/modules/coach/presentation/components/ReviewPanel').then(m => m.ReviewPanel), { ssr: false, loading: () => <ReviewSkeleton /> });
@@ -58,7 +60,10 @@ function FinishedReplay({ r, s, result }: { r: ReturnType<typeof useReplay>; s: 
   const [now] = useState(() => Date.now());
   // "Hoy"/"Ayer" dependen de la zona del navegador: fuera del HTML del servidor (sin desajuste al hidratar)
   const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
-  const review = useReview(s.id);
+  const role = useRole();
+  const guest = role === 'guest';
+  // espera al rol: si no, la repetición de un invitado pediría el análisis y el 403 abriría el diálogo solo
+  const review = useReview(s.id, { enabled: role === 'player' });
   const analysis = review.view.kind === 'ready' ? review.view.data.analysis : null;
   const [moment, setMoment] = useState<number | null>(null);        // la jugada de la que se ven las flechas
   const board = useRef<HTMLElement>(null);
@@ -169,7 +174,8 @@ function FinishedReplay({ r, s, result }: { r: ReturnType<typeof useReplay>; s: 
           <p className="text-ink-soft">{OUTCOME_TITLE[outcome].slice(0, -1)} por {REASON_SHORT[result.reason]} · {signed(delta)} de ELO · {r.last} {r.last === 1 ? 'media jugada' : 'medias jugadas'}.</p>
         </div>
         <div role="tabpanel" id="panel-analisis" aria-labelledby="tab-analisis" hidden={tab !== 'analisis'}>
-          {tab === 'analisis' && <ReviewPanel view={review.view} onRequest={() => void review.request()} onReanalyze={() => void review.reanalyze()}
+          {tab === 'analisis' && guest && <CoachLocked />}
+          {tab === 'analisis' && !guest && <ReviewPanel view={review.view} onRequest={() => void review.request()} onReanalyze={() => void review.reanalyze()}
             ply={r.ply} onPly={go} moment={mom ? moment : null} onMoment={showMoment} />}
         </div>
       </div>

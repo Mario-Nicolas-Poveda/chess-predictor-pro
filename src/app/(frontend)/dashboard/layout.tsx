@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { FocusModeProvider, HiddenInFocus } from '@/components/layout/FocusMode';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { GuestBarSlot } from '@/modules/auth/presentation/components/GuestLayer';
+import { UpgradeDialog } from '@/modules/auth/presentation/components/UpgradeDialog';
 import { SessionProvider } from '@/modules/dashboard/presentation/hooks/useProfile';
 import { PreferencesProvider } from '@/modules/dashboard/presentation/preferences/PreferencesProvider';
 
@@ -10,6 +12,8 @@ export default function DashboardLayout({ children }: LayoutProps<'/dashboard'>)
       <PreferencesProvider>
         <FocusModeProvider>
           <div className="min-h-dvh">
+            {/* fuera del modo enfoque: el invitado puede crear su cuenta a mitad de una partida (y la partida sigue) */}
+            <GuestBarSlot />
             {/* en plena partida la arena pinta su propia cabecera (modo enfoque) */}
             <HiddenInFocus>
               {/* en /dashboard/arena/[id] la ruta solo se conoce en la petición: usePathname necesita Suspense */}
@@ -18,6 +22,8 @@ export default function DashboardLayout({ children }: LayoutProps<'/dashboard'>)
             {/* sin max-w: las bandas del perfil van a ancho completo y cada pantalla centra su contenido */}
             <main>{children}</main>
           </div>
+          {/* uno para toda la app: lo abren los candados y cualquier 403 ACCOUNT_REQUIRED */}
+          <UpgradeDialog />
         </FocusModeProvider>
       </PreferencesProvider>
     </SessionProvider>

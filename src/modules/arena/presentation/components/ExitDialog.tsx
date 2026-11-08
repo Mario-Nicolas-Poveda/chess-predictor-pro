@@ -16,6 +16,8 @@ export function ExitDialog({ open, text, confirm, busy, onConfirm, onClose }: {
     if (!d) return;
     if (open && !d.open) { d.showModal(); stay.current?.focus(); }
     if (!open && d.open) d.close();
+    // al salir, Next puede dejar la arena montada pero oculta: un modal abierto ahí bloquea la página siguiente
+    return () => { if (d.open) d.close(); };
   }, [open]);
 
   return (

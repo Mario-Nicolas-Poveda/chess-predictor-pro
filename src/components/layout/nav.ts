@@ -1,11 +1,14 @@
-export type NavItem = { href: string; label: string; ready: boolean; sprint: number; also?: string };
+import type { Feature } from '@/core/shared/auth/roles';
+
+// feature: solo para cuentas → el invitado lo ve con candado
+export type NavItem = { href: string; label: string; ready: boolean; sprint: number; also?: string; feature?: Feature };
 
 export const NAV: NavItem[] = [
   { href: '/dashboard/profile',     label: 'Perfil',       ready: true,  sprint: 1 },
-  { href: '/dashboard/play',        label: 'Jugar',        ready: true,  sprint: 2, also: '/dashboard/arena' },
+  { href: '/dashboard/play',        label: 'Jugar',        ready: true,  sprint: 2, also: '/dashboard/arena', feature: 'playOnline' },
   { href: '/dashboard/partidas',    label: 'Partidas',     ready: true,  sprint: 3 },
   { href: '/dashboard/ai',          label: 'Contra la IA', ready: true,  sprint: 4 },
-  { href: '/dashboard/coach',       label: 'Entrenador',   ready: true,  sprint: 5 },
+  { href: '/dashboard/coach',       label: 'Entrenador',   ready: true,  sprint: 5, feature: 'coach' },
   { href: '/dashboard/tournaments', label: 'Torneos',      ready: true,  sprint: 6 },
   { href: '/dashboard/ranking',     label: 'Ranking',      ready: true,  sprint: 6 },
 ];

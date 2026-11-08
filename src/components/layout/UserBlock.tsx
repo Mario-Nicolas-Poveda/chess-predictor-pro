@@ -34,8 +34,8 @@ export function UserBlock({ className = '' }: { className?: string }) {
           <h2 id={tid} className="font-display text-[26px] leading-tight">¿Salir y borrar?</h2>
           <p className="mt-2 text-ink-soft">Si sales, se borran tus partidas de invitado. ¿Crear cuenta para guardarlas?</p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button className="flex-1 px-4" onClick={() => { confirm.current?.close(); askAccount(); }}>Crear cuenta</Button>
-            <Button variant="ghost" className="flex-1 px-4" onClick={leave}>Salir y borrar</Button>
+            <Button className="flex-1 basis-36 whitespace-nowrap px-4" onClick={() => { confirm.current?.close(); askAccount(); }}>Crear cuenta</Button>
+            <Button variant="ghost" className="flex-1 basis-36 whitespace-nowrap px-4" onClick={leave}>Salir y borrar</Button>
           </div>
         </dialog>
       )}

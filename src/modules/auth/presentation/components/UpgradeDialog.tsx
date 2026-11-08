@@ -69,9 +69,10 @@ export function UpgradeDialog() {
           <PasswordInput autoComplete="new-password" {...register('password')} />
         </Field>
         <p role="status" className="min-h-5 text-caption text-danger">{errors.root?.message}</p>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => ref.current?.close()} className="flex-1 px-4">Ahora no</Button>
-          <Button type="submit" loading={isSubmitting} className="flex-[1.4] px-4">{isSubmitting ? 'Creando…' : 'Crear cuenta'}</Button>
+        {/* a 320 px no caben lado a lado: se apilan (el principal arriba) en vez de partir el texto */}
+        <div className="flex flex-wrap-reverse gap-2">
+          <Button variant="ghost" onClick={() => ref.current?.close()} className="flex-1 basis-32 whitespace-nowrap px-4">Ahora no</Button>
+          <Button type="submit" loading={isSubmitting} className="flex-[1.4] basis-40 whitespace-nowrap px-4">{isSubmitting ? 'Creando…' : 'Crear cuenta'}</Button>
         </div>
       </form>
     </dialog>

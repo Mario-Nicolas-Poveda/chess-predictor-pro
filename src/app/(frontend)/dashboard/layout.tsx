@@ -12,9 +12,10 @@ export default function DashboardLayout({ children }: LayoutProps<'/dashboard'>)
       <PreferencesProvider>
         <FocusModeProvider>
           <div className="min-h-dvh">
+            {/* fuera del modo enfoque: el invitado puede crear su cuenta a mitad de una partida (y la partida sigue) */}
+            <GuestBarSlot />
             {/* en plena partida la arena pinta su propia cabecera (modo enfoque) */}
             <HiddenInFocus>
-              <GuestBarSlot />
               {/* en /dashboard/arena/[id] la ruta solo se conoce en la petición: usePathname necesita Suspense */}
               <Suspense fallback={<div className="h-[60px]" />}><SiteHeader /></Suspense>
             </HiddenInFocus>

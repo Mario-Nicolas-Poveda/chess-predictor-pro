@@ -17,6 +17,12 @@ export function GuestStart({ className = '', statusClassName = '', children = 'J
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const id = useId();
+  // Safari devuelve la página desde el bfcache con "Entrando…" al tocar Atrás: se reactiva el botón
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => { if (e.persisted) setBusy(false); };
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
+  }, []);
 
   const go = async () => {
     if (busy) return;

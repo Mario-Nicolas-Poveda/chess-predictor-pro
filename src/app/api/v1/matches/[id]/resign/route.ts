@@ -7,4 +7,4 @@ import { MatchParamsSchema } from '@/modules/matchmaking/infrastructure/dto/matc
 export const POST = withAuth<{ id: string }>(async (_req, s, params) => {
   const { id } = parseParams(MatchParamsSchema, params);
   return ok({ state: await resign.execute(s.userId, id) });
-});
+}, { allow: 'any' });

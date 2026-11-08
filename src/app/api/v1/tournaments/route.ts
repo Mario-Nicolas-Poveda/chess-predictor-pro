@@ -9,4 +9,4 @@ export const GET = withAuth(async (req, s) => {
   if (r.notModified) return notModified(headers);
   // serverNow va fuera del ETag: sirve para las cuentas atrás del navegador
   return ok({ ...r.body, serverNow: new Date().toISOString() }, { headers });
-});
+}, { allow: 'any' });

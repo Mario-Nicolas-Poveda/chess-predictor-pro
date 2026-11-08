@@ -6,7 +6,7 @@ import { abortMatch, getMatch } from '@/modules/matchmaking/presentation/control
 
 // parseParams → 400 con fields.id si el id no es uuid (antes de llegar a Postgres)
 export const GET = withAuth<{ id: string }>(async (_req, s, params) =>
-  ok({ match: await getMatch.execute(s.userId, parseParams(MatchParamsSchema, params).id) }));
+  ok({ match: await getMatch.execute(s.userId, parseParams(MatchParamsSchema, params).id) }), { allow: 'any' });
 
 export const DELETE = withAuth<{ id: string }>(async (_req, s, params) => {
   await abortMatch.execute(s.userId, parseParams(MatchParamsSchema, params).id);

@@ -11,4 +11,4 @@ export const DELETE = withAuth<{ id: string }>(async (req, s, params) => {
   const { ply } = parseQuery(TakebackQuerySchema, req);   // 400 fields.ply
   await takeback.execute(s.userId, id, ply);
   return noContent();
-});
+}, { allow: 'any' });

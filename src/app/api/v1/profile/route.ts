@@ -10,7 +10,7 @@ import { getUserProfile, updateUserProfile } from '@/modules/dashboard/presentat
 const toDto = (p: User): Profile => ({ ...p, stats: { ...p.stats, winRate: winRate(p.stats) } });
 
 export const GET = withAuth(async (_req, s) =>
-  NextResponse.json({ profile: toDto(await getUserProfile.execute(s.userId)) }));
+  NextResponse.json({ profile: toDto(await getUserProfile.execute(s.userId)) }), { allow: 'any' });
 
 export const PATCH = withAuth(async (req, s) => {
   const p = await updateUserProfile.execute(s.userId, await readJson(req, UpdateProfileSchema));

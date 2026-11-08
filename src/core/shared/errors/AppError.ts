@@ -48,5 +48,8 @@ export class TooManyRequestsError extends AppError {
   }
 }
 export class ServiceUnavailableError extends AppError {
-  constructor(message = 'Servicio no disponible') { super('SERVICE_UNAVAILABLE', message, 503); }
+  // con retryAfterS, toErrorResponse pone Retry-After (como en el 429)
+  constructor(message = 'Servicio no disponible', code = 'SERVICE_UNAVAILABLE', public readonly retryAfterS?: number) {
+    super(code, message, 503, undefined, retryAfterS === undefined ? undefined : { retryAfterS });
+  }
 }
